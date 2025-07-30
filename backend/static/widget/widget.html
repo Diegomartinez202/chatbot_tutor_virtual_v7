@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chatbot Tutor Virtual</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f4f4f4;
+        }
+
+        .msg {
+            margin-bottom: 10px;
+        }
+
+        .bot {
+            color: #007bff;
+        }
+
+        .user {
+            text-align: right;
+            color: #444;
+        }
+
+        #input-form {
+            display: flex;
+            border-top: 1px solid #ccc;
+        }
+
+            #input-form input {
+                flex: 1;
+                padding: 10px;
+                border: none;
+            }
+
+            #input-form button {
+                padding: 10px;
+                border: none;
+                background: #007bff;
+                color: white;
+                cursor: pointer;
+            }
+
+        .menu-buttons, .submenu {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px;
+        }
+
+            .menu-buttons button, .submenu button {
+                padding: 10px;
+                font-size: 14px;
+                border: none;
+                border-radius: 5px;
+                background-color: #007bff;
+                color: white;
+                cursor: pointer;
+            }
+
+        .submenu {
+            display: none;
+            flex-direction: column;
+        }
+
+        .carousel-container {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+
+        .carousel {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+
+        .carousel-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 150px;
+            flex-shrink: 0;
+            text-align: center;
+            padding: 5px;
+        }
+
+            .carousel-item img {
+                width: 100%;
+                border-radius: 6px;
+            }
+
+        #formulario-soporte {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+            #formulario-soporte input, #formulario-soporte textarea {
+                display: block;
+                width: 100%;
+                margin-bottom: 5px;
+                padding: 8px;
+                border-radius: 5px;
+                border: 1px solid #ccc;
+            }
+
+            #formulario-soporte button {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages">
+            <div class="menu-buttons">
+                <button onclick="showSubmenu('temas')">📚 Temas de aprendizaje</button>
+                <button onclick="showSubmenu('zajuna')">🔐 Ingreso Zajuna</button>
+                <button onclick="showSubmenu('cursos')">🎓 Mis cursos</button>
+                <button onclick="showSubmenu('academico')">🏫 Proceso académico</button>
+                <button onclick="showSubmenu('soporte')">🛠️ Soporte técnico</button>
+                <button onclick="showSubmenu('info')">🤖 ¿Qué es este chatbot?</button>
+            </div>
+
+            <div class="submenu" id="submenu-temas">
+                <button>🧠 Inteligencia Artificial</button>
+                <button>💻 Programación Web</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+            <div class="submenu" id="submenu-zajuna">
+                <button>🔑 Recuperar contraseña</button>
+                <button>🔗 Enlace de ingreso</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+            <div class="submenu" id="submenu-cursos">
+                <button>📋 Ver cursos activos</button>
+                <button>📈 Progreso</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+            <div class="submenu" id="submenu-academico">
+                <button>📜 Certificados</button>
+                <button>📝 Inscripción</button>
+                <button>⏰ Horarios</button>
+                <button>👨‍🏫 Tutor asignado</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+            <div class="submenu" id="submenu-soporte">
+                <button>❓ Preguntas frecuentes</button>
+                <button onclick="mostrarFormularioSoporte()">📩 Contactar soporte</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+            <div class="submenu" id="submenu-info">
+                <button>ℹ️ Información general</button>
+                <button>💡 Cómo usar el chatbot</button>
+                <button onclick="backToMain()">⬅️ Volver</button>
+            </div>
+
+            <div id="carrusel-cursos" class="carousel-container" style="display: none; margin-top: 10px;">
+                <h4>Cursos recomendados 🎓</h4>
+                <div class="carousel">
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/150" alt="Curso 1" />
+                        <p><strong>Excel Básico</strong><br>🕒 20h • Virtual</p>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/150" alt="Curso 2" />
+                        <p><strong>Soldadura MIG</strong><br>🛠️ 40h • Presencial</p>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/150" alt="Curso 3" />
+                        <p><strong>Programación Web</strong><br>💻 60h • Virtual</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="formulario-soporte">
+                <h4>📨 Formulario de Soporte</h4>
+                <input id="soporte-nombre" placeholder="Tu nombre completo" />
+                <input id="soporte-email" placeholder="Correo de contacto" />
+                <textarea id="soporte-mensaje" placeholder="¿En qué necesitas ayuda?"></textarea>
+                <button onclick="enviarSoporte()">Enviar</button>
+            </div>
+        </div>
+
+        <form id="input-form">
+            <input type="text" id="user-input" placeholder="Escribe tu mensaje..." autocomplete="off" required />
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        const userId = new URLSearchParams(window.location.search).get("user_id") || "anonimo";
+        const messagesDiv = document.getElementById("messages");
+        const inputForm = document.getElementById("input-form");
+        const userInput = document.getElementById("user-input");
+
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement("div");
+            msgDiv.classList.add("msg", sender);
+            msgDiv.textContent = text;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showSubmenu(name) {
+            document.querySelector(".menu-buttons").style.display = "none";
+            document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
+            document.getElementById(`submenu-${name}`).style.display = "flex";
+        }
+
+        function backToMain() {
+            document.querySelector(".menu-buttons").style.display = "flex";
+            document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
+            document.getElementById("formulario-soporte").style.display = "none";
+        }
+
+        function mostrarFormularioSoporte() {
+            document.querySelector(".menu-buttons").style.display = "none";
+            document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
+            document.getElementById("formulario-soporte").style.display = "block";
+        }
+
+        inputForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+            sendMessageToBot({ sender: userId, message });
+            userInput.value = "";
+        });
+
+        async function sendMessageToBot(payload) {
+            addMessage(payload.message || payload, "user");
+            addMessage("⏳ Pensando...", "bot");
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-User-Id": userId
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const botReply = data?.responses?.[0]?.text || "🤖 No tengo respuesta para eso todavía.";
+                document.querySelectorAll(".msg.bot").slice(-1)[0].textContent = botReply;
+            } catch (err) {
+                document.querySelectorAll(".msg.bot").slice(-1)[0].textContent = "❌ Error de conexión con el chatbot.";
+            }
+        }
+
+        function enviarSoporte() {
+            const nombre = document.getElementById("soporte-nombre").value;
+            const email = document.getElementById("soporte-email").value;
+            const mensaje = document.getElementById("soporte-mensaje").value;
+
+            if (!nombre || !email || !mensaje) {
+                alert("⚠️ Por favor completa todos los campos.");
+                return;
+            }
+
+            const payload = {
+                sender: userId,
+                message: `/enviar_soporte{"nombre": "${nombre}", "email": "${email}", "mensaje": "${mensaje}"}`
+            };
+
+            sendMessageToBot(payload);
+
+            document.getElementById("soporte-nombre").value = "";
+            document.getElementById("soporte-email").value = "";
+            document.getElementById("soporte-mensaje").value = "";
+
+            alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
+        }
+
+        document.getElementById("carrusel-cursos").style.display = "block";
+    </script>
+</body>
+</html>

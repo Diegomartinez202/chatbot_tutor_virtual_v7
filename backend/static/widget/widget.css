@@ -1,0 +1,36 @@
+.chatbox {
+    border: 1px solid #ccc;
+    height: 300px;
+    overflow-y: scroll;
+    padding: 10px;
+    background: #fff;
+    margin-bottom: 10px;
+}
+
+.msg.user {
+    text-align: right;
+    color: green;
+}
+
+.msg.bot {
+    text-align: left;
+    color: navy;
+}
+
+.menu-buttons button,
+.submenu button,
+#formulario-soporte button {
+    margin: 4px;
+    padding: 8px 12px;
+    background-color: #00743c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#formulario-soporte {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}

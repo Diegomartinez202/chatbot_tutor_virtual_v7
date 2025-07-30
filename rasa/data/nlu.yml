@@ -1,0 +1,128 @@
+version: "3.1"
+
+nlu:
+- intent: saludo
+  examples: |
+    - hola
+    - buenas
+    - hey
+    - qué más
+    - buen día
+
+- intent: explorar_temas
+  examples: |
+    - quiero ver cursos
+    - qué temas puedo aprender
+    - explorar contenidos
+
+- intent: ingreso_zajuna
+  examples: |
+    - quiero ingresar a zajuna
+    - cómo inicio sesión
+    - tengo problemas para entrar
+
+- intent: recuperar_contrasena
+  examples: |
+    - sí, quiero recuperar mi contraseña
+    - olvidé mi clave
+    - recuperar la contraseña
+
+- intent: otro_problema_acceso
+  examples: |
+    - no es por la contraseña
+    - otro problema de acceso
+    - no puedo entrar pero no es por clave
+
+- intent: proceso_academico
+  examples: |
+    - quiero ver mi proceso académico
+    - temas administrativos
+    - proceso estudiantil
+
+- intent: ver_certificados
+  examples: |
+    - quiero ver mis certificados
+    - certificados que tengo
+    - ver diplomas
+
+- intent: tutor_asignado
+  examples: |
+    - quién es mi tutor
+    - ver mi tutor
+    - profesor asignado
+
+- intent: horarios_calendario
+  examples: |
+    - ver horario
+    - calendario de clases
+    - fechas académicas
+
+- intent: soporte_tecnico
+  examples: |
+    - necesito soporte técnico
+    - ayuda con la plataforma
+    - problemas técnicos
+
+- intent: problema_no_ingreso
+  examples: |
+    - no puedo ingresar
+    - la plataforma no me deja entrar
+
+- intent: pantalla_blanca
+  examples: |
+    - pantalla en blanco
+    - no se carga nada
+    - veo todo blanco
+
+- intent: error_actividad
+  examples: |
+    - error al abrir una actividad
+    - me sale error al acceder a contenido
+
+- intent: otro_problema_tecnico
+  examples: |
+    - otro tipo de error técnico
+    - diferente problema técnico
+
+- intent: escalar_humano
+  examples: |
+    - quiero hablar con alguien
+    - pasar con un agente humano
+
+- intent: confirmacion_escalar_humano
+  examples: |
+    - sí, quiero hablar con humano
+    - sí por favor
+
+- intent: negar_escalar
+  examples: |
+    - no gracias, sigo con el bot
+    - mejor no
+
+- intent: estado_estudiante
+  examples: |
+    - estoy activo este semestre
+    - cuál es mi estado académico
+
+- intent: cambiar_idioma_ingles
+  examples: |
+    - quiero usar el chat en inglés
+    - change to english
+
+- intent: cambiar_idioma_espanol
+  examples: |
+    - volver a español
+    - regresar a idioma español
+
+- intent: inscribirme
+  examples: |
+    - quiero inscribirme a ese curso
+    - me interesa ese curso
+
+- intent: enviar_correo
+  examples: |
+    - mi correo es daniel@example.com
+    - usuario@ejemplo.com
+    - estudiante@zajuna.edu
+  entities:
+    - email

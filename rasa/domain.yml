@@ -1,0 +1,158 @@
+version: "3.1"
+
+intents:
+  - saludo
+  - explorar_temas
+  - ingreso_zajuna
+  - recuperar_contrasena
+  - otro_problema_acceso
+  - proceso_academico
+  - ver_certificados
+  - tutor_asignado
+  - horarios_calendario
+  - soporte_tecnico
+  - problema_no_ingreso
+  - pantalla_blanca
+  - error_actividad
+  - otro_problema_tecnico
+  - escalar_humano
+  - confirmacion_escalar_humano
+  - negar_escalar
+  - estado_estudiante
+  - cambiar_idioma_ingles
+  - cambiar_idioma_espanol
+  - inscribirme
+  - enviar_correo
+  - affirm
+  - deny
+  - fallback
+
+entities:
+  - email
+
+slots:
+  email:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: email
+
+responses:
+
+  utter_saludo:
+    - text: "🤖 ¡Hola! ¿En qué puedo ayudarte hoy?"
+      buttons:
+        - title: "🔍 Explorar temas"
+          payload: "/explorar_temas"
+        - title: "📥 Ingreso a Zajuna"
+          payload: "/ingreso_zajuna"
+        - title: "📚 Mis cursos y contenidos"
+          payload: "/explorar_temas"
+        - title: "🧾 Proceso académico / administrativo"
+          payload: "/proceso_academico"
+        - title: "🛠️ Soporte técnico"
+          payload: "/soporte_tecnico"
+
+  utter_cursos_recomendados:
+    - text: "📘 Aquí tienes algunos cursos que podrían interesarte:"
+      buttons:
+        - title: "🟩 Python Básico – Ago 2025"
+          payload: "/inscribirme"
+        - title: "🟩 IA Educativa – Sep 2025"
+          payload: "/inscribirme"
+
+  utter_preguntar_problema_acceso:
+    - text: "🤖 Entiendo. ¿Tienes problemas de acceso? ¿Deseas recuperar tu contraseña?"
+      buttons:
+        - title: "✅ Sí, recuperar contraseña"
+          payload: "/recuperar_contrasena"
+        - title: "❌ No, otro problema"
+          payload: "/otro_problema_acceso"
+
+  utter_pedir_correo:
+    - text: "📩 Por favor, dime tu correo para enviarte el enlace de recuperación."
+
+  utter_confirmar_recuperacion:
+    - text: "✅ ¡Perfecto! Revisa tu bandeja de entrada."
+
+  utter_menu_proceso_academico:
+    - text: "¿Sobre qué deseas información?"
+      buttons:
+        - title: "🧑‍🏫 Tutor asignado"
+          payload: "/tutor_asignado"
+        - title: "📄 Certificados"
+          payload: "/ver_certificados"
+        - title: "📅 Horarios y calendario"
+          payload: "/horarios_calendario"
+
+  utter_certificados_info:
+    - text: |
+        🧾 Python Básico – Nov 2024  
+        🧾 IA Educativa – Ene 2025
+      buttons:
+        - title: "🔗 Descargar todos"
+          payload: "/ver_certificados"
+        - title: "🟢 Ver detalles"
+          payload: "/ver_certificados"
+
+  utter_tutor_asignado:
+    - text: |
+        👨‍🏫 Tu tutor actual es:  
+        Nombre: Prof. Ana María Restrepo  
+        Email: ana.restrepo@zajuna.edu  
+        Horario: Lun y Mié 10:00 – 12:00
+      buttons:
+        - title: "📅 Ver disponibilidad"
+          payload: "/tutor_asignado"
+        - title: "✉️ Enviar mensaje"
+          payload: "/tutor_asignado"
+
+  utter_soporte_tecnico:
+    - text: "🤖 Lo siento 😟 ¿Qué tipo de problema estás experimentando?"
+      buttons:
+        - title: "🔌 No puedo ingresar"
+          payload: "/problema_no_ingreso"
+        - title: "🖥️ Pantalla en blanco"
+          payload: "/pantalla_blanca"
+        - title: "🐞 Error al abrir actividad"
+          payload: "/error_actividad"
+        - title: "❓ Otro problema"
+          payload: "/otro_problema_tecnico"
+
+  utter_estado_estudiante:
+    - text: "🎓 Estás **activo** para el periodo académico 2025-2."
+
+  utter_cambio_idioma_ingles:
+    - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
+
+  utter_cambio_idioma_espanol:
+    - text: "Volvamos a Español 🇪🇸"
+
+  utter_escalar_humano:
+    - text: "🤖 ¿Quieres que te comunique con un agente humano?"
+      buttons:
+        - title: "✅ Sí, por favor"
+          payload: "/confirmacion_escalar_humano"
+        - title: "❌ No, seguir con bot"
+          payload: "/negar_escalar"
+
+  utter_confirmar_escalado:
+    - text: "🔁 Te estoy conectando con un agente humano, por favor espera..."
+
+  utter_gracias_continuar:
+    - text: "👍 Perfecto, sigamos aquí en el chat."
+
+  utter_confirmacion_inscripcion:
+    - text: "✅ Estás inscrito al curso. Te enviaremos confirmación por correo."
+
+  utter_default:
+    - text: "❌ Lo siento, no entendí eso. ¿Podrías reformularlo por favor?"
+
+actions:
+  - action_enviar_correo
+  - action_conectar_humano
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

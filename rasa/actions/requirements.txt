@@ -1,0 +1,5 @@
+rasa==3.6.10
+python-dotenv
+pymongo
+smtplib
+email-validator

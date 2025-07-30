@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pymongo
+python-dotenv
+rasa==3.1.2
+requests
+httpx
+jinja2
+python-multipart
+email-validator

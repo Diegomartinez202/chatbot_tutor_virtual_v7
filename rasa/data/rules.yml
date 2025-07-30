@@ -1,0 +1,45 @@
+version: "3.1"
+
+rules:
+
+# 1. Saludo inicial
+- rule: Saludo del chatbot
+  steps:
+    - intent: saludo
+    - action: utter_saludo_inicial
+
+# 2. Recuperación de contraseña
+- rule: Flujo de recuperación de contraseña
+  steps:
+    - intent: recuperar_contraseña
+    - action: utter_solicitar_correo
+    - intent: proporcionar_correo
+    - action: action_enviar_correo
+
+# 3. Escalar a humano
+- rule: Escalar conversación a humano
+  steps:
+    - intent: escalar_a_humano
+    - action: action_conectar_humano
+
+# 4. Consultar certificados
+- rule: Consulta de certificados
+  steps:
+    - intent: ver_certificados
+    - action: utter_solicitar_correo
+    - intent: proporcionar_correo
+    - action: action_enviar_correo
+
+# 5. Consultar tutor asignado
+- rule: Consultar tutor asignado
+  steps:
+    - intent: tutor_asignado   # ← debe coincidir con el nlu.yml
+    - action: utter_solicitar_correo
+    - intent: enviar_correo    # ← unifica el nombre en todas partes
+    - action: action_consultar_tutor
+
+# 6. Fallback para entradas no reconocidas
+- rule: Responder con fallback si el intent no se entiende
+  steps:
+    - intent: nlu_fallback
+    - action: utter_fallback

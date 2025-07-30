@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+
+  rasa:
+    volumes:
+      - ./rasa:/app
+
+  action_server:
+    volumes:
+      - ./rasa/actions:/app/actions

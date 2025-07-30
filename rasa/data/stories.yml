@@ -1,0 +1,47 @@
+version: "3.1"
+
+stories:
+- story: Flujo de saludo y exploración
+  steps:
+  - intent: saludo
+  - action: utter_saludo
+  - intent: explorar_temas
+  - action: utter_cursos_recomendados
+
+- story: Flujo de recuperación de contraseña
+  steps:
+  - intent: ingreso_zajuna
+  - action: utter_preguntar_problema_acceso
+  - intent: recuperar_contrasena
+  - action: utter_pedir_correo
+  - intent: enviar_correo
+  - action: action_enviar_correo
+  - action: utter_confirmar_recuperacion
+
+- story: Flujo proceso académico
+  steps:
+  - intent: proceso_academico
+  - action: utter_menu_proceso_academico
+  - intent: tutor_asignado
+  - action: utter_tutor_asignado
+  - intent: ver_certificados
+  - action: utter_certificados_info
+  - intent: horarios_calendario
+  - action: utter_menu_proceso_academico
+
+- story: Flujo soporte técnico
+  steps:
+  - intent: soporte_tecnico
+  - action: utter_soporte_tecnico
+  - intent: problema_no_ingreso
+  - action: utter_soporte_tecnico
+  - intent: error_actividad
+  - action: utter_soporte_tecnico
+
+- story: Escalar a humano
+  steps:
+  - intent: escalar_humano
+  - action: utter_escalar_humano
+  - intent: confirmacion_escalar_humano
+  - action: action_conectar_humano
+  - action: utter_confirmar_escalado

@@ -1,0 +1,54 @@
+# === SISTEMA ===
+.env
+*.log
+*.pyc
+__pycache__/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === PYTHON ===
+*.egg-info/
+.eggs/
+*.egg
+*.bak
+.cache/
+dist/
+build/
+.mypy_cache/
+pytest_cache/
+.coverage
+
+# === NODE / REACT (Vite) ===
+node_modules/
+admin-panel-react/node_modules/
+admin-panel-react/dist/
+
+# === RASA ===
+rasa/models/
+rasa/__pycache__/
+rasa/actions/__pycache__/
+
+# === DOCKER ===
+docker/mongo_data/
+docker/init-mongo.js
+docker/.env
+
+# === PRUEBAS ===
+test_logs/
+tests/__pycache__/
+backend/test/__pycache__/
+test_env.py
+test_all.py
+
+# === VISUAL STUDIO 2022 ===
+.vs/
+*.user
+*.suo
+
+# === ZIP / RESPALDOS ===
+*.zip
+*.rar
+scripts/backup/
