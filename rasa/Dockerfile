@@ -1,8 +1,9 @@
-# 🤖 Rasa Core
+# 🤖 Rasa Bot - versión 3.6.10
 FROM rasa/rasa:3.6.10
 
 WORKDIR /app
 COPY . .
 
-# Entrena automáticamente
-CMD ["run", "--enable-api", "--cors", "*", "--debug"]
+EXPOSE 5005
+
+CMD ["rasa", "run", "--enable-api", "--cors", "*", "--debug"]

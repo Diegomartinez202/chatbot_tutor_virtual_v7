@@ -1,18 +1,18 @@
-# Dockerfile para FastAPI (dentro de /backend)
+# 🐍 Dockerfile oficial para Railway con FastAPI modular en /backend
 FROM python:3.10-slim
 
-# Establecer directorio de trabajo dentro del contenedor
+# Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar todo el contenido del proyecto, incluyendo requirements.txt
+# Copiar todo el contenido del proyecto al contenedor
 COPY . .
 
 # Instalar dependencias
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto 8000
+# Exponer el puerto donde correrá FastAPI
 EXPOSE 8000
 
-# Comando por defecto para ejecutar la app con main.py dentro de backend
+# Ejecutar FastAPI desde backend/main.py
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
