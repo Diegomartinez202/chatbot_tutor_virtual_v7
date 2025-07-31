@@ -1,30 +1,22 @@
-# backend/db/mongodb.py
-
 from pymongo import MongoClient, errors
-import os
-from dotenv import load_dotenv
-
-# 🌍 Cargar variables del .env
-load_dotenv()
+from backend.settings import settings  # ✅ Usamos el nuevo sistema
 
 # === Configuración de conexión ===
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/?retryWrites=true&w=majority")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "chatbot_tutor_virtual_v2")
+MONGO_URI = settings.mongo_uri
+MONGO_DB_NAME = settings.mongo_db_name
 
 # 🌐 Inicializar cliente con reconexión automática
 try:
     client = MongoClient(
         MONGO_URI,
-        serverSelectionTimeoutMS=5000,   # ⏱️ Tiempo máx. para esperar conexión
-        connectTimeoutMS=5000,           # ⏳ Tiempo máx. para conexión inicial
-        socketTimeoutMS=5000,            # 🔁 Tiempo máx. para cada operación
-        retryWrites=True,                # 🔁 Reintenta escrituras automáticamente
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+        socketTimeoutMS=5000,
+        retryWrites=True,
     )
-    # Test de conexión
     client.admin.command("ping")
     print("✅ Conexión exitosa a MongoDB:", MONGO_URI)
 
-    # Crear índice único en el campo email si no existe
     client[MONGO_DB_NAME]["users"].create_index("email", unique=True)
     print("✅ Índice único en 'email' creado/verificado")
 
