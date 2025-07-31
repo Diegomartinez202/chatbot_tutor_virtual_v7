@@ -3,9 +3,8 @@ FROM rasa/rasa-sdk:3.6.2
 
 WORKDIR /app/actions
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Copiar solo las acciones, no el resto del proyecto
 COPY . .
 
+# Inicia el servidor de acciones
 CMD ["start", "--actions", "actions"]

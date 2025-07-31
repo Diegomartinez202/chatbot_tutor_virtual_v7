@@ -1,52 +1,55 @@
 # === SISTEMA GENERAL ===
 .env
+*.env
 *.log
 *.pyc
 __pycache__/
 .vscode/
+.idea/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
+*.bak
+*.zip
+*.rar
 
 # === PYTHON ===
 *.egg-info/
 .eggs/
 *.egg
-*.bak
 .cache/
 dist/
 build/
 .mypy_cache/
 pytest_cache/
 .coverage
+venv/
+backend/test/__pycache__/
+tests/__pycache__/
+
+# === RASA ===
+rasa/models/
+rasa/__pycache__/
+rasa/actions/__pycache__/
+rasa/actions/requirements.txt.bak
 
 # === NODE / REACT (Vite) ===
 node_modules/
 admin-panel-react/node_modules/
 admin-panel-react/dist/
+admin-panel-react/.env.local
 
-# === RASA MODELS Y CACHÉ ===
-rasa/models/
-rasa/__pycache__/
-rasa/actions/__pycache__/
-
-# === DOCKER DATA ===
-docker/mongo_data/
+# === DOCKER ===
 docker/.env
+docker/mongo_data/
+docker/*-cache
+docker-compose.override.yml
 
-# === PRUEBAS (ajusta si quieres incluir test_env.py) ===
-backend/test/__pycache__/
-tests/__pycache__/
-# test_env.py
-# test_all.py
-
-# === VISUAL STUDIO 2022 ===
+# === VISUAL STUDIO ===
 .vs/
 *.user
 *.suo
 
-# === ARCHIVOS TEMPORALES / RESPALDOS ===
-*.zip
-*.rar
+# === SCRIPTS y TEMPORALES ===
 scripts/backup/

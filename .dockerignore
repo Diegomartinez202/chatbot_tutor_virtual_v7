@@ -1,0 +1,26 @@
+# Evitar copiar innecesarios al build
+
+# Git
+.git
+.gitignore
+
+# Logs y temporales
+*.log
+*.swp
+*.bak
+*.tmp
+.DS_Store
+
+# IDEs y config local
+.vscode
+.idea
+
+# Node
+node_modules
+dist
+build
+
+# Python
+__pycache__
+*.pyc
+.env

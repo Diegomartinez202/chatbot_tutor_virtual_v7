@@ -1,6 +1,14 @@
 version: "3.9"
 
 services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/init_mongo.js:/docker-entrypoint-initdb.d/init_mongo.js:ro
 
   rasa:
     build:
@@ -12,16 +20,21 @@ services:
       - ./rasa:/app
     command: >
       bash -c "rasa train && rasa run --enable-api --cors '*' --debug"
+    depends_on:
+      - mongodb
 
   action_server:
     build:
       context: .
-      dockerfile: docker/Dockerfile.rasa
+      dockerfile: docker/Dockerfile.actions
     ports:
       - "5055:5055"
     volumes:
       - ./rasa/actions:/app/actions
     command: rasa run actions --debug
+    depends_on:
+      - rasa
+      - mongodb
 
   backend:
     build:
@@ -31,17 +44,12 @@ services:
       - "8000:8000"
     env_file:
       - docker/.env
+    volumes:
+      - ./backend:/app
     depends_on:
       - rasa
+      - action_server
       - mongodb
-
-  mongodb:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-      - ./docker/init_mongo.js:/docker-entrypoint-initdb.d/init_mongo.js:ro
 
 volumes:
   mongo_data:

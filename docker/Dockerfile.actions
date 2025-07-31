@@ -1,11 +1,11 @@
-# 🧠 Action Server para Rasa
+# 🧠 Rasa Action Server
 FROM rasa/rasa-sdk:3.6.2
 
 WORKDIR /app/actions
 
-COPY requirements.txt ./
+COPY rasa/actions/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY rasa/actions/ .
 
 CMD ["start", "--actions", "actions"]
