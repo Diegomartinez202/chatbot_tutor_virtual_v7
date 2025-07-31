@@ -1,4 +1,4 @@
-# main.py (ubicado en la raíz del proyecto)
+# backend/main.py
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -8,9 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
-from backend.routes import router         # ✅ Agrupa todos los routers del sistema
-from backend.utils.logger import logger   # ✅ Asegúrate de que utils está en backend/
 
+from backend.routes import router as api_router  # ✅ Todas las rutas centralizadas
+from backend.utils.logger import logger          # ✅ Logger personalizado
+
+# ===============================
+# 🚀 Inicializar FastAPI
+# ===============================
 app = FastAPI(
     title="Chatbot Tutor Virtual API",
     description="Backend para gestión de intents, autenticación, logs y estadísticas del Chatbot Tutor Virtual",
@@ -20,41 +24,40 @@ app = FastAPI(
 )
 
 # ===============================
-# 🔐 CORS
+# 🔐 Middleware CORS
 # ===============================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ En producción restringir
+    allow_origins=["*"],  # ⚠️ En producción, restringe esto a dominios seguros
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ===============================
-# 📁 Archivos Estáticos y Plantillas
+# 📁 Archivos estáticos
 # ===============================
 app.mount("/static", StaticFiles(directory="backend/static"), name="static")
 templates = Jinja2Templates(directory="backend/templates")
 
 # ===============================
-# 🔀 Rutas principales del sistema
+# 🔀 Rutas API
 # ===============================
-app.include_router(router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
+app.include_router(api_router, prefix="/api")
 
 # ===============================
-# 📎 Archivos estáticos directos
+# 📎 Ruta favicon
 # ===============================
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("backend/static/widget/favicon.ico")
 
 # ===============================
-# 🌐 Ruta de prueba inicial
+# 🌐 Ruta raíz
 # ===============================
 @app.get("/")
 def root():
     return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
 
-# ✅ Log de arranque
-logger.info("🚀 FastAPI iniciado correctamente y montando rutas /api")
+# ✅ Mensaje de log al arrancar
+logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")

@@ -1,19 +1,21 @@
 # docker/Dockerfile.backend
 
-FROM python:3.10
+FROM python:3.10-slim
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements y luego instalar dependencias
-COPY backend/requirements.txt ./requirements.txt
+# Copiar requirements.txt desde la raíz
+COPY requirements.txt .
+
+# Instalar dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo el proyecto, incluyendo /backend y main.py
+# Copiar todo el contenido del proyecto
 COPY . .
 
-# Exponer el puerto
+# Exponer puerto para FastAPI
 EXPOSE 8000
 
-# Comando para ejecutar FastAPI
+# Comando para correr FastAPI (usando main.py en la raíz)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
