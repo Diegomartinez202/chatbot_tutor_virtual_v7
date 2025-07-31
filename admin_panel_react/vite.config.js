@@ -5,7 +5,7 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // útil para despliegues en subdirectorios (como GitHub Pages)
+  base: './', // ï¿½til para despliegues en subdirectorios (como GitHub Pages)
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -13,7 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: true, // abre el navegador automáticamente
+    open: true, // abre el navegador automï¿½ticamente
     host: 'localhost'
   },
   define: {
