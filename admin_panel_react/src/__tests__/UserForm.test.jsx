@@ -38,3 +38,43 @@ test("🧾 Renderiza inputs y permite envío de datos correctamente", () => {
         rol: "admin",
     });
 });
+test("⚠️ Muestra alerta si falta email o contraseña y no envía datos", () => {
+    const mockSubmit = jest.fn();
+    window.alert = jest.fn(); // Mock del alert
+
+    render(<UserForm onSubmit={mockSubmit} />);
+
+    // ❌ No llenamos email ni password
+    fireEvent.change(screen.getByPlaceholderText("Nombre"), {
+        target: { value: "Daniel" },
+    });
+
+    fireEvent.click(screen.getByText("Crear"));
+
+    // ❌ No debe enviar datos
+    expect(mockSubmit).not.toHaveBeenCalled();
+
+    // ✅ Debe mostrar alerta
+    expect(window.alert).toHaveBeenCalledWith("Email y contraseña son obligatorios");
+});
+test("🧼 Limpia campos luego de enviar formulario correctamente", () => {
+    const mockSubmit = jest.fn();
+
+    render(<UserForm onSubmit={mockSubmit} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Nombre"), {
+        target: { value: "Daniel" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+        target: { value: "daniel@test.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), {
+        target: { value: "12345678" },
+    });
+
+    fireEvent.click(screen.getByText("Crear"));
+
+    expect(screen.getByPlaceholderText("Nombre").value).toBe("");
+    expect(screen.getByPlaceholderText("Email").value).toBe("");
+    expect(screen.getByPlaceholderText("Contraseña").value).toBe("");
+});
