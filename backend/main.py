@@ -2,15 +2,14 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
-
-from backend.routes import router as api_router  # ✅ Todas las rutas centralizadas
-from backend.utils.logger import logger          # ✅ Logger personalizado
+from backend.routes import router as api_router  
+from backend.utils.logger import logger         
 
 # ===============================
 # 🚀 Inicializar FastAPI
