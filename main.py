@@ -1,4 +1,4 @@
-# backend/main.py
+# main.py (ubicado en la raíz del proyecto)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -8,10 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
-from backend.routes import admin  # ✅ Este sí tiene logs_por_dia
-from backend.routes import router  # Agrupa todos los routers del sistema
-from utils.logger import logger    # ✅ Importar logger
-from routes import admin 
+from backend.routes import router         # ✅ Agrupa todos los routers del sistema
+from backend.utils.logger import logger   # ✅ Asegúrate de que utils está en backend/
+
 app = FastAPI(
     title="Chatbot Tutor Virtual API",
     description="Backend para gestión de intents, autenticación, logs y estadísticas del Chatbot Tutor Virtual",
@@ -25,7 +24,7 @@ app = FastAPI(
 # ===============================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ En producción cambiar por dominio específico
+    allow_origins=["*"],  # ⚠️ En producción restringir
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
