@@ -1,11 +1,10 @@
-import os
-import smtplib
 from email.mime.text import MIMEText
 from pymongo import MongoClient
 from typing import Any, Text, Dict, List
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
+from backend.settings import settings  # ✅ Configuración centralizada
 
 class ActionEnviarSoporte(Action):
     def name(self) -> Text:
@@ -27,10 +26,8 @@ class ActionEnviarSoporte(Action):
 
         # 📦 Guardar en MongoDB
         try:
-            mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-            mongo_db = os.getenv("MONGO_DB_NAME", "chatbot_db")
-            client = MongoClient(mongo_uri)
-            db = client[mongo_db]
+            client = MongoClient(settings.mongo_uri)
+            db = client[settings.mongo_db_name]
             db.soporte.insert_one({
                 "nombre": nombre,
                 "email": email,
@@ -45,18 +42,21 @@ class ActionEnviarSoporte(Action):
 
         # 📧 Enviar correo
         try:
-            smtp_user = os.getenv("SMTP_USER", "tubot@zajuna.edu.co")
-            smtp_pass = os.getenv("SMTP_PASS", "")
-            to = os.getenv("EMAIL_TO", smtp_user)
-
-            msg = MIMEText(f"📩 Nueva solicitud de soporte\n\n👤 Nombre: {nombre}\n📧 Email: {email}\n📝 Mensaje:\n{mensaje}")
+            msg = MIMEText(
+                f"📩 Nueva solicitud de soporte\n\n"
+                f"👤 Nombre: {nombre}\n"
+                f"📧 Email: {email}\n"
+                f"📝 Mensaje:\n{mensaje}"
+            )
             msg["Subject"] = "🛠️ Nueva solicitud de soporte"
-            msg["From"] = smtp_user
-            msg["To"] = to
+            msg["From"] = settings.smtp_user
+            msg["To"] = settings.email_to
 
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, to, msg.as_string())
+            import smtplib
+            with smtplib.SMTP_SSL(settings.smtp_server, settings.smtp_port) as server:
+                server.login(settings.smtp_user, settings.smtp_pass)
+                server.sendmail(settings.smtp_user, settings.email_to, msg.as_string())
+
             print("✅ Correo de soporte enviado.")
         except Exception as e:
             print(f"❌ Error enviando correo: {e}")
@@ -65,7 +65,6 @@ class ActionEnviarSoporte(Action):
 
         dispatcher.utter_message("✅ Hemos recibido tu solicitud de soporte. Te contactaremos pronto.")
 
-        # 🧹 Limpiar slots
         return [
             SlotSet("nombre", None),
             SlotSet("email", None),
