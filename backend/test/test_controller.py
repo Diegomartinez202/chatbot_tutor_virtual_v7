@@ -1,51 +1,92 @@
 # backend/routes/test_controller.py
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Request
+from backend.dependencies.auth import require_role
+from backend.services.log_service import log_access
+import time
 import subprocess
 import requests
 
-from backend.dependencies.auth import require_role
-from backend.services.log_service import log_access
-
 router = APIRouter()
 
-# =====================================
-# ✅ Test de conectividad general
-# =====================================
-@router.get("/admin/ping", summary="🔋 Test de conexión backend")
-def ping_test(payload=Depends(require_role(["admin", "soporte"]))):
+# 🔹 1. Test general (simula script de pruebas)
+@router.post("/admin/test-all", summary="🧪 Ejecutar pruebas del sistema")
+def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin"]))):
+    start_time = time.time()
+
+    try:
+        resultado = subprocess.run(["bash", "scripts/test_all.sh"], capture_output=True, text=True)
+        duracion = round(time.time() - start_time, 2)
+
+        log_access(
+            user_id=payload["_id"],
+            email=payload["email"],
+            rol=payload["rol"],
+            endpoint="/admin/test-all",
+            method="POST",
+            status=200 if resultado.returncode == 0 else 500,
+            extra={
+                "duracion": f"{duracion}s",
+                "ip": request.client.host,
+                "user_agent": request.headers.get("user-agent"),
+                "salida": resultado.stdout[:300]
+            }
+        )
+
+        return {
+            "success": resultado.returncode == 0,
+            "message": resultado.stdout,
+            "error": resultado.stderr if resultado.returncode != 0 else None,
+            "duracion": f"{duracion}s"
+        }
+
+    except Exception as e:
+        log_access(
+            user_id=payload["_id"],
+            email=payload["email"],
+            rol=payload["rol"],
+            endpoint="/admin/test-all",
+            method="POST",
+            status=500,
+            extra={"error": str(e), "ip": request.client.host, "user_agent": request.headers.get("user-agent")}
+        )
+        return {"success": False, "message": "Error ejecutando test", "error": str(e)}
+
+
+# 🔹 2. Test de conexión al backend
+@router.get("/admin/ping", summary="🟢 Test de conexión al backend")
+def ping_backend(request: Request, payload=Depends(require_role(["admin"]))):
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
         endpoint="/admin/ping",
         method="GET",
-        status=200
+        status=200,
+        extra={"ip": request.client.host, "user_agent": request.headers.get("user-agent")}
     )
-    return {"status": "✅ Backend activo", "code": 200}
+    return {"message": "✅ Backend activo", "pong": True}
 
 
-# =====================================
-# 🤖 Verificar conexión con Rasa
-# =====================================
-@router.get("/admin/rasa/status", summary="🤖 Estado del servidor Rasa")
-def rasa_status(payload=Depends(require_role(["admin", "soporte"]))):
+# 🔹 3. Verifica conexión con Rasa
+@router.get("/admin/rasa/status", summary="🤖 Verificar conexión con Rasa")
+def status_rasa(request: Request, payload=Depends(require_role(["admin"]))):
     try:
-        response = requests.get("http://localhost:5005/status")
-        response.raise_for_status()
-        status = response.json()
-
+        response = requests.get("http://rasa:5005/status")
         log_access(
             user_id=payload["_id"],
             email=payload["email"],
             rol=payload["rol"],
             endpoint="/admin/rasa/status",
             method="GET",
-            status=200
+            status=response.status_code,
+            extra={"ip": request.client.host, "user_agent": request.headers.get("user-agent")}
         )
+        return {
+            "success": response.status_code == 200,
+            "rasa_status": response.json()
+        }
 
-        return {"status": "🧠 Rasa conectado", "details": status}
     except Exception as e:
         log_access(
             user_id=payload["_id"],
@@ -53,49 +94,11 @@ def rasa_status(payload=Depends(require_role(["admin", "soporte"]))):
             rol=payload["rol"],
             endpoint="/admin/rasa/status",
             method="GET",
-            status=503
+            status=500,
+            extra={"error": str(e), "ip": request.client.host, "user_agent": request.headers.get("user-agent")}
         )
-        return JSONResponse(
-            status_code=503,
-            content={"error": "❌ No se pudo conectar a Rasa", "details": str(e)}
-        )
-
-
-# =====================================
-# 🧪 Ejecutar test_all.sh (simulación o real)
-# =====================================
-@router.post("/admin/test-all", summary="🧪 Ejecutar pruebas del sistema")
-def ejecutar_pruebas(payload=Depends(require_role(["admin"]))):
-    try:
-        result = subprocess.run(["bash", "scripts/test_all.sh"], capture_output=True, text=True, check=True)
-
-        log_access(
-            user_id=payload["_id"],
-            email=payload["email"],
-            rol=payload["rol"],
-            endpoint="/admin/test-all",
-            method="POST",
-            status=200
-        )
-
         return {
-            "message": "✅ Pruebas ejecutadas correctamente",
-            "output": result.stdout
+            "success": False,
+            "message": "❌ No se pudo conectar con Rasa",
+            "error": str(e)
         }
-
-    except subprocess.CalledProcessError as e:
-        log_access(
-            user_id=payload["_id"],
-            email=payload["email"],
-            rol=payload["rol"],
-            endpoint="/admin/test-all",
-            method="POST",
-            status=500
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "❌ Error al ejecutar pruebas",
-                "details": e.stderr or str(e)
-            }
-        )

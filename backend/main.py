@@ -62,3 +62,10 @@ def root():
 # ✅ Mensaje de log al arrancar
 logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")
 
+# ✅ Middleware global para IP y User-Agent
+@app.middleware("http")
+async def add_ip_and_user_agent(request: Request, call_next):
+    request.state.ip = request.client.host
+    request.state.user_agent = request.headers.get("user-agent")
+    response = await call_next(request)
+    return response
