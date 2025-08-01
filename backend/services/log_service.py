@@ -44,3 +44,22 @@ def marcar_mensajes_como_leidos(user_id: str):
         {"$set": {"leido": True}}
     )
     return result.modified_count
+def get_logs(limit: int = 100):
+    collection = get_logs_collection()
+    logs = list(collection.find({"tipo": "acceso"}).sort("timestamp", -1).limit(limit))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+    return logs
+def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, status: int):
+    collection = get_logs_collection()
+    log_entry = {
+        "user_id": user_id,
+        "email": email,
+        "rol": rol,
+        "endpoint": endpoint,
+        "method": method,
+        "status": status,
+        "timestamp": datetime.utcnow(),
+        "tipo": "acceso"
+    }
+    collection.insert_one(log_entry)
