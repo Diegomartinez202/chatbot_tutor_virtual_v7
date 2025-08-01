@@ -14,12 +14,12 @@ import re
 
 router = APIRouter(prefix="/api", tags=["Logs"])
 
-# 🔹 1. Listar archivos de log locales
+# 📄 1. Listar archivos de log locales
 @router.get("/admin/logs", summary="📄 Listar archivos de log disponibles")
 def listar_logs(payload: dict = Depends(require_role(["admin", "soporte"]))):
     return listar_archivos_log()
 
-# 🔹 2. Descargar archivo de log por nombre
+# ⬇️ 2. Descargar archivo de log
 @router.get("/admin/logs/{filename}", summary="⬇️ Descargar archivo de log")
 def descargar_log(filename: str, payload: dict = Depends(require_role(["admin", "soporte"]))):
     if not re.match(r"^train_.*\.log$", filename):
@@ -31,7 +31,7 @@ def descargar_log(filename: str, payload: dict = Depends(require_role(["admin", 
 
     return FileResponse(file_path, media_type="text/plain", filename=filename)
 
-# 🔹 3. Exportar logs de MongoDB a CSV
+# 📤 3. Exportar logs a CSV
 @router.get("/admin/logs/export", summary="📤 Exportar logs desde MongoDB a CSV", response_class=StreamingResponse)
 def exportar_logs_csv(payload: dict = Depends(require_role(["admin", "soporte"]))):
     output = exportar_logs_csv_stream()
@@ -41,13 +41,13 @@ def exportar_logs_csv(payload: dict = Depends(require_role(["admin", "soporte"])
         headers={"Content-Disposition": "attachment; filename=logs_exportados.csv"}
     )
 
-# 🔹 4. Consultar cantidad de mensajes no leídos
+# 🔴 4. Contar mensajes no leídos
 @router.get("/logs/unread_count", summary="🔴 Consultar cantidad de mensajes no leídos")
 def get_unread_count(user_id: str = Query(...), current_user=Depends(get_current_user)):
     count = contar_mensajes_no_leidos(user_id)
     return {"unread": count}
 
-# 🔹 5. Marcar mensajes como leídos
+# ✅ 5. Marcar como leídos
 @router.post("/logs/mark_read", summary="✅ Marcar mensajes como leídos")
 def marcar_mensajes_leidos(user_id: str = Query(...), current_user=Depends(get_current_user)):
     updated_count = marcar_mensajes_como_leidos(user_id)

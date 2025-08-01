@@ -2,19 +2,33 @@
 
 from fastapi import APIRouter, Depends
 from backend.dependencies.auth import require_role
-from backend.services.stats_service import (
-    obtener_estadisticas_logs,
-    obtener_estadisticas_usuarios
-)
+from backend.services import stats_service
 
-router = APIRouter(tags=["Estadísticas"])
+router = APIRouter()
 
 @router.get("/admin/stats", summary="📊 Obtener estadísticas del chatbot")
-def get_stats(user=Depends(require_role(["admin", "soporte"]))):
-    stats_logs = obtener_estadisticas_logs()
-    stats_usuarios = obtener_estadisticas_usuarios()
+async def get_stats(user=Depends(require_role(["admin", "soporte"]))):
+    """
+    Devuelve estadísticas generales:
+    - total_logs
+    - intents_mas_usados
+    - total_usuarios
+    - ultimos_usuarios
+    - usuarios_por_rol
+    - logs_por_dia
+    """
+    total_logs = await stats_service.obtener_total_logs()
+    intents = await stats_service.obtener_intents_mas_usados()
+    total_users = await stats_service.obtener_total_usuarios()
+    last_users = await stats_service.obtener_ultimos_usuarios()
+    usuarios_por_rol = await stats_service.obtener_usuarios_por_rol()
+    logs_por_dia = await stats_service.obtener_logs_por_dia()
 
     return {
-        **stats_logs,
-        **stats_usuarios
+        "total_logs": total_logs,
+        "intents_mas_usados": intents,
+        "total_usuarios": total_users,
+        "ultimos_usuarios": last_users,
+        "usuarios_por_rol": usuarios_por_rol,
+        "logs_por_dia": logs_por_dia
     }

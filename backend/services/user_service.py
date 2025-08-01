@@ -1,44 +1,47 @@
 # backend/services/user_service.py
 
+from backend.db.mongodb import get_users_collection
 from bson import ObjectId
-from backend.db.mongodb import get_users_collection  # ✅ migrado
-from models.user_model import UserUpdate, RolEnum
-from typing import Optional
+from backend.schemas.user_schema import UserOut
+from typing import List
+from fastapi.responses import StreamingResponse
+from io import StringIO
+import csv
 
-def get_users(search: Optional[str] = None, skip: int = 0, limit: int = 20):
-    collection = get_users_collection()
-    query = {}
-    if search:
-        query = {
-            "$or": [
-                {"nombre": {"$regex": search, "$options": "i"}},
-                {"email": {"$regex": search, "$options": "i"}}
-            ]
-        }
+def list_users() -> List[UserOut]:
+    col = get_users_collection()
+    users = col.find({}, {"password": 0})
+    return [UserOut(**{**user, "id": str(user["_id"])}) for user in users]
 
-    cursor = collection.find(query).skip(skip).limit(limit)
-    users = []
-    for user in cursor:
-        users.append({
+def delete_user_by_id(user_id: str) -> bool:
+    col = get_users_collection()
+    result = col.delete_one({"_id": ObjectId(user_id)})
+    return result.deleted_count > 0
+
+def export_users_csv() -> StreamingResponse:
+    col = get_users_collection()
+    usuarios = col.find({}, {"password": 0})
+    usuarios_out = []
+
+    for user in usuarios:
+        user_data = {
             "id": str(user["_id"]),
             "nombre": user.get("nombre", ""),
             "email": user.get("email", ""),
-            "rol": RolEnum(user.get("rol", "usuario"))
-        })
-    return users
+            "rol": user.get("rol", "")
+        }
+        usuarios_out.append(user_data)
 
-def update_user(user_id: str, user_data: UserUpdate):
-    collection = get_users_collection()
-    result = collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": user_data.dict(exclude_unset=True)}
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "nombre", "email", "rol"])
+
+    for user in usuarios_out:
+        writer.writerow([user["id"], user["nombre"], user["email"], user["rol"]])
+
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=usuarios_exportados.csv"}
     )
-    if result.modified_count == 0:
-        return None
-    updated = collection.find_one({"_id": ObjectId(user_id)})
-    return {
-        "id": str(updated["_id"]),
-        "nombre": updated.get("nombre", ""),
-        "email": updated.get("email", ""),
-        "rol": RolEnum(updated.get("rol", "usuario"))
-    }
