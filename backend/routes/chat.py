@@ -2,13 +2,13 @@ from fastapi import APIRouter, Request, HTTPException, status
 from pydantic import BaseModel
 from datetime import datetime
 import httpx
-import os
 from backend.db.mongodb import get_logs_collection
+from backend.settings import settings  # ✅ Usar settings centralizado
 
 router = APIRouter(prefix="/api", tags=["Chat"])
 
 # 🌍 URL de Rasa (servicio interno en Docker o localhost)
-RASA_URL = os.getenv("RASA_URL", "http://rasa:5005/webhooks/rest/webhook")
+RASA_URL = settings.rasa_url
 
 # 🧾 Modelo del mensaje que se recibe del frontend
 class ChatRequest(BaseModel):

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from backend.dependencies.auth import require_role
 from backend.db.mongodb import get_logs_collection, get_test_logs_collection, get_users_collection
-from backend.services.train import entrenar_chatbot
+from backend.services.train_service import entrenar_chatbot
 from services.intent_manager import add_intent_and_train
 from utils.logger import logger
 from datetime import datetime

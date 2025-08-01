@@ -1,12 +1,13 @@
 import yaml
 import subprocess
 from pathlib import Path
+from backend.settings import settings  # ✅ Config centralizada
 
 # ============================
 # 📁 Rutas de los archivos Rasa
 # ============================
-NLU_FILE = Path("rasa/data/nlu.yml")
-DOMAIN_FILE = Path("rasa/domain.yml")
+NLU_FILE = Path(settings.rasa_data_path)
+DOMAIN_FILE = Path(settings.rasa_domain_path)
 
 # ============================
 # 🔍 Verificar si un intent ya existe
@@ -60,7 +61,6 @@ def agregar_respuesta_en_domain(intent_name: str, responses: list):
 
     utter_key = f"utter_{intent_name}"
 
-    # Estructura base
     domain_data.setdefault("responses", {})
     domain_data.setdefault("intents", [])
 
@@ -75,7 +75,7 @@ def agregar_respuesta_en_domain(intent_name: str, responses: list):
 # 🧠 Entrenamiento automático de Rasa
 # ============================
 def entrenar_rasa():
-    result = subprocess.run(["rasa", "train"], capture_output=True, text=True)
+    result = subprocess.run(settings.rasa_train_command.split(), capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"❌ Error al entrenar Rasa:\n{result.stderr}")
     print("✅ Rasa entrenado exitosamente")
@@ -87,7 +87,6 @@ def eliminar_intent(intent_name: str):
     if not NLU_FILE.exists() or not DOMAIN_FILE.exists():
         raise FileNotFoundError("Faltan archivos de configuración")
 
-    # Eliminar del nlu.yml
     with open(NLU_FILE, "r", encoding="utf-8") as f:
         nlu_data = yaml.safe_load(f) or {}
     nlu_data["nlu"] = [
@@ -96,7 +95,6 @@ def eliminar_intent(intent_name: str):
     with open(NLU_FILE, "w", encoding="utf-8") as f:
         yaml.dump(nlu_data, f, allow_unicode=True, sort_keys=False)
 
-    # Eliminar del domain.yml
     with open(DOMAIN_FILE, "r", encoding="utf-8") as f:
         domain_data = yaml.safe_load(f) or {}
     domain_data["intents"] = [
@@ -116,4 +114,7 @@ def guardar_intent_csv(data: dict):
 
     if not intent_ya_existe(data["intent"]):
         cargar_intents(data)
+
 def add_intent_and_train(intent_name, examples, response):
+    # Implementa si se necesita una versión rápida
+    pass

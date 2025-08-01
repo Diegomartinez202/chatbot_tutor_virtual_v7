@@ -1,5 +1,7 @@
+# backend/routes/train.py
+
 from fastapi import APIRouter, Depends
-from backend.services.train_logger import entrenar_y_loggear
+from backend.services.train_service import entrenar_y_loggear  # ✅ nombre actualizado
 from backend.dependencies.auth import require_role
 
 router = APIRouter()

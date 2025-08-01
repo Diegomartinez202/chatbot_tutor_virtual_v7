@@ -1,19 +1,17 @@
-# backend/dependencies/auth.py
-
-import os
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from backend.db.mongodb import get_users_collection
+from backend.settings import settings  # ✅ Importación centralizada
 
 # ============================
 # 🔐 CONFIGURACIÓN JWT
 # ============================
 
-SECRET_KEY = os.getenv("SECRET_KEY", "clave_predeterminada_insegura")
+SECRET_KEY = settings.jwt_secret
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.jwt_expiration_minutes
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

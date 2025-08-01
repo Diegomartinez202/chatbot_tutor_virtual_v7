@@ -1,7 +1,7 @@
 # backend/services/user_service.py
 
 from bson import ObjectId
-from db.mongodb import get_users_collection
+from backend.db.mongodb import get_users_collection  # ✅ migrado
 from models.user_model import UserUpdate, RolEnum
 from typing import Optional
 

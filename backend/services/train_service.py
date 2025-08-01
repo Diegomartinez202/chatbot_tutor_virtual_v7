@@ -1,10 +1,12 @@
+# backend/services/train_service.py
+
 import subprocess
-from config import RASA_TRAIN_COMMAND
+from backend.settings import settings  # ✅ Configuración centralizada
 
 def entrenar_chatbot():
     try:
         print("🚀 Entrenando chatbot con Rasa...")
-        result = subprocess.run(RASA_TRAIN_COMMAND.split(), capture_output=True, text=True)
+        result = subprocess.run(settings.rasa_train_command.split(), capture_output=True, text=True)
 
         if result.returncode == 0:
             print("✅ Entrenamiento exitoso.")
