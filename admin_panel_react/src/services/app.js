@@ -1,9 +1,9 @@
-// admin-panel-react/src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
-import LogsPage from "./pages/LogsPage";
-import IntentsPage from "./pages/IntentsPage";
+
+import LoginPage from "@/pages/LoginPage";
+import Dashboard from "@/pages/Dashboard";
+import LogsPage from "@/pages/LogsPage";
+import IntentsPage from "@/pages/IntentsPage";
 
 function App() {
     return (

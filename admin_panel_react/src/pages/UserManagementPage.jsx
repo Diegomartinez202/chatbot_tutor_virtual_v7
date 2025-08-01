@@ -2,14 +2,28 @@ import { useEffect, useState } from "react";
 import { getUsers, updateUser, deleteUser } from "@/services/api";
 import UsersTable from "@/components/UsersTable";
 import { toast } from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const UserManagementPage = () => {
+    const { user } = useAuth(); // 👈 Validación por rol
     const [users, setUsers] = useState([]);
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ nombre: "", email: "", rol: "usuario" });
     const [searchTerm, setSearchTerm] = useState("");
     const [filterRol, setFilterRol] = useState("");
     const [loading, setLoading] = useState(false);
+
+    // 🔒 Solo admin puede acceder
+    if (user?.rol !== "admin") {
+        return (
+            <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">👥 Gestión de Usuarios</h1>
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md">
+                    🔒 Solo los administradores pueden acceder a esta sección.
+                </div>
+            </div>
+        );
+    }
 
     // 🔄 Cargar usuarios
     const fetchUsers = async () => {
@@ -109,4 +123,3 @@ const UserManagementPage = () => {
 };
 
 export default UserManagementPage;
-

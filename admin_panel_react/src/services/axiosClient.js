@@ -1,6 +1,5 @@
-// src/services/axiosClient.js
 import axios from "axios";
-import { getAuthHelper } from "./authHelper"; // 🔁 Función auxiliar para logout (opcional)
+import { getAuthHelper } from "@/services/authHelper"; // 🔁 Función auxiliar para logout (opcional)
 
 const axiosClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",

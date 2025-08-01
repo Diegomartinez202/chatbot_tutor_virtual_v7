@@ -1,6 +1,4 @@
-// 📁 src/services/api.js
-
-import apiClient from "./axiosClient";
+import apiClient from "@/services/axiosClient";
 
 // -----------------------------
 // 📁 INTENTS
@@ -28,9 +26,10 @@ export const uploadIntentsCSV = (file) => {
     });
 };
 
-export const exportIntentsCSV = () => apiClient.get("/admin/intents/export", {
-    responseType: "blob"
-});
+export const exportIntentsCSV = () =>
+    apiClient.get("/admin/intents/export", {
+        responseType: "blob",
+    });
 
 // -----------------------------
 // 📁 ENTRENAMIENTO
@@ -62,15 +61,39 @@ export const register = (userData) => apiClient.post("/auth/register", userData)
 export const ping = () => apiClient.get("/ping");
 export const testIntents = () => apiClient.get("/admin/intents/test");
 
+// -----------------------------
 // 📁 LOGS
-export const getLogsList = () => apiClient.get("/admin/logs").then(res => res.data);
+// -----------------------------
 
+/**
+ * Obtiene la lista de logs almacenados (con filtros aplicables desde el backend).
+ */
+export const getLogsList = () =>
+    apiClient.get("/admin/logs").then(res => res.data);
+
+/**
+ * Descarga un archivo .log específico en formato binario.
+ * @param {string} filename - Nombre del archivo log a descargar.
+ */
 export const downloadLogFile = (filename) =>
-    apiClient.get(`/admin/logs/${filename}`, { responseType: "blob" }).then(res => res.data);
+    apiClient.get(`/admin/logs/${filename}`, {
+        responseType: "blob"
+    }).then(res => res.data);
 
+/**
+ * Exporta todos los logs del sistema como archivo CSV.
+ */
 export const exportLogsCSV = () =>
-    apiClient.get("/admin/logs/export", { responseType: "blob" }).then(res => res.data);
-export { default as axios } from './axiosClient';
+    apiClient.get("/admin/logs/export", {
+        responseType: "blob"
+    }).then(res => res.data);
+
+// Exportar el cliente por defecto (opcional si lo necesitas en pruebas manuales)
+export { default as axios } from "@/services/axiosClient";
+
+/**
+ * Obtiene el contenido del archivo logs del sistema completo.
+ */
 export const getSystemLogs = async () => {
     const res = await fetch("http://localhost:8000/api/admin/logs-file", {
         headers: {

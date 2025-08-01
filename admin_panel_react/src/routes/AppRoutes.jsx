@@ -1,20 +1,24 @@
-// src/routes/AppRoutes.jsx
 import { Routes, Route } from "react-router-dom";
-import Dashboard from "../pages/Dashboard";
-import LogsPage from "../pages/LogsPage";
-import IntentsPage from "../pages/IntentsPage"; // si lo sigues usando en otra ruta
-import UserManagement from "../pages/UserManagement";
-import TestPage from "../pages/TestPage";
-import LoginPage from "../pages/LoginPage";
-import ProtectedRoute from "./ProtectedRoute";
-import ListIntents from "../components/ListIntents";
-import CrearIntentPage from "../pages/CrearIntentPage";
-import BuscarIntentPage from "../pages/BuscarIntentPage";
+
+import Dashboard from "@/pages/Dashboard";
+import LogsPage from "@/pages/LogsPage";
+import IntentsPage from "@/pages/IntentsPage";
+import UserManagement from "@/pages/UserManagement";
+import TestPage from "@/pages/TestPage";
+import LoginPage from "@/pages/LoginPage";
+import Unauthorized from "@/pages/Unauthorized"; // ✅ Ruta de acceso denegado
+
+import ProtectedRoute from "@/routes/ProtectedRoute";
+
+import ListIntents from "@/components/ListIntents";
+import CrearIntentPage from "@/pages/CrearIntentPage";
+import BuscarIntentPage from "@/pages/BuscarIntentPage";
 
 const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<Unauthorized />} /> {/* ✅ Agregada */}
 
             <Route
                 path="/intents/list"
@@ -24,7 +28,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/dashboard"
                 element={
@@ -33,7 +36,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/logs"
                 element={
@@ -42,7 +44,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents"
                 element={
@@ -51,7 +52,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents/buscar"
                 element={
@@ -60,7 +60,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/user-management"
                 element={
@@ -69,7 +68,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/test"
                 element={
@@ -78,13 +76,16 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-            <Route path="/intents-page" element={
-                <ProtectedRoute allowedRoles={["admin", "soporte"]}>
-                    <IntentsPage />
-                </ProtectedRoute>
-            }
+            <Route
+                path="/intents-page"
+                element={
+                    <ProtectedRoute allowedRoles={["admin", "soporte"]}>
+                        <IntentsPage />
+                    </ProtectedRoute>
+                }
             />
-            </Routes>
+        </Routes>
     );
-}
+};
+
 export default AppRoutes;

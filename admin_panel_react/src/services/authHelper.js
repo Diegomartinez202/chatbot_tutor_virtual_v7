@@ -1,5 +1,4 @@
-// src/services/authHelper.js
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 // ⚠️ Esta función solo se puede usar dentro de componentes
 let logoutFn = null;
