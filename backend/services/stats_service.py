@@ -1,46 +1,64 @@
 # backend/services/stats_service.py
 
-from backend.db.mongodb import db
+from backend.db.mongodb import get_logs_collection, get_users_collection
+from collections import Counter, defaultdict
+from datetime import datetime
+from pymongo import DESCENDING
+import pytz
 
-# 📊 Total de logs
+tz = pytz.timezone("America/Bogota")
+
 async def obtener_total_logs():
-    return await db.logs.count_documents({})
+    return get_logs_collection().count_documents({})
 
-# 🧠 Top 10 intents más usados
-async def obtener_intents_mas_usados():
+async def obtener_intents_mas_usados(limit: int = 5):
     pipeline = [
-        {"$match": {"intent": {"$exists": True}}},
-        {"$group": {"_id": "$intent", "total": {"$sum": 1}}},
-        {"$sort": {"total": -1}},
-        {"$limit": 10}
+        {"$match": {"intent": {"$exists": True, "$ne": ""}}},
+        {"$group": {"_id": "$intent", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": limit}
     ]
-    return await db.logs.aggregate(pipeline).to_list(length=10)
+    resultados = list(get_logs_collection().aggregate(pipeline))
+    return [{"intent": r["_id"], "total": r["count"]} for r in resultados]
 
-# 👥 Total de usuarios registrados
 async def obtener_total_usuarios():
-    return await db.users.count_documents({})
+    return get_users_collection().count_documents({})
 
-# 👤 Últimos 5 usuarios registrados
-async def obtener_ultimos_usuarios():
-    return await db.users.find(
-        {}, {"email": 1, "rol": 1}
-    ).sort("_id", -1).limit(5).to_list(length=5)
+async def obtener_ultimos_usuarios(limit: int = 5):
+    usuarios = get_users_collection().find({}, {"password": 0}).sort("_id", DESCENDING).limit(limit)
+    return [
+        {
+            "id": str(u["_id"]),
+            "email": u["email"],
+            "rol": u.get("rol", "usuario"),
+            "nombre": u.get("nombre", ""),
+        }
+        for u in usuarios
+    ]
 
-# 🧩 Distribución de usuarios por rol
 async def obtener_usuarios_por_rol():
     pipeline = [
         {"$group": {"_id": "$rol", "total": {"$sum": 1}}},
         {"$sort": {"total": -1}}
     ]
-    return await db.users.aggregate(pipeline).to_list(length=10)
+    resultados = list(get_users_collection().aggregate(pipeline))
+    return [{"rol": r["_id"], "total": r["total"]} for r in resultados]
 
-# 📈 Logs por día
 async def obtener_logs_por_dia():
     pipeline = [
-        {"$group": {
-            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
-            "total": {"$sum": 1}
-        }},
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": "$timestamp",
+                        "timezone": "America/Bogota"
+                    }
+                },
+                "total": {"$sum": 1}
+            }
+        },
         {"$sort": {"_id": 1}}
     ]
-    return await db.logs.aggregate(pipeline).to_list(length=30)
+    resultados = list(get_logs_collection().aggregate(pipeline))
+    return [{"fecha": r["_id"], "total": r["total"]} for r in resultados]

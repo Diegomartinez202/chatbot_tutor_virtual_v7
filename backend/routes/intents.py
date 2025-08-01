@@ -1,15 +1,72 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
-import csv, io, json
+from typing import List
+import io, json, csv
 
-from backend.schemas.intent_schema import IntentOut
+from backend.dependencies.auth import require_role
 from backend.services.intent_manager import (
+    obtener_intents,
+    guardar_intent,
+    eliminar_intent,
     intent_ya_existe,
     cargar_intents,
-    eliminar_intent,
-    guardar_intent_csv
+    guardar_intent_csv,
+    cargar_intents_automaticamente
 )
 from backend.services.train_service import entrenar_chatbot as entrenar_rasa
-from backend.dependencies.auth import get_current_user_with_role
-from backend.db.mongodb import get_intents_collection
+
+router = APIRouter()
+
+# 🔹 1. Listar intents existentes
+@router.get("/admin/intents", summary="🧠 Obtener lista de intents")
+def listar_intents(payload=Depends(require_role(["admin"]))):
+    return obtener_intents()
+
+# 🔹 2. Crear nuevo intent desde panel
+@router.post("/admin/intents", summary="📥 Crear nuevo intent manualmente")
+def crear_intent(data: dict, payload=Depends(require_role(["admin"]))):
+    if intent_ya_existe(data.get("intent")):
+        raise HTTPException(status_code=400, detail="⚠️ El intent ya existe")
+    resultado = guardar_intent(data)
+    entrenar_rasa()
+    return resultado
+
+# 🔹 3. Eliminar intent por nombre
+@router.delete("/admin/intents/{intent_name}", summary="🗑️ Eliminar intent")
+def eliminar_intent_por_nombre(intent_name: str, payload=Depends(require_role(["admin"]))):
+    return eliminar_intent(intent_name)
+
+# 🔹 4. Recargar intents desde archivo local y reentrenar
+@router.post("/admin/intents/recargar", summary="♻️ Recargar intents automáticamente desde archivo")
+def recargar_intents(payload=Depends(require_role(["admin"]))):
+    resultado = cargar_intents_automaticamente()
+    entrenar_rasa()
+    return resultado
+
+# 🔹 5. Subir archivo CSV/JSON para cargar intents
+@router.post("/admin/intents/upload", summary="📂 Subir intents desde archivo CSV o JSON")
+async def subir_archivo_intents(file: UploadFile = File(...), payload=Depends(require_role(["admin"]))):
+    content = await file.read()
+
+    if file.filename.endswith(".json"):
+        data = json.loads(content)
+    elif file.filename.endswith(".csv"):
+        decoded = content.decode("utf-8").splitlines()
+        reader = csv.DictReader(decoded)
+        data = list(reader)
+    else:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado")
+
+    resultado = cargar_intents(data)
+    entrenar_rasa()
+    return resultado
+
+# 🔹 6. Exportar intents existentes a CSV
+@router.get("/admin/intents/export", summary="📤 Exportar intents a CSV", response_class=StreamingResponse)
+def exportar_intents(payload=Depends(require_role(["admin"]))):
+    output = guardar_intent_csv()
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=intents_exportados.csv"}
+    )

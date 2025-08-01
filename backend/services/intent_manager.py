@@ -23,9 +23,9 @@ def intent_ya_existe(intent_name: str) -> bool:
     return any(entry.get("intent") == intent_name for entry in examples)
 
 # ============================
-# ➕ Agregar un nuevo intent
+# ➕ Guardar un nuevo intent (API/PANEL)
 # ============================
-def cargar_intents(data: dict):
+def guardar_intent(data: dict):
     intent_name = data["intent"]
     examples = data.get("examples", [])
     responses = data.get("responses", [])
@@ -33,7 +33,7 @@ def cargar_intents(data: dict):
     if not NLU_FILE.exists():
         raise FileNotFoundError("El archivo nlu.yml no existe")
 
-    # Leer y actualizar nlu.yml
+    # Leer nlu.yml
     with open(NLU_FILE, "r", encoding="utf-8") as f:
         nlu_data = yaml.safe_load(f) or {}
 
@@ -48,6 +48,7 @@ def cargar_intents(data: dict):
 
     # Actualizar domain.yml
     agregar_respuesta_en_domain(intent_name, responses)
+    return {"message": f"✅ Intent '{intent_name}' guardado correctamente"}
 
 # ============================
 # 💬 Guardar respuestas en domain.yml
@@ -81,12 +82,13 @@ def entrenar_rasa():
     print("✅ Rasa entrenado exitosamente")
 
 # ============================
-# 🗑️ Eliminar intent y utter
+# 🗑️ Eliminar intent + respuesta
 # ============================
 def eliminar_intent(intent_name: str):
     if not NLU_FILE.exists() or not DOMAIN_FILE.exists():
         raise FileNotFoundError("Faltan archivos de configuración")
 
+    # NLU
     with open(NLU_FILE, "r", encoding="utf-8") as f:
         nlu_data = yaml.safe_load(f) or {}
     nlu_data["nlu"] = [
@@ -95,6 +97,7 @@ def eliminar_intent(intent_name: str):
     with open(NLU_FILE, "w", encoding="utf-8") as f:
         yaml.dump(nlu_data, f, allow_unicode=True, sort_keys=False)
 
+    # Domain
     with open(DOMAIN_FILE, "r", encoding="utf-8") as f:
         domain_data = yaml.safe_load(f) or {}
     domain_data["intents"] = [
@@ -105,16 +108,36 @@ def eliminar_intent(intent_name: str):
     with open(DOMAIN_FILE, "w", encoding="utf-8") as f:
         yaml.dump(domain_data, f, allow_unicode=True, sort_keys=False)
 
+    return {"message": f"🗑️ Intent '{intent_name}' eliminado correctamente"}
+
 # ============================
-# 📥 Guardar desde CSV o subida externa
+# 📥 Cargar desde CSV o JSON externo
 # ============================
 def guardar_intent_csv(data: dict):
     if not data.get("intent") or not data.get("examples") or not data.get("responses"):
         raise ValueError("Faltan campos obligatorios: intent, examples o responses")
 
     if not intent_ya_existe(data["intent"]):
-        cargar_intents(data)
+        guardar_intent(data)
 
-def add_intent_and_train(intent_name, examples, response):
-    # Implementa si se necesita una versión rápida
-    pass
+# ============================
+# 📄 Obtener lista de intents
+# ============================
+def obtener_intents():
+    if not NLU_FILE.exists():
+        return []
+
+    with open(NLU_FILE, "r", encoding="utf-8") as f:
+        nlu_data = yaml.safe_load(f) or {}
+    return nlu_data.get("nlu", [])
+
+# ============================
+# 🔁 Cargar intents automáticamente desde archivo local
+# ============================
+def cargar_intents_automaticamente():
+    if not NLU_FILE.exists() or not DOMAIN_FILE.exists():
+        raise FileNotFoundError("Archivos de entrenamiento no encontrados")
+
+    # Ya están en disco, simplemente los leemos para mostrar confirmación
+    intents = obtener_intents()
+    return {"message": f"♻️ {len(intents)} intents recargados correctamente"}

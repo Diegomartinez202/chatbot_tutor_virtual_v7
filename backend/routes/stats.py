@@ -8,15 +8,6 @@ router = APIRouter()
 
 @router.get("/admin/stats", summary="📊 Obtener estadísticas del chatbot")
 async def get_stats(user=Depends(require_role(["admin", "soporte"]))):
-    """
-    Devuelve estadísticas generales:
-    - total_logs
-    - intents_mas_usados
-    - total_usuarios
-    - ultimos_usuarios
-    - usuarios_por_rol
-    - logs_por_dia
-    """
     total_logs = await stats_service.obtener_total_logs()
     intents = await stats_service.obtener_intents_mas_usados()
     total_users = await stats_service.obtener_total_usuarios()
