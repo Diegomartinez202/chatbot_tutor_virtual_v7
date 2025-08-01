@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import axiosClient from "../services/axiosClient";
+import axiosClient from "@/services/axiosClient"; // ✅ corregido
 
 const ExportUsersButton = () => {
     const exportarUsuarios = async () => {

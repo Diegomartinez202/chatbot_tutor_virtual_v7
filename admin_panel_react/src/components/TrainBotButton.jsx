@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { trainBot } from "../services/api";
+import { trainBot } from "@/services/api"; // ✅ corregido
 import { toast } from "react-hot-toast";
 
 function TrainBotButton() {

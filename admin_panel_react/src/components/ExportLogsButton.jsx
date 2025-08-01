@@ -1,5 +1,5 @@
 import React from "react";
-import axiosClient from "../services/axiosClient"; // Asegúrate de tener tu cliente Axios con token
+import axiosClient from "@/services/axiosClient"; // ✅ corregido
 
 function ExportLogsButton() {
     const exportarLogs = async () => {

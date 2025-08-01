@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { getIntents } from "../services/api";
-import BackButton from "../components/BackButton";
-import RefreshButton from "../components/RefreshButton";
+import { getIntents } from "@/services/api";               // ✅ corregido
+import BackButton from "@/components/BackButton";          // ✅ corregido
+import RefreshButton from "@/components/RefreshButton";    // ✅ corregido
 
 const ListIntents = () => {
     const [intents, setIntents] = useState([]);

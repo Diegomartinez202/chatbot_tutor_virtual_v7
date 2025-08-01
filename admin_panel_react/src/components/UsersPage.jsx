@@ -1,10 +1,10 @@
 // src/pages/UsersPage.jsx
 import { useEffect, useState } from "react";
-import { getUsers, createUser, updateUser, deleteUser } from "../services/api";
-import Header from "../components/Header";
-import UsersTable from "../components/UsersTable";
-import ExportUsersButton from "../components/ExportUsersButton";
-import AssignRoles from "../components/AssignRoles";
+import { getUsers, createUser, updateUser, deleteUser } from "@/services/api"; // ✅ alias
+import Header from "@/components/Header";                                       // ✅ alias
+import UsersTable from "@/components/UsersTable";                               // ✅ alias
+import ExportUsersButton from "@/components/ExportUsersButton";                 // ✅ alias
+import AssignRoles from "@/components/AssignRoles";                             // ✅ alias
 import { toast } from "react-hot-toast";
 
 const UsersPage = () => {

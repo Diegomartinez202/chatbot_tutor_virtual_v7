@@ -1,9 +1,9 @@
-import { NavLink } from "react-router-dom"
-import LogoutButton from "./LogoutButton"
-import { useAuth } from "../context/AuthContext"
+import { NavLink } from "react-router-dom";
+import LogoutButton from "@/components/LogoutButton"; // ✅ corregido
+import { useAuth } from "@/context/AuthContext";      // ✅ corregido
 
 const Header = () => {
-    const { user } = useAuth()
+    const { user } = useAuth();
 
     return (
         <aside className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between">
@@ -39,7 +39,7 @@ const Header = () => {
                 <LogoutButton />
             </div>
         </aside>
-    )
-}
+    );
+};
 
-export default Header
+export default Header;

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import ExportIntentsButton from "./ExportIntentsButton";
+import ExportIntentsButton from "@/components/ExportIntentsButton"; // ✅ corregido
 import { Button } from "@/components/ui/button";
 
 function IntentNavBar() {

@@ -1,17 +1,17 @@
 // src/components/RequireRole.jsx
-import { Navigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext"; // ✅ corregido
 
 const RequireRole = ({ allowedRoles, children }) => {
-    const { user, loading } = useAuth()
+    const { user, loading } = useAuth();
 
-    if (loading) return <p className="p-4">Cargando...</p>
+    if (loading) return <p className="p-4">Cargando...</p>;
 
     if (!user || !allowedRoles.includes(user.rol)) {
-        return <Navigate to="/unauthorized" replace />
+        return <Navigate to="/unauthorized" replace />;
     }
 
-    return children
-}
+    return children;
+};
 
-export default RequireRole
+export default RequireRole;

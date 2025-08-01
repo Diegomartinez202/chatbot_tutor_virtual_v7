@@ -1,6 +1,6 @@
 // src/components/AssignRoles.jsx
 import { useEffect, useState } from "react";
-import axiosClient from "../services/axiosClient";
+import axiosClient from "@/services/axiosClient"; // ✅ Cambio aquí
 
 const rolesDisponibles = ["admin", "soporte", "usuario"];
 

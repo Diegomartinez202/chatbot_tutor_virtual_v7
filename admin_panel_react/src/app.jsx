@@ -1,31 +1,30 @@
 import { Routes, Route } from "react-router-dom";
-import ProtectedRoute from "./components/ProtectedRoute";
-import RequireRole from "./components/RequireRole";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import RequireRole from "@/components/RequireRole";
 
-import LoginPage from "./pages/LoginPage";
-import Unauthorized from "./pages/Unauthorized";
+import LoginPage from "@/pages/LoginPage";
+import Unauthorized from "@/pages/Unauthorized";
 
-import Dashboard from "./pages/Dashboard";
-import ProfilePage from "./pages/ProfilePage";
-import TestPage from "./pages/TestPage";
+import Dashboard from "@/pages/Dashboard";
+import ProfilePage from "@/pages/ProfilePage";
+import TestPage from "@/pages/TestPage";
 
-import LogsPage from "./pages/LogsPage";
-import IntentsPage from "./pages/IntentsPage";
-import StatsPage from "./pages/StatsPage";
-import UsersPage from "./pages/UsersPage";
-import AssignRoles from "./pages/AssignRoles";
-import UploadIntentsCSV from "./components/UploadIntentsCSV";
+import LogsPage from "@/pages/LogsPage";
+import IntentsPage from "@/pages/IntentsPage";
+import StatsPage from "@/pages/StatsPage";
+import UsersPage from "@/pages/UsersPage";
+import AssignRoles from "@/pages/AssignRoles";
+import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 
 function App() {
     return (
         <Routes>
-
             {/* 🌐 Rutas públicas */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<LoginPage />} />
 
-            {/* 🔐 Rutas protegidas (requieren autenticación) */}
+            {/* 🔐 Rutas protegidas */}
             <Route
                 path="/dashboard"
                 element={
@@ -116,7 +115,6 @@ function App() {
                     </ProtectedRoute>
                 }
             />
-
         </Routes>
     );
 }

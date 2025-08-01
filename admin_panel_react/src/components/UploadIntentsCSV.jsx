@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { uploadIntentJSON } from "../services/api";
+import { uploadIntentJSON } from "@/services/api"; // ✅ Alias correcto
 import { toast } from "react-hot-toast";
 
-function UploadIntentsJSON() {
+function UploadIntentsCSV() {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -50,4 +50,4 @@ function UploadIntentsJSON() {
     );
 }
 
-export default UploadIntentsJSON;
+export default UploadIntentsCSV;

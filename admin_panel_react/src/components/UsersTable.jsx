@@ -1,6 +1,6 @@
-import UserRow from "./UserRow";
-import EditUserRow from "./EditUserRow";
 import { useState } from "react";
+import UserRow from "@/components/UserRow";         // ✅ corregido
+import EditUserRow from "@/components/EditUserRow"; // ✅ corregido
 
 const UsersTable = ({ users, editingUserId, formData, setFormData, onUpdate, onEdit, onCancel, onDelete }) => {
     const [currentPage, setCurrentPage] = useState(1);

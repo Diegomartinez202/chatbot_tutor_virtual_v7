@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import axiosClient from "../services/axiosClient";
+import axiosClient from "@/services/axiosClient"; // ✅ cambio aplicado
 import { toast } from "react-hot-toast";
 
 function ExportIntentsButton() {
