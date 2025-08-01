@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/Input';
-import Textarea from '../components/Textarea';
+
+import Input from '@/components/Input';
+import Textarea from '@/components/Textarea';
 import { Button } from "@/components/ui/button";
-import ExportIntentsButton from '../components/ExportIntentsButton';
-import UploadIntentsCSV from "../components/UploadIntentsCSV";
-import UploadIntentsJSON from "../components/UploadIntentsJSON";
-import TrainBotButton from "../components/TrainBotButton";
-import { addIntent, fetchIntentsByFilters } from '../services/api';
+import ExportIntentsButton from '@/components/ExportIntentsButton';
+import UploadIntentsCSV from "@/components/UploadIntentsCSV";
+import UploadIntentsJSON from "@/components/UploadIntentsJSON";
+import TrainBotButton from "@/components/TrainBotButton";
+import { addIntent, fetchIntentsByFilters } from '@/services/api';
 
 function IntentsPage() {
     const [intent, setIntent] = useState('');
@@ -58,7 +59,7 @@ function IntentsPage() {
             {/* 📦 Botones de herramientas */}
             <div className="flex gap-3 mb-4">
                 <ExportIntentsButton />
-                <TrainBotButton /> {/* ✅ Reentrenar bot */}
+                <TrainBotButton />
                 <Button variant="outline" type="button" onClick={() => navigate('/intents/list')}>
                     📄 Ver Intents existentes
                 </Button>

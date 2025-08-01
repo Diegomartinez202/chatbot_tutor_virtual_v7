@@ -1,7 +1,8 @@
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import Header from "../components/Header";
-import axiosClient from "../services/axiosClient";
+import Header from "@/components/Header";
+import axiosClient from "@/services/axiosClient";
 
 function TestPage() {
     const [results, setResults] = useState([]);

@@ -1,12 +1,12 @@
-// src/pages/CrearIntentPage.jsx
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/Input';
-import Textarea from '../components/Textarea';
+
+import Input from '@/components/Input';
+import Textarea from '@/components/Textarea';
 import { Button } from "@/components/ui/button";
-import ExportIntentsButton from '../components/ExportIntentsButton';
-import { addIntent } from '../services/api';
+import ExportIntentsButton from '@/components/ExportIntentsButton';
+import { addIntent } from '@/services/api';
 
 function CrearIntentPage() {
     const [intent, setIntent] = useState('');

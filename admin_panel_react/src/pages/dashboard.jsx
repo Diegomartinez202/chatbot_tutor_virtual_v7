@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer
+    BarChart, Bar, XAxis, YAxis, Tooltip,
+    PieChart, Pie, Cell, LineChart, Line,
+    ResponsiveContainer
 } from "recharts";
 
-import axiosClient from "../services/axiosClient";
-import Button from "../components/Button";
-import Header from "../components/Header";
-import { useAdminActions } from "../services/useAdminActions";
+import axiosClient from "@/services/axiosClient";
+import Button from "@/components/Button";
+import Header from "@/components/Header";
+import { useAdminActions } from "@/services/useAdminActions";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#00c49f", "#ffbb28"];
 
@@ -87,12 +89,10 @@ function Dashboard() {
             {/* 📊 ESTADÍSTICAS VISUALES */}
             {stats ? (
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Total */}
                     <div className="bg-blue-100 p-4 rounded shadow col-span-full">
                         <p className="text-lg">🧠 Conversaciones totales: <strong>{stats.total_conversaciones}</strong></p>
                     </div>
 
-                    {/* Intents más usados */}
                     <div className="bg-white p-4 rounded shadow">
                         <h3 className="text-xl font-semibold mb-2">🎯 Intents más usados</h3>
                         <ResponsiveContainer width="100%" height={300}>
@@ -105,7 +105,6 @@ function Dashboard() {
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Roles */}
                     <div className="bg-white p-4 rounded shadow">
                         <h3 className="text-xl font-semibold mb-2">🧑‍💼 Distribución de Roles</h3>
                         <ResponsiveContainer width="100%" height={300}>
@@ -128,7 +127,6 @@ function Dashboard() {
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Actividad diaria */}
                     <div className="bg-white p-4 rounded shadow col-span-full">
                         <h3 className="text-xl font-semibold mb-2">📆 Actividad por Día</h3>
                         <ResponsiveContainer width="100%" height={300}>

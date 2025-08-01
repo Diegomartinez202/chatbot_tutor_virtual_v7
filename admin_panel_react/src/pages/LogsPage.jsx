@@ -1,12 +1,12 @@
-// src/pages/LogsPage.jsx
 import { useEffect, useState } from "react";
-import axiosClient from "../services/axiosClient";
 import { toast } from "react-hot-toast";
-import { Button } from "../components/ui/Button";
+
+import axiosClient from "@/services/axiosClient";
+import { Button } from "@/components/ui/Button";
 import {
     getLogsList,
     downloadLogFile
-} from "../services/api";
+} from "@/services/api";
 
 const LogsPage = () => {
     const [logs, setLogs] = useState([]);

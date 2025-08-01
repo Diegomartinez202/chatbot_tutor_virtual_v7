@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axiosClient from "../services/axiosClient";
+import axiosClient from "@/services/axiosClient";
 
 const UploadIntentsCSV = () => {
     const [file, setFile] = useState(null);

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { getUsers, updateUser, deleteUser } from "../services/api";
-import UsersTable from "../components/UsersTable";
+import { getUsers, updateUser, deleteUser } from "@/services/api";
+import UsersTable from "@/components/UsersTable";
 import { toast } from "react-hot-toast";
 
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ nombre: "", email: "", rol: "usuario" });
-    const [searchTerm, setSearchTerm] = useState(""); // ✅ solo esta
+    const [searchTerm, setSearchTerm] = useState("");
     const [filterRol, setFilterRol] = useState("");
     const [loading, setLoading] = useState(false);
 

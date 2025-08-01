@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchUsers, deleteUser, updateUser } from "../services/api";
-import apiClient from "../services/axiosClient";
-import AssignRoles from "./AssignRoles";
-import UserModal from "../components/UserModal";
-import EditUserModal from "../components/EditUserModal";
+import { fetchUsers, deleteUser, updateUser } from "@/services/api";
+import apiClient from "@/services/axiosClient";
+
+import AssignRoles from "@/components/AssignRoles";
+import UserModal from "@/components/UserModal";
+import EditUserModal from "@/components/EditUserModal";
 
 const UsersPage = () => {
     const [users, setUsers] = useState([]);

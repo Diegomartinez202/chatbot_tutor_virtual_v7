@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axiosClient from "../services/axiosClient";
-import { registerLogout } from "../services/authHelper"; // ✅ integración del helper
+import axiosClient from "@/services/axiosClient";           // ✅ corregido
+import { registerLogout } from "@/services/authHelper";     // ✅ corregido
 
 const AuthContext = createContext();
 

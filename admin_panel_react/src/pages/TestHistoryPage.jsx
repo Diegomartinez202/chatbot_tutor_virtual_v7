@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTestHistory } from "../services/api";
+import { getTestHistory } from "@/services/api";
 import { toast } from "react-hot-toast";
 
 const TestHistoryPage = () => {

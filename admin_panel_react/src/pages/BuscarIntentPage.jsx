@@ -1,8 +1,8 @@
 // src/pages/BuscarIntentPage.jsx
 import { useState } from 'react';
-import Input from '../components/Input';
+import Input from "@/components/Input";                    // ✅ corregido
 import { Button } from "@/components/ui/button";
-import { fetchIntentsByFilters } from '../services/api';
+import { fetchIntentsByFilters } from "@/services/api";   // ✅ corregido
 import { useNavigate } from 'react-router-dom';
 
 function BuscarIntentPage() {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import axiosClient from "../services/axiosClient";
+import axiosClient from "@/services/axiosClient";         // ✅ corregido
 import { toast } from "react-hot-toast";
-import { useAuth } from "../context/AuthContext"; // Asegúrate de tener este contexto
+import { useAuth } from "@/context/AuthContext";          // ✅ corregido
+
 
 const AssignRoles = () => {
     const [users, setUsers] = useState([]);

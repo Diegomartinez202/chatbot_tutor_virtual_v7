@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/Input';
+
+import Input from '@/components/Input';
 import { Button } from "@/components/ui/button";
-import { login as loginApi } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { login as loginApi } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 
 function LoginPage() {
     const [email, setEmail] = useState('');
