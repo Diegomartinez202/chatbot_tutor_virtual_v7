@@ -2,11 +2,19 @@
 
 from fastapi import APIRouter
 
-# Importación de subrouters
+# Importación de subrouters con alias correctos
 from backend.routes import (
-    auth, chat, logs, stats, train, test, users, intents
+    auth,
+    chat,
+    logs,
+    stats,
+    train,
+    test,
+    user_controller as users,
+    intent_controller as intents
 )
-
+from backend.routes import test_controller as test
+from backend.routes import intent_controller as intents
 router = APIRouter()
 
 # =============================
@@ -44,3 +52,4 @@ router.include_router(users.router, prefix="/admin", tags=["Usuarios"])
 # ➕ Intents y respuestas
 # =============================
 router.include_router(intents.router, prefix="/admin", tags=["Intents"])
+router.include_router(test.router, prefix="/admin", tags=["Test"])

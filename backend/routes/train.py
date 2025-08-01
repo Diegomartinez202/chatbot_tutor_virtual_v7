@@ -1,14 +1,25 @@
 # backend/routes/train.py
 
 from fastapi import APIRouter, Depends
-from backend.services.train_service import entrenar_y_loggear  # ✅ nombre actualizado
+from backend.services.train_service import entrenar_y_loggear
 from backend.dependencies.auth import require_role
+from backend.services.log_service import log_access
 
 router = APIRouter()
 
-@router.post("/admin/train", tags=["Admin"])
+@router.post("/admin/train", tags=["Entrenamiento"])
 def entrenar_bot(payload=Depends(require_role(["admin"]))):
     resultado = entrenar_y_loggear()
+
+    # 🔍 Registrar intento de entrenamiento
+    log_access(
+        user_id=payload["_id"],
+        email=payload["email"],
+        rol=payload["rol"],
+        endpoint="/admin/train",
+        method="POST",
+        status=200 if resultado["success"] else 500
+    )
 
     if resultado["success"]:
         return {

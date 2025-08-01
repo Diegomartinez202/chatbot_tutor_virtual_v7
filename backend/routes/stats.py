@@ -3,9 +3,8 @@
 from fastapi import APIRouter, Depends
 from backend.dependencies.auth import require_role
 from backend.services import stats_service
-
+from backend.services.log_service import log_access 
 router = APIRouter()
-
 @router.get("/admin/stats", summary="📊 Obtener estadísticas del chatbot")
 async def get_stats(user=Depends(require_role(["admin", "soporte"]))):
     total_logs = await stats_service.obtener_total_logs()
@@ -14,6 +13,16 @@ async def get_stats(user=Depends(require_role(["admin", "soporte"]))):
     last_users = await stats_service.obtener_ultimos_usuarios()
     usuarios_por_rol = await stats_service.obtener_usuarios_por_rol()
     logs_por_dia = await stats_service.obtener_logs_por_dia()
+
+    # ✅ Trazabilidad
+    log_access(
+        user_id=user["_id"],
+        email=user["email"],
+        rol=user["rol"],
+        endpoint="/admin/stats",
+        method="GET",
+        status=200
+    )
 
     return {
         "total_logs": total_logs,

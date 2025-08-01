@@ -141,3 +141,61 @@ def cargar_intents_automaticamente():
     # Ya están en disco, simplemente los leemos para mostrar confirmación
     intents = obtener_intents()
     return {"message": f"♻️ {len(intents)} intents recargados correctamente"}
+def actualizar_intent(intent_name: str, data: dict) -> dict:
+# ============================
+# ✏️ Actualizar un intent existente
+# ============================
+def actualizar_intent(intent_name: str, data: dict) -> dict:
+    if not NLU_FILE.exists() or not DOMAIN_FILE.exists():
+        raise FileNotFoundError("Faltan archivos necesarios para actualizar el intent")
+
+    # Validar estructura mínima
+    examples = data.get("examples", [])
+    responses = data.get("responses", [])
+
+    if not examples or not all(isinstance(e, str) and e.strip() for e in examples):
+        raise ValueError("Debe proporcionar ejemplos válidos y no vacíos")
+    if not responses or not all(isinstance(r, str) and r.strip() for r in responses):
+        raise ValueError("Debe proporcionar respuestas válidas y no vacías")
+
+    # ============================
+    # 🔁 Reemplazar intent en nlu.yml
+    # ============================
+    with open(NLU_FILE, "r", encoding="utf-8") as f:
+        nlu_data = yaml.safe_load(f) or {}
+
+    nlu_list = nlu_data.get("nlu", [])
+    intent_encontrado = False
+    for i, entry in enumerate(nlu_list):
+        if entry.get("intent") == intent_name:
+            nlu_list[i]["examples"] = "\n".join(f"- {e.strip()}" for e in examples)
+            intent_encontrado = True
+            break
+
+    if not intent_encontrado:
+        raise ValueError(f"No se encontró el intent '{intent_name}'")
+
+    with open(NLU_FILE, "w", encoding="utf-8") as f:
+        yaml.dump({"nlu": nlu_list}, f, allow_unicode=True, sort_keys=False)
+
+    # ============================
+    # 🔁 Reemplazar respuestas en domain.yml
+    # ============================
+    with open(DOMAIN_FILE, "r", encoding="utf-8") as f:
+        domain_data = yaml.safe_load(f) or {}
+
+    utter_key = f"utter_{intent_name}"
+    domain_data.setdefault("responses", {})[utter_key] = [{"text": r.strip()} for r in responses]
+
+    if intent_name not in domain_data.get("intents", []):
+        domain_data.setdefault("intents", []).append(intent_name)
+
+    with open(DOMAIN_FILE, "w", encoding="utf-8") as f:
+        yaml.dump(domain_data, f, allow_unicode=True, sort_keys=False)
+
+    return {
+        "intent": intent_name,
+        "examples": examples,
+        "responses": responses,
+        "message": "✅ Intent actualizado correctamente"
+    }

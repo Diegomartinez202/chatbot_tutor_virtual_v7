@@ -10,7 +10,8 @@ from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 from backend.routes import router as api_router  
 from backend.utils.logger import logger         
-
+from fastapi.middleware.cors import CORSMiddleware
+from backend.middleware.log_requests import AccessLogMiddleware
 # ===============================
 # 🚀 Inicializar FastAPI
 # ===============================
@@ -43,7 +44,7 @@ templates = Jinja2Templates(directory="backend/templates")
 # 🔀 Rutas API
 # ===============================
 app.include_router(api_router, prefix="/api")
-
+app.add_middleware(AccessLogMiddleware)
 # ===============================
 # 📎 Ruta favicon
 # ===============================
@@ -60,3 +61,4 @@ def root():
 
 # ✅ Mensaje de log al arrancar
 logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")
+

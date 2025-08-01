@@ -3,24 +3,34 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from backend.dependencies.auth import require_role
 from backend.db.mongodb import get_logs_collection, get_test_logs_collection, get_users_collection
 from backend.services.train_service import entrenar_chatbot
-from services.intent_manager import add_intent_and_train
+from services.intent_manager import add_intent_and_train, get_all_intents
 from utils.logger import logger
+from backend.services.log_service import log_access
 from datetime import datetime
 from pathlib import Path
 from bson.son import SON
 import subprocess
-import request
-from backend.services.log_service import log_access  # asegúrate de tener este import a
+import requests
 
 router = APIRouter()
 
 # ✅ Verificar estado del servidor Rasa
 @router.get("/admin/rasa/status")
-def verificar_estado_rasa():
+def verificar_estado_rasa(current_user=Depends(require_role(["admin"]))):
     try:
         res = requests.get("http://rasa:5005/status")
         res.raise_for_status()
         logger.info("✅ Rasa está activo y respondió correctamente")
+
+        log_access(
+            user_id=current_user["_id"],
+            email=current_user["email"],
+            rol=current_user["rol"],
+            endpoint="/admin/rasa/status",
+            method="GET",
+            status=200
+        )
+
         return {"message": "Rasa está activo", "status": res.json()}
     except Exception as e:
         logger.error(f"❌ Error conectando a Rasa: {str(e)}")
@@ -28,13 +38,11 @@ def verificar_estado_rasa():
 
 
 # ✅ Entrenar el bot manualmente
-
 @router.get("/admin/train")
 def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["admin"]))):
     if dry_run:
         logger.info("🧪 Simulación de entrenamiento realizada con éxito")
 
-        # ✅ Trazabilidad de simulación
         log_access(
             user_id=current_user["_id"],
             email=current_user["email"],
@@ -49,7 +57,6 @@ def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["adm
     logger.info(f"🏋️ Entrenamiento manual del bot iniciado por {current_user['email']}")
     resultado = entrenar_chatbot()
 
-    # ✅ Trazabilidad de entrenamiento real
     log_access(
         user_id=current_user["_id"],
         email=current_user["email"],
@@ -62,7 +69,6 @@ def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["adm
     return resultado
 
 
-
 # ✅ Ejecutar pruebas automáticas
 @router.post("/admin/test-all")
 def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
@@ -70,6 +76,15 @@ def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
         logger.info(f"🧪 Ejecutando pruebas automáticas por {current_user['email']}")
 
         resultado = subprocess.run(["bash", "scripts/test_all.sh"], capture_output=True, text=True)
+
+        log_access(
+            user_id=current_user["_id"],
+            email=current_user["email"],
+            rol=current_user["rol"],
+            endpoint="/admin/test-all",
+            method="POST",
+            status=200 if resultado.returncode == 0 else 500
+        )
 
         log_entry = {
             "usuario": current_user["email"],
@@ -90,7 +105,7 @@ def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
 
     except Exception as e:
         logger.error(f"❌ Error al ejecutar pruebas: {str(e)}")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ✅ Formulario web de carga de intents
@@ -102,10 +117,25 @@ def admin_form():
 
 # ✅ Cargar un nuevo intent desde formulario
 @router.post("/admin/cargar_intent", response_class=HTMLResponse)
-def cargar_intent_form(intent_name: str = Form(...), examples: str = Form(...), response: str = Form(...)):
+def cargar_intent_form(
+    intent_name: str = Form(...),
+    examples: str = Form(...),
+    response: str = Form(...),
+    current_user=Depends(require_role(["admin"]))
+):
     ejemplos_list = [e.strip() for e in examples.splitlines() if e.strip()]
     add_intent_and_train(intent_name, ejemplos_list, response)
     logger.info(f"📥 Nueva carga de intent: {intent_name}")
+
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/cargar_intent",
+        method="POST",
+        status=200
+    )
+
     return RedirectResponse(url="/admin/form", status_code=303)
 
 
@@ -116,6 +146,16 @@ def obtener_logs_de_sistema(current_user=Depends(require_role(["admin"]))):
     log_path = "logs/system.log"
     if not Path(log_path).exists():
         raise HTTPException(status_code=404, detail="Archivo de log no encontrado")
+
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/logs-file",
+        method="GET",
+        status=200
+    )
+
     return FileResponse(log_path, media_type="text/plain", filename="system.log")
 
 
@@ -162,6 +202,15 @@ def get_stats(current_user=Depends(require_role(["admin"]))):
         ])
     )
 
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/stats",
+        method="GET",
+        status=200
+    )
+
     return {
         "total_logs": total_logs,
         "total_usuarios": total_usuarios,
@@ -198,7 +247,19 @@ def get_logs_filtered(
         log["_id"] = str(log["_id"])
         log["timestamp"] = log["timestamp"].isoformat()
 
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/logs",
+        method="GET",
+        status=200 if logs else 204
+    )
+
     return logs
+
+
+# ✅ Listar todos los intents con trazabilidad
 @router.get("/admin/intents")
 def listar_intents(current_user=Depends(require_role(["admin", "soporte"]))):
     intents = get_all_intents()
