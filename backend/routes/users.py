@@ -1,5 +1,3 @@
-# backend/routes/users.py
-
 from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.responses import StreamingResponse
 from typing import List
@@ -8,13 +6,26 @@ from backend.dependencies.auth import require_role
 from backend.schemas.user_schema import UserCreate, UserOut
 from backend.services.user_manager import crear_usuario
 from backend.services.user_service import list_users, delete_user_by_id, export_users_csv
+from backend.services.log_service import log_access  # 👈 Importar función de trazabilidad
 
 router = APIRouter(tags=["Usuarios"])
 
 # 🔹 1. Listar usuarios (solo admin y soporte)
 @router.get("/admin/users", summary="Listar usuarios registrados", response_model=List[UserOut])
 def list_users_route(payload=Depends(require_role(["admin", "soporte"]))):
-    return list_users()
+    users = list_users()
+
+    # ✅ Registrar acceso con trazabilidad
+    log_access(
+        user_id=payload["_id"],
+        email=payload["email"],
+        rol=payload["rol"],
+        endpoint="/admin/users",
+        method="GET",
+        status=200 if users else 204
+    )
+
+    return users
 
 # 🔹 2. Eliminar usuario por ID (solo admin)
 @router.delete("/admin/users/{user_id}", summary="Eliminar usuario por ID")

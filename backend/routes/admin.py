@@ -9,7 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from bson.son import SON
 import subprocess
-import requests
+import request
+from backend.services.log_service import log_access  # asegúrate de tener este import a
 
 router = APIRouter()
 
@@ -27,14 +28,39 @@ def verificar_estado_rasa():
 
 
 # ✅ Entrenar el bot manualmente
+
 @router.get("/admin/train")
 def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["admin"]))):
     if dry_run:
         logger.info("🧪 Simulación de entrenamiento realizada con éxito")
+
+        # ✅ Trazabilidad de simulación
+        log_access(
+            user_id=current_user["_id"],
+            email=current_user["email"],
+            rol=current_user["rol"],
+            endpoint="/admin/train",
+            method="GET",
+            status=200
+        )
+
         return {"message": "Simulación de entrenamiento realizada con éxito"}
 
     logger.info(f"🏋️ Entrenamiento manual del bot iniciado por {current_user['email']}")
-    return entrenar_chatbot()
+    resultado = entrenar_chatbot()
+
+    # ✅ Trazabilidad de entrenamiento real
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/train",
+        method="GET",
+        status=200 if resultado else 500
+    )
+
+    return resultado
+
 
 
 # ✅ Ejecutar pruebas automáticas
@@ -173,3 +199,16 @@ def get_logs_filtered(
         log["timestamp"] = log["timestamp"].isoformat()
 
     return logs
+@router.get("/admin/intents")
+def listar_intents(current_user=Depends(require_role(["admin", "soporte"]))):
+    intents = get_all_intents()
+
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/intents",
+        method="GET",
+        status=200 if intents else 204
+    )
+    return intents
