@@ -1,27 +1,28 @@
-// admin-panel-react/.eslintrc.js
 module.exports = {
     root: true,
     env: {
         browser: true,
-        es2021: true
+        es2021: true,
     },
-    parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module'
-    },
-    plugins: ['react', 'react-hooks'],
     extends: [
-        'eslint:recommended',
-        'plugin:react/recommended'
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "prettier" // 👈 Desactiva reglas que interfieren con Prettier
     ],
+    parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: "module",
+        ecmaFeatures: {
+            jsx: true
+        }
+    },
+    plugins: ["react", "react-hooks"],
     rules: {
-        'react/react-in-jsx-scope': 'off', // Vite + React no necesita importar React
-        'no-unused-vars': 'warn',
-        'no-console': 'off'
+        "react/react-in-jsx-scope": "off", // ✅ Si usas React 17+
     },
     settings: {
         react: {
-            version: 'detect'
-        }
-    }
-}
+            version: "detect",
+        },
+    },
+};
