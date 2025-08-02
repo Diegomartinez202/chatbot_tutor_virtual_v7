@@ -1,6 +1,8 @@
+# backend/services/email_service.py
+
 import smtplib
 from email.mime.text import MIMEText
-from backend.settings import settings  # ✅ Config centralizada
+from backend.config.settings import settings  # ✅ Corrección: ruta del archivo settings.py
 
 def enviar_correo(asunto, cuerpo, destinatario=None):
     try:

@@ -17,6 +17,8 @@ from backend.services.intent_manager import (
     cargar_intents_automaticamente
 )
 from backend.services.train_service import entrenar_chatbot as entrenar_rasa
+from backend.services.user_service import export_users_csv
+
 
 router = APIRouter()
 
@@ -157,3 +159,25 @@ def exportar_intents(request: Request, payload=Depends(require_role(["admin"])))
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=intents_exportados.csv"}
     )
+# 🔹 1. Exportar usuarios a CSV
+@router.get("/admin/users/export", summary="📤 Exportar usuarios a CSV", response_class=StreamingResponse)
+def exportar_usuarios(request: Request, payload=Depends(require_role(["admin"]))):
+    """
+    Permite a un administrador exportar todos los usuarios registrados (sin contraseñas) a un archivo CSV.
+    El archivo se genera dinámicamente con nombre basado en la fecha actual.
+    """
+
+    log_access(
+        user_id=payload["_id"],
+        email=payload["email"],
+        rol=payload["rol"],
+        endpoint="/admin/users/export",
+        method="GET",
+        status=200,
+        extra={
+            "ip": request.client.host,
+            "user_agent": request.headers.get("user-agent")
+        }
+    )
+
+    return export_users_csv()

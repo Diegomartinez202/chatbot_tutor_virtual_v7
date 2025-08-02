@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from backend.routes import (
-    auth,
+    auth_routes as auth,
     chat,
     logs,
     stats,
@@ -16,7 +16,7 @@ from backend.routes import (
 router = APIRouter()
 
 # 🔐 Autenticación y perfil
-router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+router.include_router(auth.router)
 
 # 💬 Chat (proxy a Rasa)
 router.include_router(chat.router, tags=["Chat"])

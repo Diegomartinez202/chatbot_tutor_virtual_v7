@@ -1,10 +1,9 @@
 # backend/services/chat_service.py
 
 import httpx
-from backend.settings import settings
+from backend.config.settings import settings  # ✅ Uso correcto del settings global
 
 async def process_user_message(message: str, sender_id: str):
-    """Env�a el mensaje del usuario al endpoint de Rasa y devuelve la respuesta."""
     payload = {
         "sender": sender_id,
         "message": message
@@ -12,10 +11,10 @@ async def process_user_message(message: str, sender_id: str):
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(settings.rasa_url, json=payload)
+            response = await client.post(settings.rasa_url, json=payload)  # 🔁 Variable de entorno Pydantic
             response.raise_for_status()
             return response.json()
     except httpx.RequestError as e:
-        raise Exception(f"Error de conexi�n con Rasa: {str(e)}")
+        raise Exception(f"❌ Error de conexión con Rasa: {e}")
     except httpx.HTTPStatusError as e:
-        raise Exception(f"Error HTTP al comunicarse con Rasa: {str(e.response.status_code)} - {e.response.text}")
+        raise Exception(f"⚠️ Error HTTP: {e.response.status_code} - {e.response.text}")

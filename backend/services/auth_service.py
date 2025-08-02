@@ -1,6 +1,6 @@
 # backend/services/auth_service.py
 
-from utils.logger import logger
+from backend.logger import logger
 from backend.services.log_service import log_access
 
 def registrar_login_exitoso(request, user):

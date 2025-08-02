@@ -46,6 +46,27 @@ export const deleteUser = (userId) => apiClient.delete(`/admin/users/${userId}`)
 export const updateUser = (userId, userData) => apiClient.put(`/admin/users/${userId}`, userData);
 export const createUser = (userData) => apiClient.post("/admin/users", userData); // opcional
 
+export const exportUsersCSV = async () => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/export`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    });
+
+    if (!response.ok) throw new Error("Error al exportar usuarios");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `usuarios_exportados_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+};
+
 // -----------------------------
 // 📁 AUTENTICACIÓN
 // -----------------------------
@@ -65,37 +86,21 @@ export const testIntents = () => apiClient.get("/admin/intents/test");
 // 📁 LOGS
 // -----------------------------
 
-/**
- * Obtiene la lista de logs almacenados (con filtros aplicables desde el backend).
- */
 export const getLogsList = () =>
     apiClient.get("/admin/logs").then(res => res.data);
 
-/**
- * Descarga un archivo .log específico en formato binario.
- * @param {string} filename - Nombre del archivo log a descargar.
- */
 export const downloadLogFile = (filename) =>
     apiClient.get(`/admin/logs/${filename}`, {
         responseType: "blob"
     }).then(res => res.data);
 
-/**
- * Exporta todos los logs del sistema como archivo CSV.
- */
 export const exportLogsCSV = () =>
     apiClient.get("/admin/logs/export", {
         responseType: "blob"
     }).then(res => res.data);
 
-// Exportar el cliente por defecto (opcional si lo necesitas en pruebas manuales)
-export { default as axios } from "@/services/axiosClient";
-
-/**
- * Obtiene el contenido del archivo logs del sistema completo.
- */
 export const getSystemLogs = async () => {
-    const res = await fetch("http://localhost:8000/api/admin/logs-file", {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/logs-file`, {
         headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -103,18 +108,19 @@ export const getSystemLogs = async () => {
     const text = await res.text();
     return text;
 };
+
 // -----------------------------
 // 📊 ESTADÍSTICAS
 // -----------------------------
 
-/**
- * Obtiene todas las estadísticas del sistema para StatsChart.jsx
- */
 export const getStats = () =>
     apiClient.get("/admin/stats").then(res => res.data);
 
-/**
- * Obtiene estadísticas de exportaciones CSV por día.
- */
 export const getExportStats = () =>
     apiClient.get("/admin/logs/exports").then(res => res.data);
+
+// -----------------------------
+// 🌐 Default export opcional
+// -----------------------------
+
+export { default as axios } from "@/services/axiosClient";

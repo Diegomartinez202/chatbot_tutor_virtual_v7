@@ -1,7 +1,7 @@
 import yaml
 import subprocess
 from pathlib import Path
-from backend.settings import settings  # ✅ Config centralizada
+from backend.config.settings import settings
 
 # ============================
 # 📁 Rutas de los archivos Rasa

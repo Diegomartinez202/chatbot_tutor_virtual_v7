@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getUsers, updateUser, deleteUser } from "@/services/api";
+import { getUsers, updateUser, deleteUser, exportUsersCSV } from "@/services/api";
 import UsersTable from "@/components/UsersTable";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -85,24 +85,40 @@ const UserManagementPage = () => {
         <div className="p-6 max-w-5xl mx-auto">
             <h1 className="text-2xl font-bold mb-4">👥 Gestión de Usuarios</h1>
 
-            <input
-                type="text"
-                placeholder="🔍 Buscar por nombre o email"
-                className="border px-3 py-1 mb-4 w-full max-w-md"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+                <input
+                    type="text"
+                    placeholder="🔍 Buscar por nombre o email"
+                    className="border px-3 py-1 w-full max-w-md"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
 
-            <select
-                className="border px-3 py-1 mb-4 ml-2"
-                value={filterRol}
-                onChange={(e) => setFilterRol(e.target.value)}
-            >
-                <option value="">Todos los roles</option>
-                <option value="admin">Admin</option>
-                <option value="soporte">Soporte</option>
-                <option value="usuario">Usuario</option>
-            </select>
+                <select
+                    className="border px-3 py-1"
+                    value={filterRol}
+                    onChange={(e) => setFilterRol(e.target.value)}
+                >
+                    <option value="">Todos los roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="soporte">Soporte</option>
+                    <option value="usuario">Usuario</option>
+                </select>
+
+                <button
+                    onClick={async () => {
+                        try {
+                            await exportUsersCSV();
+                            toast.success("📤 CSV descargado con éxito");
+                        } catch (err) {
+                            toast.error("❌ Error al exportar usuarios");
+                        }
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+                >
+                    📥 Exportar usuarios a CSV
+                </button>
+            </div>
 
             {loading ? (
                 <p className="text-center text-gray-500">⏳ Cargando usuarios...</p>

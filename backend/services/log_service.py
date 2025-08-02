@@ -95,3 +95,22 @@ def get_export_logs(limit: int = 50):
         log["_id"] = str(log["_id"])
         log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
     return logs
+# ✅ NUEVA FUNCIÓN para middleware
+def log_access_middleware(endpoint: str, method: str, status: int, ip: str, user_agent: str, user: dict = None):
+    """📥 Registra accesos al sistema desde middleware."""
+    doc = {
+        "endpoint": endpoint,
+        "method": method,
+        "status": status,
+        "ip": ip,
+        "user_agent": user_agent,
+        "tipo": "acceso",
+        "timestamp": datetime.utcnow()
+    }
+    if user:
+        doc.update({
+            "user_id": user.get("id") or user.get("_id"),
+            "email": user.get("email"),
+            "rol": user.get("rol")
+        })
+    get_logs_collection().insert_one(doc)

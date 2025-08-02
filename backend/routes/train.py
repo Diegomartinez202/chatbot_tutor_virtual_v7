@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from backend.services.train_service import entrenar_y_loggear
 from backend.dependencies.auth import require_role
 from backend.services.log_service import log_access
+from backend.config.settings import settings  # 👈 Importar settings en caso de uso
 
 router = APIRouter()
 

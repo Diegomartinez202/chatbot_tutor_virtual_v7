@@ -1,39 +1,30 @@
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
-import httpx
-from backend.db.mongodb import get_logs_collection
-from backend.settings import settings  # ✅ Usar settings centralizado
+
+from backend.config.settings import settings  # ✅ Uso correcto del settings global
+from backend.db.mongodb import get_logs_collection  # ✅ Asegúrate de que el archivo se llame mongodb.py
 from backend.services.chat_service import process_user_message
+
 router = APIRouter(prefix="/api", tags=["Chat"])
 
-RASA_URL = settings.rasa_url  # 🌍 URL interna para Rasa
-
-# 🧾 Modelo del mensaje entrante
+# 📥 Modelo del mensaje recibido desde frontend o widget
 class ChatRequest(BaseModel):
-    sender_id: str = "anonimo"  # puede ser "anonimo" o ID real
+    sender_id: str = "anonimo"
     message: str
 
 @router.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
 async def send_message_to_bot(data: ChatRequest, request: Request):
-    # ✅ Obtener IP y User-Agent desde el middleware
     ip = request.state.ip
     user_agent = request.state.user_agent
 
-    # 1. Enviar mensaje al bot (Rasa)
     try:
-        async with httpx.AsyncClient() as client:
-            rasa_response = await client.post(RASA_URL, json={
-                "sender": data.sender_id,
-                "message": data.message
-            })
-            if rasa_response.status_code != 200:
-                raise HTTPException(status_code=500, detail="Error al contactar a Rasa")
-            bot_responses = rasa_response.json()
+        # 🔁 Procesar mensaje con Rasa
+        bot_responses = await process_user_message(data.message, data.sender_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fallo al comunicar con Rasa: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al comunicar con Rasa: {str(e)}")
 
-    # 2. Guardar en MongoDB
+    # 📝 Registro en logs de conversación
     log = {
         "sender_id": data.sender_id,
         "user_message": data.message,
@@ -45,8 +36,5 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         "origen": "widget" if data.sender_id == "anonimo" else "autenticado"
     }
 
-    logs_collection = get_logs_collection()
-    logs_collection.insert_one(log)
-
-    # 3. Responder al frontend
+    get_logs_collection().insert_one(log)
     return bot_responses
