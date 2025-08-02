@@ -114,3 +114,23 @@ def log_access_middleware(endpoint: str, method: str, status: int, ip: str, user
             "rol": user.get("rol")
         })
     get_logs_collection().insert_one(doc)
+    # ✅ Obtener lista de logs fallidos (ej. fallback)
+def get_fallback_logs(limit: int = 100):
+    collection = get_logs_collection()
+    logs = list(collection.find({"intent": "nlu_fallback"}).sort("timestamp", -1).limit(limit))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+        log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
+    return logs
+
+# ✅ Obtener los intents fallidos más comunes (top 5)
+def get_top_failed_intents():
+    collection = get_logs_collection()
+    pipeline = [
+        {"$match": {"intent": {"$ne": None}, "intent": {"$regex": ".*fallback.*", "$options": "i"}}},
+        {"$group": {"_id": "$intent", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    result = list(collection.aggregate(pipeline))
+    return [{"intent": r["_id"], "count": r["count"]} for r in result]

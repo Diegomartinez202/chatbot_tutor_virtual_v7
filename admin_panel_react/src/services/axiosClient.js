@@ -13,7 +13,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-    failedQueue.forEach(prom => {
+    failedQueue.forEach((prom) => {
         if (error) prom.reject(error);
         else prom.resolve(token);
     });
@@ -22,7 +22,7 @@ const processQueue = (error, token = null) => {
 
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem("accessToken");
+        const token = localStorage.getItem("accessToken"); // 🔄 clave coherente
         if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
     },
@@ -34,7 +34,10 @@ axiosClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+            (error.response?.status === 401 || error.response?.status === 403) &&
+            !originalRequest._retry
+        ) {
             originalRequest._retry = true;
 
             if (isRefreshing) {
@@ -62,7 +65,10 @@ axiosClient.interceptors.response.use(
             } catch (err) {
                 processQueue(err, null);
                 const { logout } = getAuthHelper?.() || {};
-                if (logout) await logout();
+                if (logout) {
+                    await logout();
+                    console.warn("🔒 Sesión cerrada: refresh token inválido o expirado");
+                }
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;

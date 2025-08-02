@@ -17,6 +17,8 @@ const Sidebar = () => {
         // 🛠️ Administración
         { to: "/logs", label: "📄 Logs" },
         { to: "/users", label: "👥 Usuarios" },
+        { to: "/stadisticas-logs", label: "📈 Exportaciones CSV" },
+        { to: "/intentos-fallidos", label: "📉 Fallos del bot" },
     ];
 
     return (

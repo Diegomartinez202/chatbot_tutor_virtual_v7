@@ -124,3 +124,9 @@ export const getExportStats = () =>
 // -----------------------------
 
 export { default as axios } from "@/services/axiosClient";
+// 📉 Fallos de intents
+export const getFallbackLogs = () =>
+    apiClient.get("/admin/intents/failures").then(res => res.data);
+
+export const getTopFailedIntents = () =>
+    apiClient.get("/admin/intents/failures/top").then(res => res.data);

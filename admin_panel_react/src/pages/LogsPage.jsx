@@ -1,4 +1,5 @@
-import React from "react";
+// src/pages/LogsPage.jsx
+import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import LogsTable from "@/components/LogsTable";
 import { exportLogsCSV } from "@/services/api";
@@ -6,6 +7,7 @@ import { toast } from "react-hot-toast";
 
 function LogsPage() {
     const { user } = useAuth();
+    const [filters, setFilters] = useState({ email: "", endpoint: "", rol: "" });
 
     const handleExport = async () => {
         try {
@@ -46,7 +48,33 @@ function LogsPage() {
                     ⬇️ Exportar CSV
                 </button>
             </div>
-            <LogsTable />
+
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-4">
+                <input
+                    type="text"
+                    placeholder="🔍 Filtrar por email"
+                    className="border px-3 py-2 rounded-md"
+                    value={filters.email}
+                    onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+                />
+                <input
+                    type="text"
+                    placeholder="🔍 Filtrar por endpoint"
+                    className="border px-3 py-2 rounded-md"
+                    value={filters.endpoint}
+                    onChange={(e) => setFilters({ ...filters, endpoint: e.target.value })}
+                />
+                <input
+                    type="text"
+                    placeholder="🔍 Filtrar por rol"
+                    className="border px-3 py-2 rounded-md"
+                    value={filters.rol}
+                    onChange={(e) => setFilters({ ...filters, rol: e.target.value })}
+                />
+            </div>
+
+            <LogsTable filters={filters} />
         </div>
     );
 }

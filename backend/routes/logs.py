@@ -101,3 +101,14 @@ def get_unread_count(user_id: str = Query(...), current_user=Depends(get_current
 @router.post("/logs/mark_read", summary="✅ Marcar mensajes como leídos")
 def marcar_mensajes_leidos(user_id: str = Query(...), current_user=Depends(get_current_user)):
     return {"updated_count": marcar_mensajes_como_leidos(user_id)}
+# 📉 Obtener intentos fallidos recientes
+@router.get("/admin/intents/failures", summary="📉 Lista de intentos fallidos")
+def intentos_fallidos(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
+    from backend.services.log_service import get_fallback_logs
+    return get_fallback_logs()
+
+# 📊 Obtener top 5 intents fallidos
+@router.get("/admin/intents/failures/top", summary="📊 Top 5 intents fallidos")
+def top_fallbacks(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
+    from backend.services.log_service import get_top_failed_intents
+    return get_top_failed_intents()

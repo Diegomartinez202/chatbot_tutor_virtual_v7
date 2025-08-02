@@ -1,36 +1,35 @@
+
+// src/context/AuthContext.jsx
+
 import { createContext, useContext, useEffect, useState } from "react";
-import axiosClient from "@/services/axiosClient";           // ✅ corregido
-import { registerLogout } from "@/services/authHelper";     // ✅ corregido
+import axiosClient from "@/services/axiosClient";
+import { registerLogout } from "@/services/authHelper";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem("token") || null);
+    const [token, setToken] = useState(localStorage.getItem("accessToken") || null);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // 🔐 Rol con valor por defecto
-    const role = user?.rol || "usuario";  // ← ⚠️ Mejora agregada
+    const role = user?.rol || "usuario";
 
-    // Logout seguro: borra token y cookie backend
     const logout = async () => {
         try {
-            await axiosClient.post("/auth/logout"); // ← borra cookie refresh_token en backend
+            await axiosClient.post("/auth/logout");
         } catch (err) {
             console.warn("Error cerrando sesión en backend", err);
         } finally {
-            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
             setUser(null);
             setToken(null);
         }
     };
 
-    // ✅ Registrar logout para uso en axiosClient (global)
     useEffect(() => {
         registerLogout(logout);
     }, []);
 
-    // Cargar usuario si ya hay token
     useEffect(() => {
         const fetchUser = async () => {
             if (!token) {
@@ -52,9 +51,8 @@ export const AuthProvider = ({ children }) => {
         fetchUser();
     }, [token]);
 
-    // Login: guarda token y actualiza estado
     const login = async (newToken) => {
-        localStorage.setItem("token", newToken);
+        localStorage.setItem("accessToken", newToken);
         setToken(newToken);
 
         try {
