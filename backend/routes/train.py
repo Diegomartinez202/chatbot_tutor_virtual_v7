@@ -11,18 +11,15 @@ router = APIRouter()
 def entrenar_bot(request: Request, payload=Depends(require_role(["admin"]))):
     resultado = entrenar_y_loggear()
 
-    # 🔍 Registrar intento de entrenamiento con IP y user-agent
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/train",
-        method="POST",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200 if resultado["success"] else 500,
-        extra={
-            "ip": request.client.host,
-            "user_agent": request.headers.get("user-agent")
-        }
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     if resultado["success"]:

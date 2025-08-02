@@ -1,21 +1,34 @@
+// admin-panel-react/src/components/StatsChart.jsx
 import React, { useEffect, useState } from "react";
-import axios from "@/services/api";
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-    PieChart, Pie, LineChart, Line, CartesianGrid, Legend
+    ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
+    LineChart, Line, CartesianGrid, Cell, PieChart, Pie, Legend
 } from "recharts";
+import { getStats, getExportStats } from "@/services/api";
+import { toast } from "react-hot-toast";
 
 const COLORS = ["#4F46E5", "#10B981", "#FBBF24", "#EF4444", "#6366F1"];
 
 function StatsChart() {
     const [stats, setStats] = useState(null);
+    const [exportData, setExportData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get("/admin/stats")
-            .then((res) => setStats(res.data))
-            .catch((err) => console.error("❌ Error al cargar estadísticas:", err))
-            .finally(() => setLoading(false));
+        const fetchData = async () => {
+            try {
+                const statsRes = await getStats();
+                const exportsRes = await getExportStats();
+                setStats(statsRes);
+                setExportData(exportsRes);
+            } catch (err) {
+                console.error("❌ Error al cargar estadísticas:", err);
+                toast.error("Error al cargar estadísticas");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
     }, []);
 
     if (loading) return <p className="text-gray-600">Cargando estadísticas...</p>;
@@ -29,6 +42,7 @@ function StatsChart() {
                 <ul className="list-disc list-inside text-sm">
                     <li><strong>Conversaciones:</strong> {stats.total_logs}</li>
                     <li><strong>Usuarios registrados:</strong> {stats.total_usuarios}</li>
+                    <li><strong>Exportaciones CSV:</strong> {stats.total_exportaciones_csv}</li>
                 </ul>
             </div>
 
@@ -49,7 +63,7 @@ function StatsChart() {
                 </ResponsiveContainer>
             </div>
 
-            {/* 🧩 Distribución por Rol */}
+            {/* 🧩 Usuarios por rol */}
             <div>
                 <h2 className="font-semibold text-lg mb-2">Usuarios por Rol</h2>
                 <ResponsiveContainer width="100%" height={300}>
@@ -72,24 +86,35 @@ function StatsChart() {
                 </ResponsiveContainer>
             </div>
 
-            {/* 📈 Logs por día */}
-            {stats.logs_por_dia && (
-                <div>
-                    <h2 className="font-semibold text-lg mb-2">Logs por Día</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={stats.logs_por_dia}>
-                            <XAxis dataKey="_id" />
-                            <YAxis />
-                            <CartesianGrid stroke="#ccc" />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="total" stroke="#6366F1" />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            )}
+            {/* 📈 Logs por Día */}
+            <div>
+                <h2 className="font-semibold text-lg mb-2">📅 Logs por Día</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={stats.logs_por_dia}>
+                        <XAxis dataKey="fecha" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip />
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="total" stroke="#6366F1" name="Logs" />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
 
-            {/* 👤 Últimos usuarios */}
+            {/* 📤 Exportaciones por Día */}
+            <div>
+                <h2 className="font-semibold text-lg mb-2">📤 Exportaciones CSV por Día</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={exportData}>
+                        <XAxis dataKey="_id" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip />
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="total" stroke="#10B981" name="Exportaciones" />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* 👥 Últimos usuarios */}
             <div className="col-span-2">
                 <h2 className="font-semibold text-lg mb-2">Últimos usuarios registrados</h2>
                 <div className="overflow-x-auto">

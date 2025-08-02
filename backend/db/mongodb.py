@@ -17,6 +17,7 @@ try:
     client.admin.command("ping")
     print("✅ Conexión exitosa a MongoDB:", MONGO_URI)
 
+    # 🟩 Asegurar índice único en emails
     client[MONGO_DB_NAME]["users"].create_index("email", unique=True)
     print("✅ Índice único en 'email' creado/verificado")
 

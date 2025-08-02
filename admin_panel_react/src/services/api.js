@@ -103,3 +103,18 @@ export const getSystemLogs = async () => {
     const text = await res.text();
     return text;
 };
+// -----------------------------
+// 📊 ESTADÍSTICAS
+// -----------------------------
+
+/**
+ * Obtiene todas las estadísticas del sistema para StatsChart.jsx
+ */
+export const getStats = () =>
+    apiClient.get("/admin/stats").then(res => res.data);
+
+/**
+ * Obtiene estadísticas de exportaciones CSV por día.
+ */
+export const getExportStats = () =>
+    apiClient.get("/admin/logs/exports").then(res => res.data);

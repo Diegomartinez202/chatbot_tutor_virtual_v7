@@ -1,6 +1,6 @@
 # backend/routes/intent_controller.py
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, Body, Query, Request
 from backend.dependencies.auth import require_role
 from backend.services import intent_manager
 from backend.services.log_service import log_access
@@ -12,6 +12,7 @@ router = APIRouter()
 # ============================
 @router.get("/admin/intents/buscar", summary="Buscar intents por nombre o ejemplo")
 def buscar_intents(
+    request: Request,
     intent: str = Query(None),
     example: str = Query(None),
     payload=Depends(require_role(["admin", "soporte"]))
@@ -23,14 +24,15 @@ def buscar_intents(
 
     result = intent_manager.get_intents_by_filters(filters)
 
-    # 📋 Trazabilidad
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/intents/buscar",
-        method="GET",
-        status=200 if result else 204
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200 if result else 204,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return result
@@ -40,16 +42,18 @@ def buscar_intents(
 # 📄 Obtener todos los intents
 # ============================
 @router.get("/admin/intents", summary="Listar todos los intents")
-def listar_intents(payload=Depends(require_role(["admin", "soporte"]))):
+def listar_intents(request: Request, payload=Depends(require_role(["admin", "soporte"]))):
     data = intent_manager.obtener_intents()
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/intents",
-        method="GET",
-        status=200 if data else 204
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200 if data else 204,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return data
@@ -59,10 +63,7 @@ def listar_intents(payload=Depends(require_role(["admin", "soporte"]))):
 # ➕ Agregar un intent manualmente
 # ============================
 @router.post("/admin/add-intent", summary="Crear nuevo intent")
-def agregar_intent(
-    data: dict = Body(...),
-    payload=Depends(require_role(["admin"]))
-):
+def agregar_intent(request: Request, data: dict = Body(...), payload=Depends(require_role(["admin"]))):
     if intent_manager.intent_ya_existe(data["intent"]):
         raise HTTPException(status_code=409, detail="❗ Ya existe un intent con ese nombre")
 
@@ -73,9 +74,11 @@ def agregar_intent(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/add-intent",
-        method="POST",
-        status=200
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return result
@@ -85,10 +88,7 @@ def agregar_intent(
 # 🗑️ Eliminar un intent
 # ============================
 @router.delete("/admin/delete-intent/{intent_name}", summary="Eliminar intent por nombre")
-def eliminar_intent(
-    intent_name: str,
-    payload=Depends(require_role(["admin"]))
-):
+def eliminar_intent(intent_name: str, request: Request, payload=Depends(require_role(["admin"]))):
     result = intent_manager.eliminar_intent(intent_name)
     intent_manager.entrenar_rasa()
 
@@ -96,9 +96,11 @@ def eliminar_intent(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=f"/admin/delete-intent/{intent_name}",
-        method="DELETE",
-        status=200
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return result
@@ -108,27 +110,28 @@ def eliminar_intent(
 # 🔁 Cargar intents automáticamente
 # ============================
 @router.post("/admin/cargar_intent", summary="Recargar intents desde disco")
-def cargar_intents(payload=Depends(require_role(["admin"]))):
+def cargar_intents(request: Request, payload=Depends(require_role(["admin"]))):
     result = intent_manager.cargar_intents_automaticamente()
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/cargar_intent",
-        method="POST",
-        status=200
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return result
+
+
 # ============================
-# ✏️ Actualizar un intent existente
+# ✏️ Actualizar un intent existente (sin nombre en URL)
 # ============================
 @router.put("/admin/update-intent", summary="Actualizar intent existente")
-def actualizar_intent(
-    data: dict = Body(...),
-    payload=Depends(require_role(["admin"]))
-):
+def actualizar_intent(request: Request, data: dict = Body(...), payload=Depends(require_role(["admin"]))):
     intent_name = data.get("intent")
     if not intent_name:
         raise HTTPException(status_code=400, detail="El campo 'intent' es obligatorio")
@@ -136,7 +139,6 @@ def actualizar_intent(
     if not intent_manager.intent_ya_existe(intent_name):
         raise HTTPException(status_code=404, detail="El intent no existe")
 
-    # Primero eliminamos el viejo y luego lo reescribimos actualizado
     intent_manager.eliminar_intent(intent_name)
     result = intent_manager.guardar_intent(data)
     intent_manager.entrenar_rasa()
@@ -145,19 +147,26 @@ def actualizar_intent(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/update-intent",
-        method="PUT",
-        status=200
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return {"message": f"✏️ Intent '{intent_name}' actualizado correctamente"}
-    @router.put("/admin/update-intent/{intent_name}", summary="Actualizar intent existente")
-def actualizar_intent(
+
+
+# ============================
+# ✏️ Actualizar intent por nombre (en URL)
+# ============================
+@router.put("/admin/update-intent/{intent_name}", summary="Actualizar intent existente")
+def actualizar_intent_url(
     intent_name: str,
+    request: Request,
     data: dict = Body(...),
     payload=Depends(require_role(["admin"]))
 ):
-    # ✅ Validar estructura mínima
     if not isinstance(data, dict):
         raise HTTPException(status_code=400, detail="El cuerpo debe ser un diccionario JSON")
 
@@ -173,21 +182,21 @@ def actualizar_intent(
     if any(not r.strip() for r in data["responses"]):
         raise HTTPException(status_code=422, detail="Las 'responses' no pueden estar vacías")
 
-    # ⚙️ Ejecutar actualización
     try:
         result = intent_manager.actualizar_intent(intent_name, data)
         intent_manager.entrenar_rasa()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # 🧾 Registrar acceso
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=f"/admin/update-intent/{intent_name}",
-        method="PUT",
-        status=200
+        endpoint=str(request.url.path),
+        method=request.method,
+        status=200,
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
 
     return {"message": "✅ Intent actualizado correctamente", "data": result}

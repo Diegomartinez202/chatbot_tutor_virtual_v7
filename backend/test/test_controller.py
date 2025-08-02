@@ -1,5 +1,3 @@
-# backend/routes/test_controller.py
-
 from fastapi import APIRouter, Depends, Request
 from backend.dependencies.auth import require_role
 from backend.services.log_service import log_access
@@ -9,7 +7,7 @@ import requests
 
 router = APIRouter()
 
-# 🔹 1. Test general (simula script de pruebas)
+# 🔹 1. Test general
 @router.post("/admin/test-all", summary="🧪 Ejecutar pruebas del sistema")
 def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin"]))):
     start_time = time.time()
@@ -22,15 +20,11 @@ def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin
             user_id=payload["_id"],
             email=payload["email"],
             rol=payload["rol"],
-            endpoint="/admin/test-all",
-            method="POST",
+            endpoint=str(request.url.path),
+            method=request.method,
             status=200 if resultado.returncode == 0 else 500,
-            extra={
-                "duracion": f"{duracion}s",
-                "ip": request.client.host,
-                "user_agent": request.headers.get("user-agent"),
-                "salida": resultado.stdout[:300]
-            }
+            ip=request.state.ip,
+            user_agent=request.state.user_agent
         )
 
         return {
@@ -45,13 +39,13 @@ def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin
             user_id=payload["_id"],
             email=payload["email"],
             rol=payload["rol"],
-            endpoint="/admin/test-all",
-            method="POST",
+            endpoint=str(request.url.path),
+            method=request.method,
             status=500,
-            extra={"error": str(e), "ip": request.client.host, "user_agent": request.headers.get("user-agent")}
+            ip=request.state.ip,
+            user_agent=request.state.user_agent
         )
         return {"success": False, "message": "Error ejecutando test", "error": str(e)}
-
 
 # 🔹 2. Test de conexión al backend
 @router.get("/admin/ping", summary="🟢 Test de conexión al backend")
@@ -60,13 +54,13 @@ def ping_backend(request: Request, payload=Depends(require_role(["admin"]))):
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint="/admin/ping",
-        method="GET",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200,
-        extra={"ip": request.client.host, "user_agent": request.headers.get("user-agent")}
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
     return {"message": "✅ Backend activo", "pong": True}
-
 
 # 🔹 3. Verifica conexión con Rasa
 @router.get("/admin/rasa/status", summary="🤖 Verificar conexión con Rasa")
@@ -77,10 +71,11 @@ def status_rasa(request: Request, payload=Depends(require_role(["admin"]))):
             user_id=payload["_id"],
             email=payload["email"],
             rol=payload["rol"],
-            endpoint="/admin/rasa/status",
-            method="GET",
+            endpoint=str(request.url.path),
+            method=request.method,
             status=response.status_code,
-            extra={"ip": request.client.host, "user_agent": request.headers.get("user-agent")}
+            ip=request.state.ip,
+            user_agent=request.state.user_agent
         )
         return {
             "success": response.status_code == 200,
@@ -92,10 +87,11 @@ def status_rasa(request: Request, payload=Depends(require_role(["admin"]))):
             user_id=payload["_id"],
             email=payload["email"],
             rol=payload["rol"],
-            endpoint="/admin/rasa/status",
-            method="GET",
+            endpoint=str(request.url.path),
+            method=request.method,
             status=500,
-            extra={"error": str(e), "ip": request.client.host, "user_agent": request.headers.get("user-agent")}
+            ip=request.state.ip,
+            user_agent=request.state.user_agent
         )
         return {
             "success": False,

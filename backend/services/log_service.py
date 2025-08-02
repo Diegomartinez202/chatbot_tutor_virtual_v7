@@ -1,10 +1,9 @@
-# backend/services/log_service.py
-
 import os
-import re
 import csv
 from bson import ObjectId
 from io import StringIO
+from datetime import datetime
+from collections import defaultdict
 from backend.db.mongodb import get_logs_collection
 from backend.config.settings import LOG_DIR
 
@@ -44,22 +43,55 @@ def marcar_mensajes_como_leidos(user_id: str):
         {"$set": {"leido": True}}
     )
     return result.modified_count
+
 def get_logs(limit: int = 100):
     collection = get_logs_collection()
     logs = list(collection.find({"tipo": "acceso"}).sort("timestamp", -1).limit(limit))
     for log in logs:
         log["_id"] = str(log["_id"])
     return logs
-def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, status: int):
+
+def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, status: int, ip: str = None, user_agent: str = None, tipo: str = "acceso"):
     collection = get_logs_collection()
-    log_entry = {
+    collection.insert_one({
         "user_id": user_id,
         "email": email,
         "rol": rol,
         "endpoint": endpoint,
         "method": method,
         "status": status,
-        "timestamp": datetime.utcnow(),
-        "tipo": "acceso"
-    }
-    collection.insert_one(log_entry)
+        "ip": ip,
+        "user_agent": user_agent,
+        "tipo": tipo,
+        "timestamp": datetime.utcnow()
+    })
+
+# ✅ NUEVA FUNCIÓN: obtener estadísticas de exportaciones por día
+def get_export_stats():
+    collection = get_logs_collection()
+    pipeline = [
+        {"$match": {"tipo": "descarga"}},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$timestamp"},
+                "month": {"$month": "$timestamp"},
+                "day": {"$dayOfMonth": "$timestamp"}
+            },
+            "total": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    result = list(collection.aggregate(pipeline))
+    return [{
+        "date": f"{r['_id']['year']}-{r['_id']['month']:02}-{r['_id']['day']:02}",
+        "total": r["total"]
+    } for r in result]
+
+# ✅ NUEVA FUNCIÓN: obtener registros individuales de exportaciones
+def get_export_logs(limit: int = 50):
+    collection = get_logs_collection()
+    logs = list(collection.find({"tipo": "descarga"}).sort("timestamp", -1).limit(limit))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+        log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
+    return logs

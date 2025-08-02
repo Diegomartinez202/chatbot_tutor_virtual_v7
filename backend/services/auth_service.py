@@ -4,60 +4,53 @@ from utils.logger import logger
 from backend.services.log_service import log_access
 
 def registrar_login_exitoso(request, user):
-    ip = request.client.host
-    user_agent = request.headers.get("user-agent")
-
     log_access(
         user_id=user["_id"],
         email=user["email"],
         rol=user.get("rol", "usuario"),
-        endpoint="/auth/login",
-        method="POST",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200,
-        extra={"ip": ip, "user_agent": user_agent}
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
-    logger.info(f"🔐 Login exitoso para {user['email']} desde IP {ip}")
+    logger.info(f"🔐 Login exitoso para {user['email']} desde IP {request.state.ip}")
 
 def registrar_acceso_perfil(request, user):
-    ip = request.client.host
-    user_agent = request.headers.get("user-agent")
-
     log_access(
         user_id=user["_id"],
         email=user["email"],
         rol=user.get("rol", "usuario"),
-        endpoint="/auth/me",
-        method="GET",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200,
-        extra={"ip": ip, "user_agent": user_agent}
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
-    logger.info(f"👤 Perfil accedido por {user['email']} desde IP {ip}")
+    logger.info(f"👤 Perfil accedido por {user['email']} desde IP {request.state.ip}")
 
 def registrar_logout(request, user):
-    ip = request.client.host
-    user_agent = request.headers.get("user-agent")
-
     log_access(
         user_id=user["_id"],
         email=user["email"],
         rol=user.get("rol", "usuario"),
-        endpoint="/auth/logout",
-        method="POST",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200,
-        extra={"ip": ip, "user_agent": user_agent}
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
-    logger.info(f"🚪 Logout de {user['email']} desde IP {ip}")
-    def registrar_refresh_token(request, user):
-    ip = request.client.host
-    user_agent = request.headers.get("user-agent")
+    logger.info(f"🚪 Logout de {user['email']} desde IP {request.state.ip}")
 
+def registrar_refresh_token(request, user):
     log_access(
         user_id=user["_id"],
         email=user["email"],
         rol=user.get("rol", "usuario"),
-        endpoint="/auth/refresh",
-        method="POST",
+        endpoint=str(request.url.path),
+        method=request.method,
         status=200,
-        extra={"ip": ip, "user_agent": user_agent}
+        ip=request.state.ip,
+        user_agent=request.state.user_agent
     )
-    logger.info(f"🔄 Refresh token generado para {user['email']} desde IP {ip}")
+    logger.info(f"🔄 Refresh token generado para {user['email']} desde IP {request.state.ip}")

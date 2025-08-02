@@ -1,7 +1,5 @@
-# backend/services/stats_service.py
-
 from backend.db.mongodb import get_logs_collection, get_users_collection
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import datetime
 from pymongo import DESCENDING
 import pytz
@@ -10,6 +8,9 @@ tz = pytz.timezone("America/Bogota")
 
 async def obtener_total_logs():
     return get_logs_collection().count_documents({})
+
+async def obtener_total_exportaciones_csv():
+    return get_logs_collection().count_documents({"tipo": "descarga"})
 
 async def obtener_intents_mas_usados(limit: int = 5):
     pipeline = [
