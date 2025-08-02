@@ -1,10 +1,13 @@
-# backend/routes/auth_routes.py
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from backend.dependencies.auth import get_current_user
-from backend.utils.jwt_manager import create_access_token, create_refresh_token
+from backend.utils.jwt_manager import (
+    create_access_token,
+    create_refresh_token,
+    decode_token
+)
 from backend.config.settings import settings
 from backend.logger import logger
 
@@ -14,10 +17,10 @@ from backend.services.auth_service import (
     registrar_logout,
     registrar_refresh_token
 )
-from backend.services.user_service import authenticate_user
+from backend.services.user_service import authenticate_user, find_user_by_email
 from models.auth_model import LoginRequest, TokenResponse
 
-router = APIRouter(prefix="/auth", tags=["Auth"])  # 👈 Ya incluye el prefijo
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 # ========================
 # 🔐 Autenticación
@@ -47,7 +50,7 @@ def login(request_body: LoginRequest, request: Request):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=not settings.debug,  # Solo cookies seguras en producción
+        secure=not settings.debug,
         samesite="Lax"
     )
 
@@ -79,7 +82,7 @@ def logout(request: Request, current_user=Depends(get_current_user)):
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(request: Request, current_user=Depends(get_current_user)):
-    """🔁 Genera un nuevo access token desde refresh token."""
+    """🔁 Genera un nuevo access token desde refresh token (si el actual no ha expirado)."""
     new_access_token = create_access_token(current_user)
     registrar_refresh_token(request, current_user)
     logger.info(f"🔁 Refresh token generado: {current_user['email']}")
@@ -88,3 +91,38 @@ def refresh_token(request: Request, current_user=Depends(get_current_user)):
         "access_token": new_access_token,
         "token_type": "bearer"
     }
+
+
+# ✅ NUEVO ENDPOINT CON REFRESH TOKEN EN BODY
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/refresh-token", response_model=TokenResponse)
+def refresh_token_manual(data: RefreshTokenRequest, request: Request):
+    """🔁 Genera un nuevo access_token usando un refresh_token manual."""
+    try:
+        payload = decode_token(data.refresh_token)
+        email = payload.get("email")
+        user_id = payload.get("id")
+        rol = payload.get("rol")
+
+        if not email or not user_id:
+            raise HTTPException(status_code=400, detail="Token inválido")
+
+        user = find_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        access_token = create_access_token(user)
+
+        logger.info(f"🔁 Nuevo access_token generado vía refresh_token para: {email}")
+        registrar_refresh_token(request, user)
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error al refrescar token: {str(e)}")
+        raise HTTPException(status_code=401, detail="Refresh token inválido")

@@ -74,3 +74,7 @@ def export_users_csv() -> StreamingResponse:
     except Exception as e:
         logger.error(f"❌ Error al exportar usuarios: {str(e)}")
         raise
+    def find_user_by_email(email: str) -> dict | None:
+    """🔍 Busca un usuario por su email"""
+    users = get_users_collection()
+    return users.find_one({"email": email})

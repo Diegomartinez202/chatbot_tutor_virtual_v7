@@ -15,6 +15,11 @@ from backend.routes import router as api_router
 from backend.utils.logger import logger         
 from backend.middleware.log_requests import AccessLogMiddleware
 from backend.config.settings import settings  # ✅ Configuración centralizada
+from middlewares.access_log import AccessLogMiddleware
+from backend.middleware.auth_middleware import AuthMiddleware
+from backend.middleware.access_log_middleware import AccessLogMiddleware
+
+
 
 # =========================
 # ⚙️ Inicializar FastAPI
@@ -50,7 +55,8 @@ templates = Jinja2Templates(directory=settings.template_dir)
 app.include_router(api_router, prefix="/api")
 app.add_middleware(AccessLogMiddleware)
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(AccessLogMiddleware)
+app.add_middleware(AuthMiddleware)
+
 
 @app.get("/favicon.ico")
 async def favicon():
