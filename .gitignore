@@ -1,6 +1,7 @@
 # === SISTEMA GENERAL ===
 .env
 *.env
+*.env.example
 *.log
 *.pyc
 __pycache__/

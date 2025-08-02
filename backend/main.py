@@ -2,28 +2,21 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi import FastAPI
-from backend.middleware.logging_middleware import LoggingMiddleware
-from backend.middleware.access_log_middleware import AccessLogMiddleware
-import os
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
-from backend.routes import router as api_router  
-from backend.utils.logger import logger         
-from backend.middleware.log_requests import AccessLogMiddleware
-from backend.config.settings import settings  # ✅ Configuración centralizada
-from middlewares.access_log import AccessLogMiddleware
+
+from backend.routes import router as api_router
+from backend.utils.logger import logger
 from backend.middleware.auth_middleware import AuthMiddleware
+from backend.middleware.logging_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
+from backend.config.settings import settings
 
-
-
-# =========================
-# ⚙️ Inicializar FastAPI
-# =========================
+# ⚙️ Inicialización de la aplicación FastAPI
 app = FastAPI(
     title="Chatbot Tutor Virtual API",
     description="Backend para gestión de intents, autenticación, logs y estadísticas del Chatbot Tutor Virtual",
@@ -32,31 +25,32 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# =========================
-# 🌐 CORS
-# =========================
+# 🌐 Middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,  # ✅ Desde .env
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# 📁 Recursos Estáticos
-# =========================
+# 📁 Recursos estáticos
 app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 templates = Jinja2Templates(directory=settings.template_dir)
 
-# =========================
-# 🔀 Rutas API
-# =========================
+# 🔀 Incluir rutas de API
 app.include_router(api_router, prefix="/api")
+
+# 🧠 Middleware personalizado
 app.add_middleware(AccessLogMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 
+@app.middleware("http")
+async def add_ip_and_user_agent(request: Request, call_next):
+    request.state.ip = request.client.host
+    request.state.user_agent = request.headers.get("user-agent")
+    return await call_next(request)
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -66,18 +60,7 @@ async def favicon():
 def root():
     return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
 
-# =========================
-# 🧠 Middleware personalizado
-# =========================
-@app.middleware("http")
-async def add_ip_and_user_agent(request: Request, call_next):
-    request.state.ip = request.client.host
-    request.state.user_agent = request.headers.get("user-agent")
-    return await call_next(request)
-
-# =========================
-# ✅ Log de arranque
-# =========================
+# 🚨 Logs de arranque
 if settings.debug:
     logger.warning("🛠️ MODO DEBUG ACTIVADO. No recomendado para producción.")
 else:

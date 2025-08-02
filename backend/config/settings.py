@@ -2,7 +2,8 @@
 
 from pydantic import BaseSettings, Field, EmailStr
 from typing import List
-
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "clave_insegura_por_defecto")
 class Settings(BaseSettings):
     # 📦 MongoDB
     mongo_uri: str = Field(..., env="MONGO_URI")
