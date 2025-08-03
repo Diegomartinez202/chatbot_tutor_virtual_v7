@@ -58,6 +58,7 @@ services:
       - rasa
       - action_server
       - mongodb
+    entrypoint: ["/entrypoint.sh"]
 
 volumes:
   mongo_data:

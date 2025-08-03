@@ -1,26 +1,22 @@
-# Evitar copiar innecesarios al build
-
-# Git
+# Ignorar archivos que no necesitas copiar al contenedor
 .git
 .gitignore
-
-# Logs y temporales
-*.log
-*.swp
-*.bak
-*.tmp
-.DS_Store
-
-# IDEs y config local
-.vscode
-.idea
-
-# Node
-node_modules
-dist
-build
-
-# Python
-__pycache__
-*.pyc
+.gitattributes
+Dockerfile*
+docker-compose.yml
+README.md
+LICENSE
 .env
+.env.*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+node_modules/
+venv/
+.env.local
+*.swp
+.rasa/
+models/

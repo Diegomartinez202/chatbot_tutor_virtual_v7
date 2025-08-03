@@ -17,7 +17,15 @@ Sistema modular e inteligente para orientación académica y soporte en línea, 
   <img src="https://img.shields.io/github/license/Diegomartinez202/chatbot_tutor_virtual_v7?style=for-the-badge" alt="Licencia MIT" />
   <img src="https://img.shields.io/badge/Despliegue-Railway-grey?style=for-the-badge&logo=railway" alt="Railway" />
 </p>
+<div align="center">
 
+![GitHub repo size](https://img.shields.io/github/repo-size/Diegomartinez202/chatbot_tutor_virtual_v7?label=Repo%20Size)
+![GitHub last commit](https://img.shields.io/github/last-commit/Diegomartinez202/chatbot_tutor_virtual_v7?label=Last%20Commit)
+![GitHub issues](https://img.shields.io/github/issues/Diegomartinez202/chatbot_tutor_virtual_v7)
+![GitHub license](https://img.shields.io/github/license/Diegomartinez202/chatbot_tutor_virtual_v7)
+![GitHub stars](https://img.shields.io/github/stars/Diegomartinez202/chatbot_tutor_virtual_v7?style=social)
+
+</div>
 
 ## 🧩 Componentes del Proyecto
 
