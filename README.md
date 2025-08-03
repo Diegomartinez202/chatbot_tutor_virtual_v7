@@ -3,6 +3,12 @@
 Sistema modular e inteligente para orientación académica y soporte en línea, desarrollado como solución embebible para plataformas educativas como **Zajuna**. Utiliza **FastAPI**, **Rasa**, **MongoDB**, **React** y **Docker**.
 
 ---
+![Status](https://img.shields.io/badge/estado-desarrollo-blue.svg)
+![Licencia](https://img.shields.io/badge/licencia-MIT-brightgreen.svg)
+![Chatbot Rasa](https://img.shields.io/badge/Rasa-IA%20Conversacional-purple.svg)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-green.svg)
+![Panel React](https://img.shields.io/badge/Admin%20Panel-React%2BVite-blue.svg)
+![Despliegue](https://img.shields.io/badge/despliegue-pendiente-lightgrey.svg)
 
 ## 🧩 Componentes del Proyecto
 
