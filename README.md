@@ -191,3 +191,5 @@ Orquestación con Docker y Railway
 ❌ El autor no se hace responsable por daños derivados del uso.
 🔒 Conserva este aviso de licencia en todos los archivos modificados.
 
+<!-- Prueba de conexión GitHub ✅ -->
+
