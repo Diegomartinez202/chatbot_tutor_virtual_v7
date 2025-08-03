@@ -70,3 +70,6 @@ if settings.secret_key == "supersecretkey" or len(settings.secret_key) < 32:
     logger.warning("⚠️ SECRET_KEY es muy débil. Genera una con: python -c 'import secrets; print(secrets.token_urlsafe(64))'")
 
 logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)

@@ -1,21 +1,23 @@
-# docker/Dockerfile.backend
-
 FROM python:3.10-slim
 
-# Crear directorio de trabajo
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements.txt desde la raíz
-COPY requirements.txt .
+# Copiar primero el requirements para aprovechar cache
+COPY backend/requirements.txt .
 
 # Instalar dependencias
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo el contenido del proyecto
-COPY . .
+# Copiar el cÃ³digo del backend
+COPY backend/ ./backend
 
-# Exponer puerto para FastAPI
+# Copiar archivo .env si se quiere cargar en Railway
+COPY .env .env
+
+# Exponer el puerto
 EXPOSE 8000
 
-# Comando para correr FastAPI (usando main.py en la raíz)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]ort", "8000"]rt", "8000"]
+# Lanzar FastAPI
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

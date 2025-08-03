@@ -1,6 +1,7 @@
 # === SISTEMA GENERAL ===
 .env
 *.env
+*.env.*
 *.env.example
 *.log
 *.pyc
@@ -14,7 +15,6 @@ Thumbs.db
 *.bak
 *.zip
 *.rar
-env/                  # ⬅️ Agregado para tu entorno virtual local
 
 # === PYTHON ===
 *.egg-info/
@@ -26,7 +26,15 @@ build/
 .mypy_cache/
 pytest_cache/
 .coverage
+*.sqlite3
+
+# Entornos virtuales
+env/
+.venv/
 venv/
+ENV/
+
+# Cachés de pruebas
 backend/test/__pycache__/
 tests/__pycache__/
 

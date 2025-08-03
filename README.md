@@ -1,85 +1,25 @@
 # 🤖 Chatbot Tutor Virtual v2 – Proyecto SENA
 
-Sistema modular e inteligente para orientación académica y soporte en línea, desarrollado como solución embebible para plataformas educativas como **Zajuna**.
+Sistema modular e inteligente para orientación académica y soporte en línea, desarrollado como solución embebible para plataformas educativas como **Zajuna**. Utiliza **FastAPI**, **Rasa**, **MongoDB**, **React** y **Docker**.
 
 ---
 
 ## 🧩 Componentes del Proyecto
 
-- **`backend/`**: API con [FastAPI](https://fastapi.tiangolo.com/), conexión a MongoDB, autenticación JWT y servidor para el widget.
-- **`rasa/`**: Núcleo conversacional con intents, acciones personalizadas y reglas entrenadas con [Rasa Open Source](https://rasa.com/).
-- **`admin-panel-react/`**: Panel de administración con [React + Vite](https://vitejs.dev/).
-- **`static/widget/`**: Chatbot embebible en otras plataformas vía iframe + JS.
-- **`docker/`**: Archivos de despliegue Docker y configuración.
-- **`.github/workflows/`**: Integración y despliegue continuo (CI/CD) con GitHub Actions.
-- **`scripts/`**: Automatización de tareas como push, pull, entrenamiento, backup, etc.
+| Carpeta / Componente      | Tecnología           | Descripción                                                                 |
+|---------------------------|----------------------|-----------------------------------------------------------------------------|
+| `backend/`                | FastAPI + MongoDB    | API REST con autenticación JWT, gestión de intents, logs y usuarios        |
+| `rasa/`                   | Rasa 3.6             | Motor conversacional con intents, reglas, slots y acciones personalizadas  |
+| `admin-panel-react/`      | React + Vite         | Panel administrativo con login, intents, logs y estadísticas               |
+| `static/widget/`          | HTML + JS            | Widget web embebible vía iframe/script                                     |
+| `docker/`                 | Docker               | Configuración para contenedores, init Mongo, volúmenes                     |
+| `.github/workflows/`      | GitHub Actions       | Despliegue continuo (CI/CD) en Railway                                     |
+| `scripts/`                | Bash                 | Automatización de tareas: build, test, deploy, backup                      |
 
 ---
 
-## 🚀 Instalación local paso a paso
+## 📁 Estructura del Proyecto
 
-### 1. Clona el proyecto
-
-```bash
-git clone https://github.com/Diegomartinez202/chatbot_tutor_virtual_v7.git
-cd chatbot_tutor_virtual_v7
-2. Backend FastAPI
-bash
-Copiar
-Editar
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-3. Motor de IA Rasa
-bash
-Copiar
-Editar
-cd rasa
-pip install rasa
-rasa train
-rasa run --enable-api --cors "*" --port 5005 --debug
-4. Panel de administración React
-bash
-Copiar
-Editar
-cd admin-panel-react
-npm install
-npm run dev
-💡 Widget embebido
-Puedes integrar el chatbot en otras plataformas insertando:
-
-html
-Copiar
-Editar
-<script src="https://TU_DOMINIO/static/widget/embed.js"></script>
-🧪 Ejecutar pruebas
-bash
-Copiar
-Editar
-cd backend
-pytest tests/
-🐳 Despliegue con Docker
-bash
-Copiar
-Editar
-docker-compose up --build
-Incluye Rasa, FastAPI, MongoDB y el panel React en una sola orquestación.
-
-☁️ Despliegue en Railway (CI/CD)
-Crea un proyecto en https://railway.app
-
-Conecta tu repositorio
-
-Agrega tus variables de entorno (.env)
-
-Deploy automático en cada push a main
-
-Usa los workflows .github/workflows/deploy_railway.yml y train_rasa.yml.
-
-📂 Estructura del proyecto
-swift
-Copiar
-Editar
 chatbot_tutor_virtual_v7/
 ├── backend/
 ├── rasa/
@@ -87,18 +27,117 @@ chatbot_tutor_virtual_v7/
 ├── static/widget/
 ├── docker/
 ├── scripts/
-└── .github/workflows/
-📄 Scripts útiles
-🔁 scripts/run_full_stack.sh
+├── .github/workflows/
+├── .env.example
+└── docker-compose.yml
+
+yaml
+Copiar
+Editar
+
+---
+
+## 🚀 Instalación Local (modo desarrollo)
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/Diegomartinez202/chatbot_tutor_virtual_v7.git
+cd chatbot_tutor_virtual_v7
+2. Backend – FastAPI
+bash
+Copiar
+Editar
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+3. Motor de IA – Rasa
+bash
+Copiar
+Editar
+cd rasa
+pip install rasa
+rasa train
+rasa run --enable-api --cors "*" --port 5005 --debug
+4. Panel Admin – React
+bash
+Copiar
+Editar
+cd admin-panel-react
+npm install
+npm run dev
+💬 Widget Embebido
+Puedes integrarlo fácilmente en cualquier plataforma como Zajuna:
+
+html
+Copiar
+Editar
+<script src="https://TU_DOMINIO/static/widget/embed.js"></script>
+O directamente:
+
+html
+Copiar
+Editar
+<iframe src="https://TU_DOMINIO/static/widget/widget.html" width="400" height="600"></iframe>
+🧪 Pruebas Automáticas
+bash
+Copiar
+Editar
+cd backend
+pytest tests/
+🐳 Despliegue con Docker (modo producción local)
+bash
+Copiar
+Editar
+docker-compose up --build
+Esto levantará:
+
+API FastAPI en el puerto 8000
+
+Motor Rasa en el puerto 5005
+
+MongoDB
+
+Panel admin (opcionalmente si está integrado)
+
+Widget estático en /static/widget/widget.html
+
+☁️ Despliegue en Railway (CI/CD)
+Crea un proyecto en Railway
+
+Conecta este repositorio
+
+Configura tus variables de entorno (usa .env.example)
+
+Elige backend como servicio principal
+
+Railway ejecutará automáticamente el backend
+
+Workflows útiles:
+
+.github/workflows/deploy_railway.yml
+
+.github/workflows/train_rasa.yml
+
+🔐 Usuarios precargados (init-mongo.js)
+json
+Copiar
+Editar
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+  "rol": "admin"
+}
+📜 Scripts útiles (/scripts/)
+🔁 run_full_stack.sh
 bash
 Copiar
 Editar
 #!/bin/bash
-echo "🎯 Entrenando y desplegando todo..."
 cd rasa && rasa train
 cd ..
 docker-compose up --build
-🚀 scripts/push_github.sh
+🚀 push_github.sh
 bash
 Copiar
 Editar
@@ -106,17 +145,34 @@ Editar
 git add .
 git commit -m "🚀 Actualización"
 git push origin main
+🌐 URL de API y Widget
+Una vez desplegado en Railway, la URL será algo como:
+
+arduino
+Copiar
+Editar
+https://chatbot-backend-production.up.railway.app
+Apunta tu widget así:
+
+js
+Copiar
+Editar
+iframe.src = "https://chatbot-backend-production.up.railway.app/static/widget/widget.html";
 🧠 Créditos
-Desarrollado por Daniel Martínez como solución de tutoría automatizada para el SENA.
-Integración con Zajuna, IA conversacional Rasa y panel admin React.
+Desarrollado por Daniel Martínez como solución de tutoría automatizada para aprendices del SENA.
 
-📜 Licencia – MIT
-Este proyecto está licenciado bajo la Licencia MIT.
+Incluye integración con:
 
-¿Qué significa?
-✅ Puedes usar, modificar, distribuir y comercializar el código.
+Plataforma Zajuna
 
-❌ El autor no se hace responsable de daños derivados.
+Inteligencia Conversacional Rasa
 
-📝 Solo se requiere mantener este aviso de licencia.
+Panel administrativo React
+
+Orquestación con Docker y Railway
+
+📝 Licencia – MIT
+✅ Puedes usar, modificar y distribuir este proyecto libremente.
+❌ El autor no se hace responsable por daños derivados del uso.
+🔒 Conserva este aviso de licencia en todos los archivos modificados.
 

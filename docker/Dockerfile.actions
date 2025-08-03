@@ -1,11 +1,15 @@
-# 🧠 Rasa Action Server
+# docker/Dockerfile.actions
+
 FROM rasa/rasa-sdk:3.6.2
 
 WORKDIR /app/actions
 
-COPY rasa/actions/requirements.txt ./
+# Instalar dependencias para acciones personalizadas
+COPY rasa/actions/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar las acciones personalizadas
 COPY rasa/actions/ .
 
-CMD ["start", "--actions", "actions"]
+# Ejecutar el action server
+CMD ["rasa", "run", "actions", "--debug"]

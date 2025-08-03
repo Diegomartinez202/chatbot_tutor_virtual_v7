@@ -1,8 +1,10 @@
+# docker/Dockerfile.rasa
+
 FROM rasa/rasa:3.6.10
 
 WORKDIR /app
 
-# Copiar toda la carpeta rasa
+# Copiar el contenido de la carpeta rasa
 COPY rasa/ .
 
 # Entrenar el modelo
@@ -10,4 +12,3 @@ RUN rasa train
 
 # Exponer puerto y ejecutar Rasa
 CMD ["rasa", "run", "--enable-api", "--cors", "*", "--debug"]
-
