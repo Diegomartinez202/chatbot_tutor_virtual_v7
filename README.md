@@ -10,6 +10,15 @@ Sistema modular e inteligente para orientación académica y soporte en línea, 
 ![Panel React](https://img.shields.io/badge/Admin%20Panel-React%2BVite-blue.svg)
 ![Despliegue](https://img.shields.io/badge/despliegue-pendiente-lightgrey.svg)
 
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Proyecto-SENA-008000?style=for-the-badge&logo=github" alt="Proyecto SENA" />
+  <img src="https://img.shields.io/badge/Estado-En%20desarrollo-blue?style=for-the-badge" alt="Estado" />
+  <img src="https://img.shields.io/github/license/Diegomartinez202/chatbot_tutor_virtual_v7?style=for-the-badge" alt="Licencia MIT" />
+  <img src="https://img.shields.io/badge/Despliegue-Railway-grey?style=for-the-badge&logo=railway" alt="Railway" />
+</p>
+
+
 ## 🧩 Componentes del Proyecto
 
 | Carpeta / Componente      | Tecnología           | Descripción                                                                 |
