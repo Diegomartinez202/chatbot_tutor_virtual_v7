@@ -6,6 +6,8 @@ from datetime import datetime
 from collections import defaultdict
 from backend.db.mongodb import get_logs_collection
 from backend.config.settings import LOG_DIR
+from backend.utils.file_utils import save_csv_to_s3_and_get_url
+
 
 def listar_archivos_log():
     try:
@@ -14,9 +16,11 @@ def listar_archivos_log():
     except Exception as e:
         return {"error": str(e)}
 
+
 def obtener_contenido_log(filename: str):
     ruta = os.path.join(LOG_DIR, filename)
     return ruta if os.path.exists(ruta) else None
+
 
 def exportar_logs_csv_stream():
     logs = get_logs_collection().find()
@@ -34,8 +38,10 @@ def exportar_logs_csv_stream():
     output.seek(0)
     return output
 
+
 def contar_mensajes_no_leidos(user_id: str):
     return get_logs_collection().count_documents({"user_id": user_id, "leido": False})
+
 
 def marcar_mensajes_como_leidos(user_id: str):
     result = get_logs_collection().update_many(
@@ -44,12 +50,14 @@ def marcar_mensajes_como_leidos(user_id: str):
     )
     return result.modified_count
 
+
 def get_logs(limit: int = 100):
     collection = get_logs_collection()
     logs = list(collection.find({"tipo": "acceso"}).sort("timestamp", -1).limit(limit))
     for log in logs:
         log["_id"] = str(log["_id"])
     return logs
+
 
 def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, status: int, ip: str = None, user_agent: str = None, tipo: str = "acceso"):
     collection = get_logs_collection()
@@ -66,7 +74,7 @@ def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, s
         "timestamp": datetime.utcnow()
     })
 
-# ✅ NUEVA FUNCIÓN: obtener estadísticas de exportaciones por día
+
 def get_export_stats():
     collection = get_logs_collection()
     pipeline = [
@@ -87,7 +95,7 @@ def get_export_stats():
         "total": r["total"]
     } for r in result]
 
-# ✅ NUEVA FUNCIÓN: obtener registros individuales de exportaciones
+
 def get_export_logs(limit: int = 50):
     collection = get_logs_collection()
     logs = list(collection.find({"tipo": "descarga"}).sort("timestamp", -1).limit(limit))
@@ -95,9 +103,9 @@ def get_export_logs(limit: int = 50):
         log["_id"] = str(log["_id"])
         log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
     return logs
-# ✅ NUEVA FUNCIÓN para middleware
+
+
 def log_access_middleware(endpoint: str, method: str, status: int, ip: str, user_agent: str, user: dict = None):
-    """📥 Registra accesos al sistema desde middleware."""
     doc = {
         "endpoint": endpoint,
         "method": method,
@@ -114,7 +122,8 @@ def log_access_middleware(endpoint: str, method: str, status: int, ip: str, user
             "rol": user.get("rol")
         })
     get_logs_collection().insert_one(doc)
-    # ✅ Obtener lista de logs fallidos (ej. fallback)
+
+
 def get_fallback_logs(limit: int = 100):
     collection = get_logs_collection()
     logs = list(collection.find({"intent": "nlu_fallback"}).sort("timestamp", -1).limit(limit))
@@ -123,7 +132,7 @@ def get_fallback_logs(limit: int = 100):
         log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
     return logs
 
-# ✅ Obtener los intents fallidos más comunes (top 5)
+
 def get_top_failed_intents():
     collection = get_logs_collection()
     pipeline = [
@@ -134,6 +143,8 @@ def get_top_failed_intents():
     ]
     result = list(collection.aggregate(pipeline))
     return [{"intent": r["_id"], "count": r["count"]} for r in result]
+
+
 def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
     query = {"tipo": "descarga"}
     if desde or hasta:
@@ -145,10 +156,9 @@ def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
 
     logs = get_logs_collection().find(query).sort("timestamp", -1)
 
-    output = StringIO()
-    writer = csv.writer(output)
+    csv_str = StringIO()
+    writer = csv.writer(csv_str)
     writer.writerow(["user_id", "email", "timestamp", "endpoint", "method", "status", "ip", "user_agent"])
-
     for log in logs:
         writer.writerow([
             log.get("user_id", ""),
@@ -161,5 +171,5 @@ def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
             log.get("user_agent", "")
         ])
 
-    output.seek(0)
-    return output
+    csv_text = csv_str.getvalue()
+    return save_csv_to_s3_and_get_url(csv_text, filename_prefix="logs")

@@ -12,13 +12,14 @@ import ListIntents from "@/components/ListIntents";
 import CrearIntentPage from "@/pages/CrearIntentPage";
 import BuscarIntentPage from "@/pages/BuscarIntentPage";
 import StadisticasLogsPage from "@/pages/StadisticasLogsPage";
+import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
+import ExportarLogsPage from "@/pages/ExportarLogsPage";
+import ExportacionesPage from "@/pages/ExportacionesPage";
+import TrainBotPage from "@/pages/TrainBotPage";
 
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
-import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
-import ExportarLogsPage from "@/pages/ExportarLogsPage";
-import TrainBotPage from "@/pages/TrainBotPage";
-
+import DiagnosticoPage from "@/pages/TestPage";
 const AppRoutes = () => {
     return (
         <Routes>
@@ -133,12 +134,11 @@ const AppRoutes = () => {
                 element={
                     <ProtectedRoute>
                         <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <ExportarLogsPage />
+                            <ExportacionesPage />
                         </RequireRole>
                     </ProtectedRoute>
                 }
             />
-            // ✅ Ruta protegida solo para admin o soporte
             <Route
                 path="/entrenar-bot"
                 element={
@@ -149,13 +149,34 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-// ✅ Ruta de acceso denegado
+
+            {/* Página de acceso denegado */}
             <Route
                 path="/unauthorized"
                 element={
                     <div className="p-6 text-center text-red-600 text-xl font-semibold">
                         ⛔ Acceso denegado: no tienes permisos para ver esta página.
                     </div>
+                }
+            />
+            <Route
+                path="/exportaciones"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ExportacionesPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/diagnostico"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <DiagnosticoPage />
+                        </RequireRole>
+                    </ProtectedRoute>
                 }
             />
         </Routes>

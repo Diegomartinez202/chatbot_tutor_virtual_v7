@@ -2,16 +2,25 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import axiosClient from "@/services/axiosClient";
-
-// ✅ Íconos SVG desde Lucide
+import { useAdminActions } from "@/services/useAdminActions";
+import FiltrosFecha from "@/components/FiltrosFecha";
+import { toast } from "react-hot-toast";
+import Badge from "@/components/Badge";
 import {
     TestTube, Server, Bot, ListChecks, TimerReset,
     RefreshCw, Download
 } from "lucide-react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
-function DiagnosticoPage() {
+function TestPage() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { exportMutation } = useAdminActions();
+
+    const [filtros, setFiltros] = useState({
+        fechaInicio: null,
+        fechaFin: null,
+    });
 
     const tests = [
         {
@@ -45,20 +54,9 @@ function DiagnosticoPage() {
             fn: () => axiosClient.post("/admin/restart"),
         },
         {
-            name: "Exportar resultados",
-            icon: <Download className="w-4 h-4 mr-2" />,
-            fn: async () => {
-                const res = await axiosClient.get("/admin/export-tests", { responseType: "blob" });
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "resultados_diagnostico.csv");
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                return { status: 200, data: { message: "Exportación completada" } };
-            }
-        }
+            name: "🔗 Conexión S3 (/admin/exportaciones/tests)",
+            fn: () => axiosClient.get("/admin/exportaciones/tests"),
+        },
     ];
 
     const runTest = async (name, fn) => {
@@ -73,7 +71,7 @@ function DiagnosticoPage() {
                     name,
                     status: res.status,
                     message: res.data?.message || JSON.stringify(res.data),
-                    latency: `${latency} ms`,
+                    latency,
                 },
             ]);
         } catch (err) {
@@ -82,7 +80,7 @@ function DiagnosticoPage() {
                     name,
                     status: err.response?.status || 500,
                     message: err.message,
-                    latency: "-",
+                    latency: null,
                 },
             ]);
         } finally {
@@ -104,7 +102,7 @@ function DiagnosticoPage() {
                         name: t.name,
                         status: res.status,
                         message: res.data?.message || JSON.stringify(res.data),
-                        latency: `${latency} ms`,
+                        latency,
                     },
                 ]);
             } catch (err) {
@@ -114,7 +112,7 @@ function DiagnosticoPage() {
                         name: t.name,
                         status: err.response?.status || 500,
                         message: err.message,
-                        latency: "-",
+                        latency: null,
                     },
                 ]);
             }
@@ -122,11 +120,85 @@ function DiagnosticoPage() {
         setLoading(false);
     };
 
-    return (
-        <div className="p-6 max-w-5xl mx-auto">
-            <Header title="🧪 Diagnóstico del Sistema" />
+    const handleExport = () => {
+        exportMutation.mutate(filtros);
+    };
 
-            <div className="mb-6 space-y-2">
+    const handleExportTestResults = async () => {
+        try {
+            const start = Date.now();
+            const res = await axiosClient.get("/admin/exportaciones/tests", {
+                responseType: "blob",
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "resultados_test.csv");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success("✅ Archivo descargado");
+
+            const latency = Date.now() - start;
+            setResults((prev) => [
+                ...prev,
+                {
+                    name: "Exportar resultados test_all.sh",
+                    status: 200,
+                    message: "Archivo CSV exportado correctamente",
+                    latency,
+                },
+            ]);
+        } catch (err) {
+            toast.error("❌ Error al exportar resultados");
+            setResults((prev) => [
+                ...prev,
+                {
+                    name: "Exportar resultados test_all.sh",
+                    status: err.response?.status || 500,
+                    message: err.message,
+                    latency: null,
+                },
+            ]);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-5xl mx-auto space-y-6">
+            <Header title="🧪 Diagnóstico del Sistema" />
+            {/* ✅ Tarjeta resumen del sistema */}
+            <div className="bg-gray-100 p-4 rounded-lg shadow mb-6">
+                <h2 className="text-md font-semibold mb-2">🔍 Estado General del Sistema</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-white rounded shadow flex items-center justify-between">
+                        <span>Servidor Backend</span>
+                        <Badge variant="success">✅ Activo</Badge>
+                    </div>
+                    <div className="p-4 bg-white rounded shadow flex items-center justify-between">
+                        <span>Motor Rasa</span>
+                        <Badge variant="success">✅ Conectado</Badge>
+                    </div>
+                    <div className="p-4 bg-white rounded shadow flex items-center justify-between">
+                        <span>Base de datos</span>
+                        <Badge variant="success">✅ MongoDB OK</Badge>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-between items-end gap-4 flex-wrap">
+                <FiltrosFecha filtros={filtros} setFiltros={setFiltros} />
+
+                <div className="flex gap-2">
+                    <Button onClick={handleExport} disabled={exportMutation.isLoading} variant="outline">
+                        <Download className="w-4 h-4 mr-2" /> Exportar CSV
+                    </Button>
+                    <Button onClick={handleExportTestResults} variant="outline">
+                        <Download className="w-4 h-4 mr-2" /> Exportar test_all.sh
+                    </Button>
+                </div>
+            </div>
+
+            <div className="space-y-2">
                 <Button onClick={runAllTests} disabled={loading}>
                     {loading ? "⏳ Ejecutando todo..." : "🔍 Ejecutar todas las pruebas"}
                 </Button>
@@ -160,18 +232,18 @@ function DiagnosticoPage() {
                                 <th className="px-4 py-2">Prueba</th>
                                 <th className="px-4 py-2">Estado</th>
                                 <th className="px-4 py-2">Mensaje</th>
-                                <th className="px-4 py-2">Latencia</th>
+                                <th className="px-4 py-2">Latencia (ms)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {results.map((r, i) => (
-                                <tr key={i}>
-                                    <td className="border px-4 py-2">{r.name}</td>
-                                    <td className={`border px-4 py-2 font-bold ${r.status === 200 ? "text-green-600" : "text-red-600"}`}>
-                                        {r.status === 200 ? "✅ 200 OK" : `❌ ${r.status}`}
+                                <tr key={i} className="border-t">
+                                    <td className="px-4 py-2 font-medium">{r.name}</td>
+                                    <td className="px-4 py-2">
+                                        <Badge status={r.status} />
                                     </td>
-                                    <td className="border px-4 py-2 break-words">{r.message}</td>
-                                    <td className="border px-4 py-2">{r.latency}</td>
+                                    <td className="px-4 py-2 break-all max-w-[250px] text-gray-700">{r.message}</td>
+                                    <td className="px-4 py-2 text-gray-500">{r.latency !== null ? `${r.latency} ms` : "-"}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -181,6 +253,5 @@ function DiagnosticoPage() {
         </div>
     );
 }
-
 
 export default TestPage;

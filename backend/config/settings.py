@@ -41,8 +41,19 @@ class Settings(BaseSettings):
     template_dir: str = Field("backend/templates", env="TEMPLATE_DIR")
     favicon_path: str = Field("backend/static/favicon.ico", env="FAVICON_PATH")
 
+    # ☁️ S3
+    aws_access_key_id: str = Field(..., env="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: str = Field(..., env="AWS_SECRET_ACCESS_KEY")
+    aws_s3_bucket_name: str = Field(..., env="AWS_S3_BUCKET_NAME")
+    aws_s3_region: str = Field("us-east-1", env="AWS_S3_REGION")
+    aws_s3_endpoint_url: str = Field("https://s3.amazonaws.com", env="AWS_S3_ENDPOINT_URL")
+
+    # 🌐 URL base de backend
+    base_url: str = Field("http://localhost:8000", env="BASE_URL")
+
     class Config:
         env_file = ".env"
+
 
 # ✅ Instancia global lista para importar
 settings = Settings()

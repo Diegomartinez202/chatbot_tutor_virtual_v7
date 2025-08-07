@@ -2,29 +2,30 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import LogsTable from "@/components/LogsTable";
-import { exportLogsCSV } from "@/services/api";
+import { useAdminActions } from "@/services/useAdminActions";
 import { toast } from "react-hot-toast";
 import { FileText, Lock, Download, Search } from "lucide-react";
+import FiltrosFecha from "@/components/FiltrosFecha";
+import { Button } from "@/components/ui/button";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 function LogsPage() {
     const { user } = useAuth();
-    const [filters, setFilters] = useState({ email: "", endpoint: "", rol: "" });
+    const { exportMutation } = useAdminActions();
 
-    const handleExport = async () => {
-        try {
-            const blob = await exportLogsCSV();
-            const url = window.URL.createObjectURL(new Blob([blob]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", "logs_exportados.csv");
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            toast.success("Logs exportados correctamente 📥");
-        } catch (error) {
-            toast.error("❌ Error al exportar logs");
-            console.error("Export error:", error);
-        }
+    const [filters, setFilters] = useState({
+        email: "",
+        endpoint: "",
+        rol: "",
+    });
+
+    const [fechas, setFechas] = useState({
+        fechaInicio: null,
+        fechaFin: null,
+    });
+
+    const handleExport = () => {
+        exportMutation.mutate(fechas);
     };
 
     if (user?.rol !== "admin" && user?.rol !== "soporte") {
@@ -41,20 +42,43 @@ function LogsPage() {
     }
 
     return (
-        <div className="p-6 space-y-4">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <FileText size={22} /> Logs del Chatbot
-                </h1>
-                <button
-                    onClick={handleExport}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow"
-                >
-                    <Download size={16} /> Exportar CSV
-                </button>
+        <div className="p-6 space-y-6">
+            {/* 🔹 Encabezado + botón exportar */}
+            <div className="flex justify-between items-end flex-wrap gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <FileText size={22} /> Logs del Chatbot
+                    </h1>
+                </div>
+
+                <div className="flex items-end gap-2">
+                    <FiltrosFecha filtros={fechas} setFiltros={setFechas} />
+                    <Tooltip.Provider>
+                        <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                                <Button
+                                    onClick={handleExport}
+                                    disabled={exportMutation.isLoading}
+                                    variant="outline"
+                                >
+                                    <Download size={16} className="mr-2" />
+                                    Exportar CSV
+                                </Button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                                <Tooltip.Content
+                                    className="tooltip bg-black text-white px-2 py-1 rounded text-sm"
+                                    side="top"
+                                >
+                                    Exportar registros con fechas aplicadas
+                                </Tooltip.Content>
+                            </Tooltip.Portal>
+                        </Tooltip.Root>
+                    </Tooltip.Provider>
+                </div>
             </div>
 
-            {/* Filtros */}
+            {/* 🔍 Filtros adicionales */}
             <div className="flex flex-wrap gap-4">
                 <div className="relative">
                     <input
