@@ -3,9 +3,10 @@ import { getUsers, updateUser, deleteUser, exportUsersCSV } from "@/services/api
 import UsersTable from "@/components/UsersTable";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
+import { Search, FileDown, Loader2 } from "lucide-react"; // ✅ Íconos Lucide
 
 const UserManagementPage = () => {
-    const { user } = useAuth(); // 👈 Validación por rol
+    const { user } = useAuth();
     const [users, setUsers] = useState([]);
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ nombre: "", email: "", rol: "usuario" });
@@ -13,7 +14,6 @@ const UserManagementPage = () => {
     const [filterRol, setFilterRol] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // 🔒 Solo admin puede acceder
     if (user?.rol !== "admin") {
         return (
             <div className="p-6">
@@ -25,7 +25,6 @@ const UserManagementPage = () => {
         );
     }
 
-    // 🔄 Cargar usuarios
     const fetchUsers = async () => {
         try {
             setLoading(true);
@@ -74,7 +73,6 @@ const UserManagementPage = () => {
         }
     };
 
-    // 🔎 Filtro por nombre, email y rol
     const filteredUsers = users.filter(user =>
         (user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
@@ -86,16 +84,19 @@ const UserManagementPage = () => {
             <h1 className="text-2xl font-bold mb-4">👥 Gestión de Usuarios</h1>
 
             <div className="flex flex-wrap items-center gap-2 mb-4">
-                <input
-                    type="text"
-                    placeholder="🔍 Buscar por nombre o email"
-                    className="border px-3 py-1 w-full max-w-md"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <div className="relative w-full max-w-md">
+                    <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre o email"
+                        className="pl-10 pr-3 py-1 border w-full rounded"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
 
                 <select
-                    className="border px-3 py-1"
+                    className="border px-3 py-1 rounded"
                     value={filterRol}
                     onChange={(e) => setFilterRol(e.target.value)}
                 >
@@ -114,14 +115,18 @@ const UserManagementPage = () => {
                             toast.error("❌ Error al exportar usuarios");
                         }
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2"
                 >
-                    📥 Exportar usuarios a CSV
+                    <FileDown className="w-4 h-4" />
+                    Exportar usuarios
                 </button>
             </div>
 
             {loading ? (
-                <p className="text-center text-gray-500">⏳ Cargando usuarios...</p>
+                <div className="text-center text-gray-500 flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
+                    Cargando usuarios...
+                </div>
             ) : (
                 <UsersTable
                     users={filteredUsers}
