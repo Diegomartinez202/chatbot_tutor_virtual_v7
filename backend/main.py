@@ -15,7 +15,7 @@ from backend.middleware.auth_middleware import AuthMiddleware
 from backend.middleware.logging_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.config.settings import settings
-
+from backend.routes import exportaciones  # nuevo
 # ⚙️ Inicialización de la aplicación FastAPI
 app = FastAPI(
     title="Chatbot Tutor Virtual API",

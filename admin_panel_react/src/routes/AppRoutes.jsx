@@ -17,6 +17,7 @@ import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ExportarLogsPage from "@/pages/ExportarLogsPage";
+import TrainBotPage from "@/pages/TrainBotPage";
 
 const AppRoutes = () => {
     return (
@@ -108,16 +109,6 @@ const AppRoutes = () => {
                 }
             />
             <Route
-                path="/stadisticas-logs"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <StadisticasLogsPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
                 path="/intentos-fallidos"
                 element={
                     <ProtectedRoute>
@@ -145,6 +136,26 @@ const AppRoutes = () => {
                             <ExportarLogsPage />
                         </RequireRole>
                     </ProtectedRoute>
+                }
+            />
+            // ✅ Ruta protegida solo para admin o soporte
+            <Route
+                path="/entrenar-bot"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <TrainBotPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+// ✅ Ruta de acceso denegado
+            <Route
+                path="/unauthorized"
+                element={
+                    <div className="p-6 text-center text-red-600 text-xl font-semibold">
+                        ⛔ Acceso denegado: no tienes permisos para ver esta página.
+                    </div>
                 }
             />
         </Routes>

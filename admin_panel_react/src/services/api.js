@@ -1,3 +1,4 @@
+// admin-panel-react/src/services/api.js
 import apiClient from "@/services/axiosClient";
 
 // -----------------------------
@@ -27,9 +28,7 @@ export const uploadIntentsCSV = (file) => {
 };
 
 export const exportIntentsCSV = () =>
-    apiClient.get("/admin/intents/export", {
-        responseType: "blob",
-    });
+    apiClient.get("/admin/intents/export", { responseType: "blob" });
 
 // -----------------------------
 // 📁 ENTRENAMIENTO
@@ -44,7 +43,7 @@ export const trainBot = () => apiClient.post("/admin/train");
 export const fetchUsers = () => apiClient.get("/admin/users");
 export const deleteUser = (userId) => apiClient.delete(`/admin/users/${userId}`);
 export const updateUser = (userId, userData) => apiClient.put(`/admin/users/${userId}`, userData);
-export const createUser = (userData) => apiClient.post("/admin/users", userData); // opcional
+export const createUser = (userData) => apiClient.post("/admin/users", userData);
 
 export const exportUsersCSV = async () => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/export`, {
@@ -73,7 +72,7 @@ export const exportUsersCSV = async () => {
 
 export const login = (credentials) => apiClient.post("/auth/login", credentials);
 export const refreshToken = () => apiClient.post("/auth/refresh");
-export const register = (userData) => apiClient.post("/auth/register", userData); // opcional
+export const register = (userData) => apiClient.post("/auth/register", userData);
 
 // -----------------------------
 // 📁 DIAGNÓSTICO / TEST
@@ -90,14 +89,10 @@ export const getLogsList = () =>
     apiClient.get("/admin/logs").then(res => res.data);
 
 export const downloadLogFile = (filename) =>
-    apiClient.get(`/admin/logs/${filename}`, {
-        responseType: "blob"
-    }).then(res => res.data);
+    apiClient.get(`/admin/logs/${filename}`, { responseType: "blob" }).then(res => res.data);
 
 export const exportLogsCSV = () =>
-    apiClient.get("/admin/logs/export", {
-        responseType: "blob"
-    }).then(res => res.data);
+    apiClient.get("/admin/logs/export", { responseType: "blob" }).then(res => res.data);
 
 export const getSystemLogs = async () => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/logs-file`, {
@@ -110,27 +105,37 @@ export const getSystemLogs = async () => {
 };
 
 // -----------------------------
-// 📊 ESTADÍSTICAS
+// 📊 ESTADÍSTICAS (con soporte de filtros)
 // -----------------------------
 
-export const getStats = () =>
-    apiClient.get("/admin/stats").then(res => res.data);
+export async function getStats(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await apiClient.get(`/admin/stats${query ? "?" + query : ""}`);
+    return res.data;
+}
 
-export const getExportStats = () =>
-    apiClient.get("/admin/logs/exports").then(res => res.data);
+export async function getExportStats(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await apiClient.get(`/admin/exportaciones${query ? "?" + query : ""}`);
+    return res.data;
+}
 
 // -----------------------------
-// 🌐 Default export opcional
+// 📉 INTENTS FALLIDOS
 // -----------------------------
 
-export { default as axios } from "@/services/axiosClient";
-// 📉 Fallos de intents
 export const getFallbackLogs = () =>
     apiClient.get("/admin/intents/failures").then(res => res.data);
 
 export const getTopFailedIntents = () =>
     apiClient.get("/admin/intents/failures/top").then(res => res.data);
+
+// -----------------------------
+// 🔁 UTILIDADES
+// -----------------------------
+
 export const restartServer = () => apiClient.post("/admin/restart");
+
 export const exportTestResults = async () => {
     const res = await apiClient.get("/admin/export-tests", { responseType: "blob" });
     const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -141,3 +146,6 @@ export const exportTestResults = async () => {
     link.click();
     link.remove();
 };
+
+// 🌐 Default export opcional
+export { default as axios } from "@/services/axiosClient";

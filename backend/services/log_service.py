@@ -134,3 +134,32 @@ def get_top_failed_intents():
     ]
     result = list(collection.aggregate(pipeline))
     return [{"intent": r["_id"], "count": r["count"]} for r in result]
+def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
+    query = {"tipo": "descarga"}
+    if desde or hasta:
+        query["timestamp"] = {}
+        if desde:
+            query["timestamp"]["$gte"] = desde
+        if hasta:
+            query["timestamp"]["$lte"] = hasta
+
+    logs = get_logs_collection().find(query).sort("timestamp", -1)
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["user_id", "email", "timestamp", "endpoint", "method", "status", "ip", "user_agent"])
+
+    for log in logs:
+        writer.writerow([
+            log.get("user_id", ""),
+            log.get("email", ""),
+            log.get("timestamp", "").isoformat() if log.get("timestamp") else "",
+            log.get("endpoint", ""),
+            log.get("method", ""),
+            log.get("status", ""),
+            log.get("ip", ""),
+            log.get("user_agent", "")
+        ])
+
+    output.seek(0)
+    return output

@@ -6,15 +6,31 @@ import pytz
 
 tz = pytz.timezone("America/Bogota")
 
-async def obtener_total_logs():
-    return get_logs_collection().count_documents({})
+def build_date_filter(desde=None, hasta=None):
+    filtro = {}
+    if desde or hasta:
+        rango = {}
+        if desde:
+            rango["$gte"] = datetime.strptime(desde, "%Y-%m-%d").replace(tzinfo=tz)
+        if hasta:
+            rango["$lte"] = datetime.strptime(hasta, "%Y-%m-%d").replace(tzinfo=tz)
+        filtro["timestamp"] = rango
+    return filtro
 
-async def obtener_total_exportaciones_csv():
-    return get_logs_collection().count_documents({"tipo": "descarga"})
+async def obtener_total_logs(desde=None, hasta=None):
+    filtro = build_date_filter(desde, hasta)
+    return get_logs_collection().count_documents(filtro)
 
-async def obtener_intents_mas_usados(limit: int = 5):
+async def obtener_total_exportaciones_csv(desde=None, hasta=None):
+    filtro = build_date_filter(desde, hasta)
+    filtro["tipo"] = "descarga"
+    return get_logs_collection().count_documents(filtro)
+
+async def obtener_intents_mas_usados(limit: int = 5, desde=None, hasta=None):
+    filtro = build_date_filter(desde, hasta)
+    filtro["intent"] = {"$exists": True, "$ne": ""}
     pipeline = [
-        {"$match": {"intent": {"$exists": True, "$ne": ""}}},
+        {"$match": filtro},
         {"$group": {"_id": "$intent", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": limit}
@@ -45,8 +61,10 @@ async def obtener_usuarios_por_rol():
     resultados = list(get_users_collection().aggregate(pipeline))
     return [{"rol": r["_id"], "total": r["total"]} for r in resultados]
 
-async def obtener_logs_por_dia():
+async def obtener_logs_por_dia(desde=None, hasta=None):
+    filtro = build_date_filter(desde, hasta)
     pipeline = [
+        {"$match": filtro},
         {
             "$group": {
                 "_id": {

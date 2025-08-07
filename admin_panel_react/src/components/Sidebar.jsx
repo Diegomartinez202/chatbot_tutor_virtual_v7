@@ -11,6 +11,7 @@ import {
     Bug,
     PanelLeft
 } from "lucide-react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 const Sidebar = () => {
     const location = useLocation();
@@ -23,14 +24,14 @@ const Sidebar = () => {
             { to: "/profile", label: "Perfil", icon: User },
         ],
         "IA": [
-            { to: "/intents", label: "Intents", icon: Brain },
-            { to: "/stats", label: "Estadísticas", icon: BarChart },
-            { to: "/diagnostico", label: "Diagnóstico", icon: FlaskConical },
+            { to: "/intents-page", label: "Intents", icon: Brain },
+            { to: "/stats-v2", label: "📊 Estadísticas v2", icon: BarChart },
+            { to: "/test", label: "Diagnóstico", icon: FlaskConical },
         ],
         "Administración": [
             { to: "/logs", label: "Logs", icon: FileText },
-            { to: "/users", label: "Usuarios", icon: Users },
-            { to: "/exportaciones", label: "Exportaciones de Logs", icon: Download },
+            { to: "/user-management", label: "Usuarios", icon: Users },
+            { to: "/exportaciones", label: "Exportaciones", icon: Download },
             { to: "/intentos-fallidos", label: "Fallos del bot", icon: Bug },
         ],
     };
@@ -41,20 +42,31 @@ const Sidebar = () => {
                 <PanelLeft size={22} /> Panel Admin
             </h2>
 
-            {Object.entries(menuSections).map(([section, links]) => (
-                <div key={section}>
-                    <p className="text-gray-400 uppercase text-sm mt-6 px-4">{section}</p>
-                    {links.map(({ to, label, icon: Icon }) => (
-                        <Link
-                            key={to}
-                            to={to}
-                            className={`flex items-center gap-2 py-2 px-4 rounded hover:bg-gray-700 ${isActive(to) ? "bg-gray-800 font-semibold" : ""}`}
-                        >
-                            <Icon size={18} /> {label}
-                        </Link>
-                    ))}
-                </div>
-            ))}
+            <Tooltip.Provider>
+                {Object.entries(menuSections).map(([section, links]) => (
+                    <div key={section}>
+                        <p className="text-gray-400 uppercase text-sm mt-6 px-4">{section}</p>
+                        {links.map(({ to, label, icon: Icon }) => (
+                            <Tooltip.Root key={to}>
+                                <Tooltip.Trigger asChild>
+                                    <Link
+                                        to={to}
+                                        className={`flex items-center gap-2 py-2 px-4 rounded hover:bg-gray-700 ${isActive(to) ? "bg-gray-800 font-semibold" : ""}`}
+                                    >
+                                        <Icon size={18} />
+                                        <span>{label}</span>
+                                    </Link>
+                                </Tooltip.Trigger>
+                                <Tooltip.Portal>
+                                    <Tooltip.Content className="tooltip" side="right">
+                                        {label}
+                                    </Tooltip.Content>
+                                </Tooltip.Portal>
+                            </Tooltip.Root>
+                        ))}
+                    </div>
+                ))}
+            </Tooltip.Provider>
         </aside>
     );
 };

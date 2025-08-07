@@ -12,6 +12,7 @@ import TestPage from "@/pages/TestPage";
 import LogsPage from "@/pages/LogsPage";
 import IntentsPage from "@/pages/IntentsPage";
 import StatsPage from "@/pages/StatsPage";
+import StatsPageV2 from "@/pages/StatsPageV2";
 import UsersPage from "@/pages/UsersPage";
 import AssignRoles from "@/pages/AssignRoles";
 import UploadIntentsCSV from "@/components/UploadIntentsCSV";
@@ -111,6 +112,16 @@ function App() {
                     <ProtectedRoute>
                         <RequireRole allowedRoles={["admin"]}>
                             <UploadIntentsCSV />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/stats-v2"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <StatsPageV2 />
                         </RequireRole>
                     </ProtectedRoute>
                 }

@@ -1,8 +1,8 @@
 // src/components/RequireRole.jsx
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext"; // ✅ corregido
+import { useAuth } from "@/context/AuthContext"; // ✅ acceso al usuario y loading
 
-const RequireRole = ({ allowedRoles, children }) => {
+const RequireRole = ({ allowedRoles = [], children }) => {
     const { user, loading } = useAuth();
 
     if (loading) return <p className="p-4">Cargando...</p>;
