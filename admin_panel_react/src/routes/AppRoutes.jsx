@@ -16,6 +16,8 @@ import StadisticasLogsPage from "@/pages/StadisticasLogsPage";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
+import ExportarLogsPage from "@/pages/ExportarLogsPage";
+
 const AppRoutes = () => {
     return (
         <Routes>
@@ -125,7 +127,26 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
+            <Route
+                path="/stadisticas-logs"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ExportarLogsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/exportaciones"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ExportarLogsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
         </Routes>
     );
 };
