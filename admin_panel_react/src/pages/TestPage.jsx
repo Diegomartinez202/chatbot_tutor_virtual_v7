@@ -1,34 +1,64 @@
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import axiosClient from "@/services/axiosClient";
 
-function TestPage() {
+// ✅ Íconos SVG desde Lucide
+import {
+    TestTube, Server, Bot, ListChecks, TimerReset,
+    RefreshCw, Download
+} from "lucide-react";
+
+function DiagnosticoPage() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const tests = [
         {
-            name: "🧪 Ejecutar test_all.sh (/admin/test-all)",
+            name: "Ejecutar test_all.sh",
+            icon: <TestTube className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.post("/admin/test-all"),
         },
         {
-            name: "🟢 Backend conectado (/ping)",
+            name: "Backend conectado",
+            icon: <Server className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/ping"),
         },
         {
-            name: "📋 Intents disponibles (/admin/intents)",
+            name: "Intents disponibles",
+            icon: <ListChecks className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/intents"),
         },
         {
-            name: "🤖 Conexión a Rasa (/admin/rasa/status)",
+            name: "Conexión a Rasa",
+            icon: <Bot className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/rasa/status"),
         },
         {
-            name: "🔁 Estado de entrenamiento (/admin/train?dry_run=true)",
+            name: "Estado de entrenamiento",
+            icon: <TimerReset className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/train?dry_run=true"),
         },
+        {
+            name: "Reiniciar servidor",
+            icon: <RefreshCw className="w-4 h-4 mr-2" />,
+            fn: () => axiosClient.post("/admin/restart"),
+        },
+        {
+            name: "Exportar resultados",
+            icon: <Download className="w-4 h-4 mr-2" />,
+            fn: async () => {
+                const res = await axiosClient.get("/admin/export-tests", { responseType: "blob" });
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", "resultados_diagnostico.csv");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                return { status: 200, data: { message: "Exportación completada" } };
+            }
+        }
     ];
 
     const runTest = async (name, fn) => {
@@ -38,7 +68,6 @@ function TestPage() {
             const start = Date.now();
             const res = await fn();
             const latency = Date.now() - start;
-
             setResults([
                 {
                     name,
@@ -69,7 +98,6 @@ function TestPage() {
                 const start = Date.now();
                 const res = await t.fn();
                 const latency = Date.now() - start;
-
                 setResults((prev) => [
                     ...prev,
                     {
@@ -111,7 +139,7 @@ function TestPage() {
                             disabled={loading}
                             variant="secondary"
                         >
-                            {test.name}
+                            <span className="flex items-center">{test.icon}{test.name}</span>
                         </Button>
                     ))}
                 </div>
@@ -153,5 +181,6 @@ function TestPage() {
         </div>
     );
 }
+
 
 export default TestPage;

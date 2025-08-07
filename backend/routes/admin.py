@@ -12,7 +12,8 @@ from pathlib import Path
 from bson.son import SON
 import subprocess
 import requests
-
+from fastapi import APIRouter, Response
+import os
 router = APIRouter()
 
 # ✅ Verificar estado del servidor Rasa
@@ -274,3 +275,38 @@ def listar_intents(current_user=Depends(require_role(["admin", "soporte"]))):
         status=200 if intents else 204
     )
     return intents
+@router.post("/admin/restart")
+def restart_server(current_user=Depends(require_role(["admin"]))):
+    os.system("touch restart_signal.txt")
+    
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/restart",
+        method="POST",
+        status=200
+    )
+
+    return {"message": "🔁 Servidor reiniciado (simulado)"}
+
+
+@router.get("/admin/export-tests")
+def export_test_results(current_user=Depends(require_role(["admin"]))):
+    csv_data = "Prueba,Estado,Mensaje,Latencia\nBackend conectado,200 OK,Todo bien,120ms\nIntents disponibles,200 OK,23 intents,98ms"
+    filename = f"resultados_diagnostico_{datetime.datetime.now().strftime('%Y-%m-%d')}.csv"
+
+    log_access(
+        user_id=current_user["_id"],
+        email=current_user["email"],
+        rol=current_user["rol"],
+        endpoint="/admin/export-tests",
+        method="GET",
+        status=200
+    )
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

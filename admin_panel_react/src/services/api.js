@@ -130,3 +130,14 @@ export const getFallbackLogs = () =>
 
 export const getTopFailedIntents = () =>
     apiClient.get("/admin/intents/failures/top").then(res => res.data);
+export const restartServer = () => apiClient.post("/admin/restart");
+export const exportTestResults = async () => {
+    const res = await apiClient.get("/admin/export-tests", { responseType: "blob" });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "resultados_diagnostico.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};

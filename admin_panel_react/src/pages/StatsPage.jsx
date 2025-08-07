@@ -4,6 +4,14 @@ import BotonesAdmin from "@/components/BotonesAdmin";
 import StatsChart from "@/components/StatsChart";
 import { getStats } from "@/services/api";
 import { toast } from "react-hot-toast";
+import {
+    BarChart2,
+    Lock,
+    FileText,
+    Users,
+    Download,
+    Brain
+} from "lucide-react";
 
 function StatsPage() {
     const { user } = useAuth();
@@ -23,7 +31,9 @@ function StatsPage() {
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold mb-4">📊 Estadísticas del Chatbot</h1>
+            <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <BarChart2 size={22} /> Estadísticas del Chatbot
+            </h1>
 
             {(user?.rol === "admin" || user?.rol === "soporte") && (
                 <>
@@ -31,17 +41,23 @@ function StatsPage() {
 
                     <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                         <div className="bg-white shadow rounded-md p-4">
-                            <p className="text-gray-500">Total de logs</p>
+                            <p className="text-gray-500 flex items-center gap-2">
+                                <FileText size={16} /> Total de logs
+                            </p>
                             <p className="text-lg font-bold">{stats?.total_logs ?? "..."}</p>
                         </div>
 
                         <div className="bg-white shadow rounded-md p-4">
-                            <p className="text-gray-500">Exportaciones CSV</p>
+                            <p className="text-gray-500 flex items-center gap-2">
+                                <Download size={16} /> Exportaciones CSV
+                            </p>
                             <p className="text-lg font-bold">{stats?.total_exportaciones_csv ?? "..."}</p>
                         </div>
 
                         <div className="bg-white shadow rounded-md p-4">
-                            <p className="text-gray-500">Total usuarios</p>
+                            <p className="text-gray-500 flex items-center gap-2">
+                                <Users size={16} /> Total usuarios
+                            </p>
                             <p className="text-lg font-bold">{stats?.total_usuarios ?? "..."}</p>
                         </div>
 
@@ -66,7 +82,9 @@ function StatsPage() {
                         </div>
 
                         <div className="bg-white shadow rounded-md p-4 col-span-2">
-                            <p className="text-gray-500">Intents más usados</p>
+                            <p className="text-gray-500 flex items-center gap-2">
+                                <Brain size={16} /> Intents más usados
+                            </p>
                             <ul className="list-disc ml-5 text-xs">
                                 {stats?.intents_mas_usados?.map((i, idx) => (
                                     <li key={idx}>{i.intent} ({i.total})</li>
@@ -78,8 +96,8 @@ function StatsPage() {
             )}
 
             {(user?.rol !== "admin" && user?.rol !== "soporte") && (
-                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded-md">
-                    🔒 Algunas funciones administrativas están restringidas para tu rol (<strong>{user?.rol}</strong>).
+                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded-md flex items-center gap-2">
+                    <Lock size={16} /> Algunas funciones administrativas están restringidas para tu rol (<strong>{user?.rol}</strong>).
                 </div>
             )}
 
