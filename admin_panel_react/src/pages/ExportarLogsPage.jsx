@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getExportStats } from "@/services/api";
 import { format } from "date-fns";
+import { Download } from "lucide-react"; // ✅ Ícono SVG
 
 function ExportarLogsPage() {
     const [exportaciones, setExportaciones] = useState([]);
@@ -39,10 +40,10 @@ function ExportarLogsPage() {
                                     <td className="px-4 py-2">
                                         <a
                                             href={`${import.meta.env.VITE_API_URL}/admin/logs/${exp.archivo}`}
-                                            className="text-blue-600 hover:underline"
+                                            className="text-blue-600 hover:underline flex items-center gap-1"
                                             download
                                         >
-                                            Descargar
+                                            <Download size={16} /> Descargar
                                         </a>
                                     </td>
                                 </tr>
