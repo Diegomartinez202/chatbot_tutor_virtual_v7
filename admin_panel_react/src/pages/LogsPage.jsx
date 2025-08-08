@@ -1,4 +1,3 @@
-// src/pages/LogsPage.jsx
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import LogsTable from "@/components/LogsTable";
@@ -8,6 +7,7 @@ import { FileText, Lock, Download, Search } from "lucide-react";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { Button } from "@/components/ui/button";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import Badge from "@/components/ui/Badge"; // ✅ Integrado para uso de colores dinámicos
 
 function LogsPage() {
     const { user } = useAuth();
@@ -114,7 +114,8 @@ function LogsPage() {
                 </div>
             </div>
 
-            <LogsTable filters={filters} />
+            {/* 📋 Tabla de resultados */}
+            <LogsTable filters={filters} Badge={Badge} />
         </div>
     );
 }
