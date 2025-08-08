@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import { Link, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
@@ -17,7 +18,6 @@ const Sidebar = () => {
     const location = useLocation();
     const isActive = (path) => location.pathname === path;
 
-    // 🎯 Menú agrupado por secciones con íconos SVG
     const menuSections = {
         "Cuenta": [
             { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

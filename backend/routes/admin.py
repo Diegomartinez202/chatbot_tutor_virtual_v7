@@ -14,6 +14,8 @@ import subprocess
 import requests
 from fastapi import APIRouter, Response
 import os
+from backend.services.log_service import registrar_exportacion_csv, get_export_logs
+
 router = APIRouter()
 
 # ✅ Verificar estado del servidor Rasa
@@ -310,3 +312,25 @@ def export_test_results(current_user=Depends(require_role(["admin"]))):
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+    @router.get("/admin/exportaciones")
+def exportaciones_csv(
+    request: Request,
+    desde: datetime = Query(None),
+    hasta: datetime = Query(None),
+    current_user=Depends(require_role(["admin"]))
+):
+    user = {
+        "_id": current_user["_id"],
+        "email": current_user["email"],
+        "rol": current_user["rol"],
+        "ip": request.state.ip,
+        "user_agent": request.state.user_agent,
+    }
+
+    url = registrar_exportacion_csv(user=user, desde=desde, hasta=hasta)
+    return {"url": url}
+
+
+@router.get("/admin/exportaciones/historial")
+def historial_exportaciones(current_user=Depends(require_role(["admin"]))):
+    return get_export_logs()

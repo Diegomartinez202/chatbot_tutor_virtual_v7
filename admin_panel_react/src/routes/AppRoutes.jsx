@@ -16,19 +16,20 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ExportarLogsPage from "@/pages/ExportarLogsPage";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import TrainBotPage from "@/pages/TrainBotPage";
+import DiagnosticoPage from "@/pages/TestPage";
 
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
-import DiagnosticoPage from "@/pages/TestPage";
+
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* Rutas públicas */}
+            {/* 🌐 Rutas públicas */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<LoginPage />} />
 
-            {/* Rutas protegidas con roles */}
+            {/* 🔐 Rutas protegidas con roles */}
             <Route
                 path="/dashboard"
                 element={
@@ -145,26 +146,6 @@ const AppRoutes = () => {
                     <ProtectedRoute>
                         <RequireRole allowedRoles={["admin", "soporte"]}>
                             <TrainBotPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-
-            {/* Página de acceso denegado */}
-            <Route
-                path="/unauthorized"
-                element={
-                    <div className="p-6 text-center text-red-600 text-xl font-semibold">
-                        ⛔ Acceso denegado: no tienes permisos para ver esta página.
-                    </div>
-                }
-            />
-            <Route
-                path="/exportaciones"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <ExportacionesPage />
                         </RequireRole>
                     </ProtectedRoute>
                 }

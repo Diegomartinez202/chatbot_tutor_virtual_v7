@@ -5,12 +5,12 @@ import axiosClient from "@/services/axiosClient";
 import { useAdminActions } from "@/services/useAdminActions";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { toast } from "react-hot-toast";
-import Badge from "@/components/Badge";
+import { Badge } from "@/components/ui/Badge"; // ✅ CORRECTO
 import {
     TestTube, Server, Bot, ListChecks, TimerReset,
     RefreshCw, Download
 } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import ResumenSistema from "@/components/ResumenSistema";
 
 function TestPage() {
     const [results, setResults] = useState([]);
@@ -66,23 +66,19 @@ function TestPage() {
             const start = Date.now();
             const res = await fn();
             const latency = Date.now() - start;
-            setResults([
-                {
-                    name,
-                    status: res.status,
-                    message: res.data?.message || JSON.stringify(res.data),
-                    latency,
-                },
-            ]);
+            setResults([{
+                name,
+                status: res.status,
+                message: res.data?.message || JSON.stringify(res.data),
+                latency,
+            }]);
         } catch (err) {
-            setResults([
-                {
-                    name,
-                    status: err.response?.status || 500,
-                    message: err.message,
-                    latency: null,
-                },
-            ]);
+            setResults([{
+                name,
+                status: err.response?.status || 500,
+                message: err.message,
+                latency: null,
+            }]);
         } finally {
             setLoading(false);
         }
@@ -165,8 +161,10 @@ function TestPage() {
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
-            <Header title="🧪 Diagnóstico del Sistema" />
-            {/* ✅ Tarjeta resumen del sistema */}
+            <Header title="🔎 Diagnóstico del sistema" />
+
+            <ResumenSistema />
+
             <div className="bg-gray-100 p-4 rounded-lg shadow mb-6">
                 <h2 className="text-md font-semibold mb-2">🔍 Estado General del Sistema</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -187,7 +185,6 @@ function TestPage() {
 
             <div className="flex justify-between items-end gap-4 flex-wrap">
                 <FiltrosFecha filtros={filtros} setFiltros={setFiltros} />
-
                 <div className="flex gap-2">
                     <Button onClick={handleExport} disabled={exportMutation.isLoading} variant="outline">
                         <Download className="w-4 h-4 mr-2" /> Exportar CSV

@@ -1,12 +1,17 @@
 import { Edit, Trash2 } from "lucide-react";
 import TooltipWrapper from "./TooltipWrapper";
 
-const UserRow = ({ user, onEdit, onDelete }) => {
+const UserRow = ({ user, onEdit, onDelete, renderRol }) => {
     return (
         <tr>
             <td className="p-2 border">{user.nombre}</td>
             <td className="p-2 border">{user.email}</td>
-            <td className="p-2 border capitalize">{user.rol}</td>
+
+            {/* ✅ Badge visual para el rol si se pasa como prop */}
+            <td className="p-2 border capitalize">
+                {renderRol ? renderRol() : user.rol}
+            </td>
+
             <td className="p-2 border">
                 <div className="flex space-x-2">
                     <TooltipWrapper label="Editar usuario">

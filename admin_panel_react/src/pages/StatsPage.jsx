@@ -1,20 +1,14 @@
+// src/pages/StatsPage.jsx
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import BotonesAdmin from "@/components/BotonesAdmin";
-import StatsChart from "@/components/StatsChart";
-import { getStats } from "@/services/api";
-import { toast } from "react-hot-toast";
-import {
-    BarChart2,
-    Lock,
-    FileText,
-    Users,
-    Download,
-    Brain,
-} from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import DateRangeFilter from "@/components/DateRangeFilter";
+import StatsChart from "@/components/StatsChart";
+import { BarChart2, Lock, FileText, Users, Download, Brain } from "lucide-react";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { toast } from "react-hot-toast";
 import axiosClient from "@/services/axiosClient";
+import Badge from "@/components/ui/Badge"; // ✅ IMPORTADO
 
 function StatsPage() {
     const { user } = useAuth();
@@ -23,15 +17,18 @@ function StatsPage() {
     const [hasta, setHasta] = useState("");
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchStats = async () => {
             try {
-                const data = await getStats({ desde, hasta });
-                setStats(data);
+                const res = await axiosClient.get("/admin/stats", {
+                    params: { desde, hasta },
+                });
+                setStats(res.data);
             } catch (err) {
-                toast.error("Error al cargar estadísticas");
+                console.error("Error cargando estadísticas", err);
+                toast.error("❌ Error al obtener estadísticas");
             }
         };
-        fetchData();
+        fetchStats();
     }, [desde, hasta]);
 
     const handleExportTest = async () => {
@@ -54,21 +51,15 @@ function StatsPage() {
     };
 
     return (
-        <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <div className="p-6 space-y-6">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
                 <BarChart2 size={22} /> Estadísticas del Chatbot
             </h1>
 
-            {(user?.rol === "admin" || user?.rol === "soporte") && (
+            {(user?.rol === "admin" || user?.rol === "soporte") ? (
                 <>
                     <BotonesAdmin />
-
-                    <DateRangeFilter
-                        desde={desde}
-                        hasta={hasta}
-                        setDesde={setDesde}
-                        setHasta={setHasta}
-                    />
+                    <DateRangeFilter desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
 
                     <div className="mt-4 flex justify-end">
                         <Tooltip.Provider>
@@ -93,17 +84,17 @@ function StatsPage() {
                         </Tooltip.Provider>
                     </div>
 
-                    <Tooltip.Provider>
-                        <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                            <div className="bg-white shadow rounded-md p-4 dark:bg-gray-800 dark:text-white">
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                        <Tooltip.Provider>
+                            <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 flex items-center gap-2 cursor-help">
+                                        <p className="text-gray-500 flex items-center gap-2 cursor-help">
                                             <FileText size={16} /> Total de logs
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
+                                        <Tooltip.Content side="top">
                                             Registros almacenados por el chatbot
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
@@ -111,52 +102,46 @@ function StatsPage() {
                                 <p className="text-lg font-bold">{stats?.total_logs ?? "..."}</p>
                             </div>
 
-                            <div className="bg-white shadow rounded-md p-4 dark:bg-gray-800 dark:text-white">
+                            <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 flex items-center gap-2 cursor-help">
+                                        <p className="text-gray-500 flex items-center gap-2 cursor-help">
                                             <Download size={16} /> Exportaciones CSV
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
+                                        <Tooltip.Content side="top">
                                             Cantidad de archivos descargados
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
-                                <p className="text-lg font-bold">
-                                    {stats?.total_exportaciones_csv ?? "..."}
-                                </p>
+                                <p className="text-lg font-bold">{stats?.total_exportaciones_csv ?? "..."}</p>
                             </div>
 
-                            <div className="bg-white shadow rounded-md p-4 dark:bg-gray-800 dark:text-white">
+                            <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 flex items-center gap-2 cursor-help">
+                                        <p className="text-gray-500 flex items-center gap-2 cursor-help">
                                             <Users size={16} /> Total usuarios
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
+                                        <Tooltip.Content side="top">
                                             Número total de usuarios en el sistema
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
-                                <p className="text-lg font-bold">
-                                    {stats?.total_usuarios ?? "..."}
-                                </p>
+                                <p className="text-lg font-bold">{stats?.total_usuarios ?? "..."}</p>
                             </div>
 
-                            <div className="bg-white shadow rounded-md p-4 dark:bg-gray-800 dark:text-white">
+                            <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 cursor-help">
-                                            Últimos usuarios
-                                        </p>
+                                        <p className="text-gray-500 cursor-help">Últimos usuarios</p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
-                                            Últimos usuarios registrados en el sistema
+                                        <Tooltip.Content side="top">
+                                            Últimos usuarios registrados
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
@@ -167,62 +152,57 @@ function StatsPage() {
                                 </ul>
                             </div>
 
-                            <div className="bg-white shadow rounded-md p-4 dark:bg-gray-800 dark:text-white">
+                            <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 cursor-help">
-                                            Usuarios por rol
-                                        </p>
+                                        <p className="text-gray-500 cursor-help">Usuarios por rol</p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
-                                            Distribución de usuarios según sus roles
+                                        <Tooltip.Content side="top">
+                                            Distribución de roles en el sistema
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
                                 <ul className="list-disc ml-5 text-xs">
-                                    {stats?.usuarios_por_rol?.map((item, i) => (
+                                    {stats?.usuarios_por_rol?.map((r, i) => (
                                         <li key={i}>
-                                            {item.rol}: {item.total}
+                                            <Badge variant={r.rol}>{r.rol}</Badge>: {r.total}
                                         </li>
                                     ))}
                                 </ul>
                             </div>
 
-                            <div className="bg-white shadow rounded-md p-4 col-span-2 dark:bg-gray-800 dark:text-white">
+                            <div className="bg-white shadow rounded-md p-4 col-span-2">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
-                                        <p className="text-gray-500 dark:text-gray-300 flex items-center gap-2 cursor-help">
+                                        <p className="text-gray-500 flex items-center gap-2 cursor-help">
                                             <Brain size={16} /> Intents más usados
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content className="tooltip" side="top">
-                                            Intents que han sido más invocados por los usuarios
+                                        <Tooltip.Content side="top">
+                                            Intents con mayor frecuencia de uso
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
                                 <ul className="list-disc ml-5 text-xs">
-                                    {stats?.intents_mas_usados?.map((i, idx) => (
-                                        <li key={idx}>
-                                            {i.intent} ({i.total})
+                                    {stats?.intents_mas_usados?.map((item, i) => (
+                                        <li key={i}>
+                                            <Badge variant="info">{item.intent}</Badge> ({item.total})
                                         </li>
                                     ))}
                                 </ul>
                             </div>
-                        </div>
-                    </Tooltip.Provider>
-                </>
-            )}
+                        </Tooltip.Provider>
+                    </div>
 
-            {(user?.rol !== "admin" && user?.rol !== "soporte") && (
+                    <StatsChart desde={desde} hasta={hasta} />
+                </>
+            ) : (
                 <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded-md flex items-center gap-2">
-                    <Lock size={16} /> Algunas funciones administrativas están restringidas para tu rol (
-                    <strong>{user?.rol}</strong>).
+                    <Lock size={16} /> Acceso restringido para tu rol (<strong>{user?.rol}</strong>)
                 </div>
             )}
-
-            <StatsChart desde={desde} hasta={hasta} />
         </div>
     );
 }

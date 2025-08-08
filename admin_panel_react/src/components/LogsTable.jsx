@@ -1,7 +1,7 @@
-// src/components/LogsTable.jsx
 import { useEffect, useState } from "react";
 import { getLogsList } from "@/services/api";
 import { format } from "date-fns";
+import Badge from "@/components/ui/Badge"; // ✅ NUEVO
 
 const LogsTable = ({ filters }) => {
     const [logs, setLogs] = useState([]);
@@ -18,7 +18,6 @@ const LogsTable = ({ filters }) => {
                 setLoading(false);
             }
         };
-
         fetchLogs();
     }, []);
 
@@ -50,6 +49,7 @@ const LogsTable = ({ filters }) => {
                         <th className="px-4 py-2 text-left">🌐 IP</th>
                         <th className="px-4 py-2 text-left">🧭 User-Agent</th>
                         <th className="px-4 py-2 text-left">✅ Status</th>
+                        <th className="px-4 py-2 text-left">💬 Intent</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,12 +61,23 @@ const LogsTable = ({ filters }) => {
                                     : "—"}
                             </td>
                             <td className="px-4 py-2">{log.email || "—"}</td>
-                            <td className="px-4 py-2">{log.endpoint}</td>
+                            <td className="px-4 py-2">
+                                <Badge variant="default">{log.endpoint}</Badge>
+                            </td>
                             <td className="px-4 py-2">{log.method}</td>
-                            <td className="px-4 py-2">{log.rol}</td>
+                            <td className="px-4 py-2">
+                                <Badge variant={log.rol}>{log.rol}</Badge>
+                            </td>
                             <td className="px-4 py-2">{log.ip}</td>
                             <td className="px-4 py-2 max-w-[200px] truncate">{log.user_agent}</td>
-                            <td className="px-4 py-2">{log.status}</td>
+                            <td className="px-4 py-2">
+                                <Badge status={log.status}>{log.status}</Badge>
+                            </td>
+                            <td className="px-4 py-2">
+                                <Badge variant={log.intent || "default"}>
+                                    {log.intent || "—"}
+                                </Badge>
+                            </td>
                         </tr>
                     ))}
                 </tbody>

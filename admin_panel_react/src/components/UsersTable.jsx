@@ -1,15 +1,24 @@
 import { useState } from "react";
-import UserRow from "@/components/UserRow";         // ✅ corregido
-import EditUserRow from "@/components/EditUserRow"; // ✅ corregido
+import UserRow from "@/components/UserRow";
+import EditUserRow from "@/components/EditUserRow";
+import Badge from "@/components/ui/Badge"; // ✅ Integración del Badge
 
-const UsersTable = ({ users, editingUserId, formData, setFormData, onUpdate, onEdit, onCancel, onDelete }) => {
+const UsersTable = ({
+    users,
+    editingUserId,
+    formData,
+    setFormData,
+    onUpdate,
+    onEdit,
+    onCancel,
+    onDelete,
+}) => {
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 5;
 
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
     const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-
     const totalPages = Math.ceil(users.length / usersPerPage);
 
     const handlePrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -49,6 +58,9 @@ const UsersTable = ({ users, editingUserId, formData, setFormData, onUpdate, onE
                                     user={user}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
+                                    renderRol={() => (
+                                        <Badge variant={user.rol}>{user.rol}</Badge>
+                                    )}
                                 />
                             )
                         )
@@ -66,7 +78,9 @@ const UsersTable = ({ users, editingUserId, formData, setFormData, onUpdate, onE
                     >
                         ← Anterior
                     </button>
-                    <span className="px-2 py-1">Página {currentPage} de {totalPages}</span>
+                    <span className="px-2 py-1">
+                        Página {currentPage} de {totalPages}
+                    </span>
                     <button
                         onClick={handleNext}
                         disabled={currentPage === totalPages}
