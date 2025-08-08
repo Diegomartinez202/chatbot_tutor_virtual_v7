@@ -8,6 +8,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import { exportarCSV, fetchHistorialExportaciones } from "@/services/api";
+import { exportToCSV } from "@/utils/exportCsvHelper";
 
 function ExportacionesPage() {
     const [desde, setDesde] = useState(null);
@@ -39,6 +40,9 @@ function ExportacionesPage() {
         document.body.appendChild(link);
         link.click();
         link.remove();
+    };
+    const handleExport = () => {
+        exportToCSV(exportData, "estadisticas.csv");
     };
 
     return (

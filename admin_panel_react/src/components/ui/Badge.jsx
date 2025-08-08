@@ -1,8 +1,13 @@
 // src/components/ui/Badge.jsx
 import React from "react";
 import clsx from "clsx";
+import {
+    STATUS_COLORS,
+    ROLE_COLORS,
+    INTENT_COLORS
+} from "@/utils/constants";
 
-// 🎨 Paleta de colores centralizada
+// 🎨 Paleta de clases Tailwind centralizada
 const colorMap = {
     green: "bg-green-100 text-green-800",
     yellow: "bg-yellow-100 text-yellow-800",
@@ -13,38 +18,12 @@ const colorMap = {
     purple: "bg-purple-100 text-purple-800",
 };
 
-// 🧠 Lógicas de colores por tipo
-const statusColors = {
-    200: "green",
-    201: "green",
-    400: "yellow",
-    401: "orange",
-    403: "orange",
-    404: "gray",
-    500: "red",
-};
-
-const roleColors = {
-    admin: "green",
-    soporte: "purple",
-    usuario: "gray",
-};
-
-const intentColors = {
-    info: "blue",
-    warning: "yellow",
-    error: "red",
-    soporte: "purple",
-    soporte_intent: "purple",
-    default: "gray",
-};
-
 function Badge({ children, variant = "default", status }) {
     const baseColor =
-        (status && statusColors[status]) ||
-        roleColors[variant] ||
-        intentColors[variant] ||
-        intentColors.default;
+        (status && STATUS_COLORS[status]) ||
+        ROLE_COLORS[variant] ||
+        INTENT_COLORS[variant] ||
+        INTENT_COLORS.default;
 
     const finalClass = colorMap[baseColor] || colorMap.gray;
 

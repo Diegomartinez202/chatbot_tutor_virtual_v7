@@ -7,7 +7,11 @@ import { getStats, getExportStats } from "@/services/api";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Download, RefreshCw } from "lucide-react";
+import { exportToCSV } from "@/utils/exportCsvHelper";
 
+const handleExport = () => {
+    exportToCSV(exportData, "estadisticas.csv");
+};
 const COLORS = ["#4F46E5", "#10B981", "#FBBF24", "#EF4444", "#6366F1"];
 
 function StatsChart({ desde, hasta }) {
