@@ -1,14 +1,12 @@
 // src/services/axiosClient.js
 import axios from "axios";
-import { API_BASE_URL, STORAGE_KEYS } from "@/lib/constants";
-
-const BASE_URL = API_BASE_URL; // soporta VITE_API_BASE_URL o VITE_API_URL
-const REFRESH_URL = `${BASE_URL.replace(/\/$/, "")}/auth/refresh`;
+import { STORAGE_KEYS } from "@/lib/constants";
+import { apiUrl } from "@/lib/apiUrl";
 
 const axiosClient = axios.create({
-    baseURL: BASE_URL,
+    baseURL: apiUrl(),     // base normalizada desde constants/env
     timeout: 10000,
-    withCredentials: true // necesario para enviar refresh_token httpOnly
+    withCredentials: true, // para refresh_token httpOnly
 });
 
 // Aceptar JSON por defecto
@@ -18,19 +16,16 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-    failedQueue.forEach(({ resolve, reject }) => {
-        if (error) reject(error);
-        else resolve(token);
-    });
+    failedQueue.forEach(({ resolve, reject }) => (error ? reject(error) : resolve(token)));
     failedQueue = [];
 };
 
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem(STORAGE_KEYS.accessToken); // ✅ siempre accessToken
+        const token = localStorage.getItem(STORAGE_KEYS.accessToken);
         if (token) {
             config.headers = config.headers || {};
-            config.headers.Authorization = `Bearer ${token}`; // ✅ Bearer <accessToken>
+            config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
@@ -43,10 +38,11 @@ axiosClient.interceptors.response.use(
         if (!error?.response) return Promise.reject(error);
 
         const { config: originalRequest, response } = error;
+        const refreshUrl = apiUrl("/auth/refresh");
 
         const isAuthRefreshCall =
             originalRequest?.url?.includes("/auth/refresh") ||
-            (originalRequest?.baseURL || "") + originalRequest?.url === REFRESH_URL;
+            ((originalRequest?.baseURL || "") + originalRequest?.url === refreshUrl);
 
         const shouldTryRefresh =
             (response.status === 401 || response.status === 403) &&
@@ -72,10 +68,9 @@ axiosClient.interceptors.response.use(
         isRefreshing = true;
 
         try {
-            // Usamos axios sin interceptores para evitar bucle
-            const res = await axios.post(REFRESH_URL, {}, { withCredentials: true });
+            // refresh sin interceptores para evitar loop
+            const res = await axios.post(refreshUrl, {}, { withCredentials: true });
             const newToken = res?.data?.access_token;
-
             if (!newToken) throw new Error("No se recibió access_token en el refresh.");
 
             localStorage.setItem(STORAGE_KEYS.accessToken, newToken);

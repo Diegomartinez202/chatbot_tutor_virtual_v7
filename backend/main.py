@@ -15,7 +15,10 @@ from backend.middleware.auth_middleware import AuthMiddleware
 from backend.middleware.logging_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.config.settings import settings
-from backend.routes import exportaciones  # nuevo
+from backend.routes import exportaciones 
+from app.routers import admin_failed
+
+
 # ⚙️ Inicialización de la aplicación FastAPI
 app = FastAPI(
     title="Chatbot Tutor Virtual API",
@@ -45,6 +48,9 @@ app.include_router(api_router, prefix="/api")
 app.add_middleware(AccessLogMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
+app.include_router(admin_failed.router)  
+app.include_router(exportaciones.router)
+# 🖼️ Ruta para favicon
 
 @app.middleware("http")
 async def add_ip_and_user_agent(request: Request, call_next):
