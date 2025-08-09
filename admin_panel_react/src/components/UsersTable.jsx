@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import UserRow from "@/components/UserRow";
 import EditUserRow from "@/components/EditUserRow";
-import Badge from "@/components/ui/Badge"; // ✅ Integración del Badge
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const UsersTable = ({
-    users,
+    users = [],
     editingUserId,
     formData,
     setFormData,
@@ -12,23 +12,28 @@ const UsersTable = ({
     onEdit,
     onCancel,
     onDelete,
+    // ⬇️ Recibimos el componente Badge desde el padre para unificar estilo
+    Badge: BadgeComponent,
 }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 5;
 
-    const indexOfLastUser = currentPage * usersPerPage;
-    const indexOfFirstUser = indexOfLastUser - usersPerPage;
-    const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-    const totalPages = Math.ceil(users.length / usersPerPage);
+    const totalPages = Math.max(1, Math.ceil(users.length / usersPerPage));
+
+    const currentUsers = useMemo(() => {
+        const indexOfLastUser = currentPage * usersPerPage;
+        const indexOfFirstUser = indexOfLastUser - usersPerPage;
+        return users.slice(indexOfFirstUser, indexOfLastUser);
+    }, [users, currentPage]);
 
     const handlePrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
     return (
         <div className="overflow-x-auto mt-6">
-            <table className="w-full text-sm border">
+            <table className="w-full text-sm border rounded-lg overflow-hidden">
                 <thead className="bg-gray-100 text-left">
-                    <tr>
+                    <tr className="text-gray-700">
                         <th className="p-2 border">Nombre</th>
                         <th className="p-2 border">Email</th>
                         <th className="p-2 border">Rol</th>
@@ -43,10 +48,10 @@ const UsersTable = ({
                             </td>
                         </tr>
                     ) : (
-                        currentUsers.map((user) =>
-                            editingUserId === user._id ? (
+                        currentUsers.map((u) =>
+                            editingUserId === u._id ? (
                                 <EditUserRow
-                                    key={user._id}
+                                    key={u._id}
                                     formData={formData}
                                     setFormData={setFormData}
                                     onSave={onUpdate}
@@ -54,13 +59,19 @@ const UsersTable = ({
                                 />
                             ) : (
                                 <UserRow
-                                    key={user._id}
-                                    user={user}
+                                    key={u._id}
+                                    user={u}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
-                                    renderRol={() => (
-                                        <Badge variant={user.rol}>{user.rol}</Badge>
-                                    )}
+                                    renderRol={() =>
+                                        BadgeComponent ? (
+                                            <BadgeComponent variant={u.rol}>{u.rol}</BadgeComponent>
+                                        ) : (
+                                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-800">
+                                                {u.rol}
+                                            </span>
+                                        )
+                                    }
                                 />
                             )
                         )
@@ -70,23 +81,29 @@ const UsersTable = ({
 
             {/* Paginación */}
             {users.length > usersPerPage && (
-                <div className="flex justify-center mt-4 space-x-4">
+                <div className="flex justify-center mt-4 items-center gap-3">
                     <button
                         onClick={handlePrevious}
                         disabled={currentPage === 1}
-                        className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+                        className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                        aria-label="Página anterior"
                     >
-                        ← Anterior
+                        <ChevronLeft className="w-4 h-4" />
+                        Anterior
                     </button>
-                    <span className="px-2 py-1">
-                        Página {currentPage} de {totalPages}
+
+                    <span className="px-2 py-1 text-sm">
+                        Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong>
                     </span>
+
                     <button
                         onClick={handleNext}
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+                        className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                        aria-label="Página siguiente"
                     >
-                        Siguiente →
+                        Siguiente
+                        <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
             )}

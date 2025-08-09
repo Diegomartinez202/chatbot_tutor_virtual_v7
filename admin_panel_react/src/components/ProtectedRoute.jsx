@@ -1,28 +1,17 @@
-// src/routes/ProtectedRoute.jsx
+// src/components/ProtectedRoute.jsx
 import { Navigate } from "react-router-dom";
-import jwt_decode from "jwt-decode";
+import { useAuth } from "@/context/AuthContext";
 
-function ProtectedRoute({ children, allowedRoles = [] }) {
-    const token = localStorage.getItem("token"); // 🔁 Usa 'token' para mantener coherencia con AuthContext
+function ProtectedRoute({ children }) {
+    const { isAuthenticated, loading } = useAuth();
 
-    if (!token) {
+    if (loading) return <div className="p-4">Cargando...</div>;
+
+    if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
-    try {
-        const decoded = jwt_decode(token);
-        const userRole = decoded.rol;
-
-        // 🚫 Si el rol del usuario no está en la lista de roles permitidos
-        if (!allowedRoles.includes(userRole)) {
-            return <Navigate to="/login" replace />;
-        }
-
-        return children;
-    } catch (error) {
-        // ⚠️ Si el token es inválido o no se puede decodificar
-        return <Navigate to="/login" replace />;
-    }
+    return children;
 }
 
 export default ProtectedRoute;

@@ -7,7 +7,7 @@ import { FileText, Lock, Download, Search } from "lucide-react";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { Button } from "@/components/ui/button";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import Badge from "@/components/ui/Badge"; // ✅ Integrado para uso de colores dinámicos
+import Badge from "@/components/Badge";
 
 function LogsPage() {
     const { user } = useAuth();
@@ -25,7 +25,13 @@ function LogsPage() {
     });
 
     const handleExport = () => {
-        exportMutation.mutate(fechas);
+        exportMutation.mutate(fechas, {
+            onSuccess: () => toast.success("Exportación iniciada/exitosa."),
+            onError: (err) => {
+                const msg = err?.response?.data?.detail || "No se pudo exportar.";
+                toast.error(msg);
+            },
+        });
     };
 
     if (user?.rol !== "admin" && user?.rol !== "soporte") {
@@ -67,10 +73,10 @@ function LogsPage() {
                             </Tooltip.Trigger>
                             <Tooltip.Portal>
                                 <Tooltip.Content
-                                    className="tooltip bg-black text-white px-2 py-1 rounded text-sm"
+                                    className="rounded-md bg-black text-white px-2 py-1 text-xs"
                                     side="top"
                                 >
-                                    Exportar registros con fechas aplicadas
+                                    Exportar registros con el rango de fechas aplicado
                                 </Tooltip.Content>
                             </Tooltip.Portal>
                         </Tooltip.Root>
@@ -115,7 +121,8 @@ function LogsPage() {
             </div>
 
             {/* 📋 Tabla de resultados */}
-            <LogsTable filters={filters} Badge={Badge} />
+            {/* Pasamos fechas a la tabla para que aplique el filtro en el fetch/render */}
+            <LogsTable filters={filters} fechas={fechas} Badge={Badge} />
         </div>
     );
 }

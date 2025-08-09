@@ -1,5 +1,5 @@
 import { Edit, Trash2 } from "lucide-react";
-import TooltipWrapper from "./TooltipWrapper";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 const UserRow = ({ user, onEdit, onDelete, renderRol }) => {
     return (
@@ -14,23 +14,49 @@ const UserRow = ({ user, onEdit, onDelete, renderRol }) => {
 
             <td className="p-2 border">
                 <div className="flex space-x-2">
-                    <TooltipWrapper label="Editar usuario">
-                        <button
-                            onClick={() => onEdit(user)}
-                            className="p-1 rounded hover:bg-blue-100"
-                        >
-                            <Edit className="w-5 h-5 text-blue-600 hover:text-blue-800" />
-                        </button>
-                    </TooltipWrapper>
+                    <Tooltip.Provider>
+                        <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                                <button
+                                    onClick={() => onEdit(user)}
+                                    className="p-1 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    aria-label="Editar usuario"
+                                >
+                                    <Edit className="w-5 h-5 text-blue-600 hover:text-blue-800" />
+                                </button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                                <Tooltip.Content
+                                    className="rounded-md bg-black text-white px-2 py-1 text-xs"
+                                    side="top"
+                                >
+                                    Editar usuario
+                                </Tooltip.Content>
+                            </Tooltip.Portal>
+                        </Tooltip.Root>
+                    </Tooltip.Provider>
 
-                    <TooltipWrapper label="Eliminar usuario">
-                        <button
-                            onClick={() => onDelete(user._id)}
-                            className="p-1 rounded hover:bg-red-100"
-                        >
-                            <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800" />
-                        </button>
-                    </TooltipWrapper>
+                    <Tooltip.Provider>
+                        <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                                <button
+                                    onClick={() => onDelete(user._id)}
+                                    className="p-1 rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-300"
+                                    aria-label="Eliminar usuario"
+                                >
+                                    <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800" />
+                                </button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                                <Tooltip.Content
+                                    className="rounded-md bg-black text-white px-2 py-1 text-xs"
+                                    side="top"
+                                >
+                                    Eliminar usuario
+                                </Tooltip.Content>
+                            </Tooltip.Portal>
+                        </Tooltip.Root>
+                    </Tooltip.Provider>
                 </div>
             </td>
         </tr>

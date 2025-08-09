@@ -8,7 +8,20 @@ import { BarChart2, Lock, FileText, Users, Download, Brain } from "lucide-react"
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { toast } from "react-hot-toast";
 import axiosClient from "@/services/axiosClient";
-import Badge from "@/components/ui/Badge"; // ✅ IMPORTADO
+import Badge from "@/components/Badge";
+
+const ROLE_CLASS = {
+    admin: "bg-purple-100 text-purple-800",
+    soporte: "bg-blue-100 text-blue-800",
+    usuario: "bg-gray-100 text-gray-800",
+};
+
+const INTENT_CLASS = {
+    saludo: "bg-sky-100 text-sky-800",
+    fallback: "bg-zinc-100 text-zinc-800",
+    soporte_contacto: "bg-teal-100 text-teal-800",
+    default: "bg-gray-100 text-gray-800",
+};
 
 function StatsPage() {
     const { user } = useAuth();
@@ -19,13 +32,12 @@ function StatsPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axiosClient.get("/admin/stats", {
-                    params: { desde, hasta },
-                });
+                const res = await axiosClient.get("/admin/stats", { params: { desde, hasta } });
                 setStats(res.data);
             } catch (err) {
                 console.error("Error cargando estadísticas", err);
                 toast.error("❌ Error al obtener estadísticas");
+                setStats(null);
             }
         };
         fetchStats();
@@ -33,9 +45,7 @@ function StatsPage() {
 
     const handleExportTest = async () => {
         try {
-            const res = await axiosClient.get("/admin/exportaciones/tests", {
-                responseType: "blob",
-            });
+            const res = await axiosClient.get("/admin/exportaciones/tests", { responseType: "blob" });
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement("a");
             link.href = url;
@@ -50,16 +60,24 @@ function StatsPage() {
         }
     };
 
+    const isAllowed = user?.rol === "admin" || user?.rol === "soporte";
+
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
                 <BarChart2 size={22} /> Estadísticas del Chatbot
             </h1>
 
-            {(user?.rol === "admin" || user?.rol === "soporte") ? (
+            {isAllowed ? (
                 <>
                     <BotonesAdmin />
-                    <DateRangeFilter desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
+
+                    <DateRangeFilter
+                        desde={desde}
+                        hasta={hasta}
+                        setDesde={setDesde}
+                        setHasta={setHasta}
+                    />
 
                     <div className="mt-4 flex justify-end">
                         <Tooltip.Provider>
@@ -74,7 +92,7 @@ function StatsPage() {
                                 </Tooltip.Trigger>
                                 <Tooltip.Portal>
                                     <Tooltip.Content
-                                        className="tooltip bg-black text-white px-2 py-1 rounded text-sm"
+                                        className="rounded-md bg-black text-white px-2 py-1 text-xs"
                                         side="bottom"
                                     >
                                         Descargar resultados del script test_all.sh
@@ -86,6 +104,7 @@ function StatsPage() {
 
                     <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                         <Tooltip.Provider>
+                            {/* Total de logs */}
                             <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
@@ -94,7 +113,7 @@ function StatsPage() {
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Registros almacenados por el chatbot
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
@@ -102,6 +121,7 @@ function StatsPage() {
                                 <p className="text-lg font-bold">{stats?.total_logs ?? "..."}</p>
                             </div>
 
+                            {/* Exportaciones CSV */}
                             <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
@@ -110,7 +130,7 @@ function StatsPage() {
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Cantidad de archivos descargados
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
@@ -118,6 +138,7 @@ function StatsPage() {
                                 <p className="text-lg font-bold">{stats?.total_exportaciones_csv ?? "..."}</p>
                             </div>
 
+                            {/* Total usuarios */}
                             <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
@@ -126,7 +147,7 @@ function StatsPage() {
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Número total de usuarios en el sistema
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
@@ -134,44 +155,50 @@ function StatsPage() {
                                 <p className="text-lg font-bold">{stats?.total_usuarios ?? "..."}</p>
                             </div>
 
+                            {/* Últimos usuarios */}
                             <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
                                         <p className="text-gray-500 cursor-help">Últimos usuarios</p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Últimos usuarios registrados
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
                                 <ul className="list-disc ml-5 text-xs">
-                                    {stats?.ultimos_usuarios?.map((u, i) => (
-                                        <li key={i}>{u.email}</li>
+                                    {(stats?.ultimos_usuarios ?? []).map((u, i) => (
+                                        <li key={i}>{u?.email ?? "—"}</li>
                                     ))}
                                 </ul>
                             </div>
 
+                            {/* Usuarios por rol */}
                             <div className="bg-white shadow rounded-md p-4">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
                                         <p className="text-gray-500 cursor-help">Usuarios por rol</p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Distribución de roles en el sistema
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
-                                <ul className="list-disc ml-5 text-xs">
-                                    {stats?.usuarios_por_rol?.map((r, i) => (
-                                        <li key={i}>
-                                            <Badge variant={r.rol}>{r.rol}</Badge>: {r.total}
+                                <ul className="list-disc ml-5 text-xs space-y-1">
+                                    {(stats?.usuarios_por_rol ?? []).map((r, i) => (
+                                        <li key={i} className="flex items-center gap-2">
+                                            <Badge className={ROLE_CLASS[r.rol] || ROLE_CLASS.usuario}>
+                                                {r.rol}
+                                            </Badge>
+                                            <span>{r.total}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
 
+                            {/* Intents más usados */}
                             <div className="bg-white shadow rounded-md p-4 col-span-2">
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
@@ -180,15 +207,18 @@ function StatsPage() {
                                         </p>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
-                                        <Tooltip.Content side="top">
+                                        <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
                                             Intents con mayor frecuencia de uso
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
-                                <ul className="list-disc ml-5 text-xs">
-                                    {stats?.intents_mas_usados?.map((item, i) => (
-                                        <li key={i}>
-                                            <Badge variant="info">{item.intent}</Badge> ({item.total})
+                                <ul className="list-disc ml-5 text-xs space-y-1">
+                                    {(stats?.intents_mas_usados ?? []).map((item, i) => (
+                                        <li key={i} className="flex items-center gap-2">
+                                            <Badge className={INTENT_CLASS[item.intent] || INTENT_CLASS.default}>
+                                                {item.intent}
+                                            </Badge>
+                                            <span>({item.total})</span>
                                         </li>
                                     ))}
                                 </ul>
