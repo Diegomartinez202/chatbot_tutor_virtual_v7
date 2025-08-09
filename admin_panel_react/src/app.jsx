@@ -1,4 +1,6 @@
-import { Routes, Route } from "react-router-dom";
+// src/App.jsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
@@ -13,19 +15,35 @@ import LogsPage from "@/pages/LogsPage";
 import IntentsPage from "@/pages/IntentsPage";
 import StatsPage from "@/pages/StatsPage";
 import StatsPageV2 from "@/pages/StatsPageV2";
-import UsersPage from "@/pages/UsersPage";
+import UserManagementPage from "@/pages/UserManagementPage";
 import AssignRoles from "@/pages/AssignRoles";
 import UploadIntentsCSV from "@/components/UploadIntentsCSV";
+import ExportacionesPage from "@/pages/ExportacionesPage";
+import IntentosFallidosPage from "@/pages/IntentosFallidosPage"; // ✅ NUEVO
+
+function CatchAllRedirect() {
+    const { isAuthenticated } = useAuth();
+    return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
+}
 
 function App() {
     return (
         <Routes>
-            {/* 🌐 Rutas públicas */}
+            {/* 🌐 Públicas */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="*" element={<LoginPage />} />
 
-            {/* 🔐 Rutas protegidas */}
+            {/* Home protegido */}
+            <Route
+                path="/"
+                element={
+                    <ProtectedRoute>
+                        <Dashboard />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* 🔐 Protegidas sin rol */}
             <Route
                 path="/dashboard"
                 element={
@@ -43,7 +61,7 @@ function App() {
                 }
             />
 
-            {/* 🛠️ Rutas con rol: admin o soporte */}
+            {/* 🛠️ admin/soporte */}
             <Route
                 path="/logs"
                 element={
@@ -65,7 +83,7 @@ function App() {
                 }
             />
 
-            {/* 👑 Rutas exclusivas para admin */}
+            {/* 👑 admin-only */}
             <Route
                 path="/intents"
                 element={
@@ -87,11 +105,21 @@ function App() {
                 }
             />
             <Route
+                path="/stats-v2"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <StatsPageV2 />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
                 path="/users"
                 element={
                     <ProtectedRoute>
                         <RequireRole allowedRoles={["admin"]}>
-                            <UsersPage />
+                            <UserManagementPage />
                         </RequireRole>
                     </ProtectedRoute>
                 }
@@ -117,15 +145,30 @@ function App() {
                 }
             />
             <Route
-                path="/stats-v2"
+                path="/admin/exportaciones"
                 element={
                     <ProtectedRoute>
                         <RequireRole allowedRoles={["admin"]}>
-                            <StatsPageV2 />
+                            <ExportacionesPage />
                         </RequireRole>
                     </ProtectedRoute>
                 }
             />
+
+            {/* ✅ NUEVA RUTA: Fallos del bot (admin) */}
+            <Route
+                path="/intentos-fallidos"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <IntentosFallidosPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Catch-all */}
+            <Route path="*" element={<CatchAllRedirect />} />
         </Routes>
     );
 }

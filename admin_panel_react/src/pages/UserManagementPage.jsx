@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getUsers, updateUser, deleteUser, exportUsersCSV } from "@/services/api";
 import UsersTable from "@/components/UsersTable";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { Search, FileDown, Loader2, Users, Lock } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -94,7 +94,7 @@ const UserManagementPage = () => {
             </h1>
 
             <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w-full max-w-md">
+                <div className="relative w/full max-w-md">
                     <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
                     <input
                         type="text"
@@ -122,7 +122,7 @@ const UserManagementPage = () => {
                             <button
                                 onClick={async () => {
                                     try {
-                                        await exportUsersCSV(); // servidor devuelve archivo o URL descargable
+                                        await exportUsersCSV();
                                         toast.success("CSV exportado");
                                     } catch (err) {
                                         toast.error("Error al exportar usuarios");
@@ -158,7 +158,6 @@ const UserManagementPage = () => {
                     onCancel={handleCancel}
                     onUpdate={handleUpdate}
                     onDelete={handleDelete}
-                    // ⬇️ Pásale Badge para usarlo dentro de la tabla
                     Badge={Badge}
                 />
             )}

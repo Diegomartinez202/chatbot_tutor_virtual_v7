@@ -1,48 +1,62 @@
-import React, { useState } from "react";
+// src/pages/ExportacionesPage.jsx
+import React, { useMemo, useState } from "react";
 import { FileText, Download, Search, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "react-hot-toast";
-import { format } from "date-fns";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
 import FiltrosFecha from "@/components/FiltrosFecha";
-import DateRangeFilter from "@/components/DateRangeFilter";
 import { exportarCSV, fetchHistorialExportaciones } from "@/services/api";
-import { exportToCSV } from "@/utils/exportCsvHelper";
+import { formatDate } from "@/utils/formatDate";
+import ExportacionesTable from "@/components/ExportacionesTable";
 
 function ExportacionesPage() {
-    const [desde, setDesde] = useState(null);
-    const [hasta, setHasta] = useState(null);
+    // ⬇️ fechas como strings (inputs controlados)
+    const [desde, setDesde] = useState("");
+    const [hasta, setHasta] = useState("");
     const [usuario, setUsuario] = useState("");
     const [tipo, setTipo] = useState("");
 
-    const { data: historial = [], refetch } = useQuery({
+    const {
+        data: historial = [],
+        refetch,
+        isFetching,
+    } = useQuery({
         queryKey: ["historialExportaciones", usuario, tipo],
         queryFn: () => fetchHistorialExportaciones({ usuario, tipo }),
     });
 
-    const mutation = useMutation({
-        mutationFn: () => exportarCSV(desde, hasta),
-        onSuccess: (data) => {
-            toast.success("Exportación generada");
-            window.open(data.url, "_blank");
+    const exportMutation = useMutation({
+        mutationFn: async () => exportarCSV(desde, hasta), // descarga directa (Blob)
+        onSuccess: () => {
+            toast.success("✅ Exportación generada");
             refetch();
         },
-        onError: () => toast.error("Error al exportar CSV"),
+        onError: () => toast.error("❌ Error al exportar CSV"),
     });
+
+    const filtered = useMemo(() => {
+        const fi = desde ? new Date(desde).getTime() : null;
+        const ff = hasta ? new Date(hasta).getTime() + 24 * 60 * 60 * 1000 - 1 : null; // incluir fin de día
+        return (historial || []).filter((exp) => {
+            const ts = exp.timestamp ? new Date(exp.timestamp).getTime() : null;
+            const byFecha =
+                (fi === null || (ts !== null && ts >= fi)) &&
+                (ff === null || (ts !== null && ts <= ff));
+            return byFecha;
+        });
+    }, [historial, desde, hasta]);
 
     const handleDescargar = (url) => {
         if (!url) return toast.error("Archivo no disponible");
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("target", "_blank");
-        link.setAttribute("download", url.split("/").pop());
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    };
-    const handleExport = () => {
-        exportToCSV(exportData, "estadisticas.csv");
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.download = url.split("/").pop();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     };
 
     return (
@@ -53,7 +67,7 @@ function ExportacionesPage() {
 
             {/* 🎯 Filtros */}
             <div className="flex flex-wrap gap-2 items-end">
-                <DateRangeFilter
+                <FiltrosFecha
                     desde={desde}
                     hasta={hasta}
                     setDesde={setDesde}
@@ -62,10 +76,10 @@ function ExportacionesPage() {
 
                 <input
                     type="text"
-                    placeholder="Filtrar por usuario"
+                    placeholder="Filtrar por usuario (email)"
                     className="border px-3 py-2 rounded-md"
                     value={usuario}
-                    onChange={(e) => setUsuario(e.target.value)}
+                    onChange={(e) => e.target.value.length <= 120 && setUsuario(e.target.value)}
                 />
 
                 <input
@@ -73,21 +87,21 @@ function ExportacionesPage() {
                     placeholder="Filtrar por tipo"
                     className="border px-3 py-2 rounded-md"
                     value={tipo}
-                    onChange={(e) => setTipo(e.target.value)}
+                    onChange={(e) => e.target.value.length <= 60 && setTipo(e.target.value)}
                 />
 
-                <Button onClick={refetch}>
+                <Button onClick={() => refetch()} disabled={isFetching}>
                     <Search className="w-4 h-4 mr-1" />
-                    Buscar
+                    {isFetching ? "Buscando..." : "Buscar"}
                 </Button>
 
                 <Button
-                    onClick={() => mutation.mutate()}
-                    disabled={mutation.isLoading}
+                    onClick={() => exportMutation.mutate()}
+                    disabled={exportMutation.isLoading}
                     className="ml-auto flex gap-2"
                 >
                     <Download className="w-4 h-4" />
-                    {mutation.isLoading ? "Exportando..." : "Exportar CSV"}
+                    {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
                 </Button>
             </div>
 
@@ -96,56 +110,11 @@ function ExportacionesPage() {
                 <History size={18} /> Historial de Exportaciones
             </h3>
 
-            <div className="overflow-x-auto mt-2">
-                <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
-                    <thead className="bg-gray-100 dark:bg-gray-800 dark:text-white">
-                        <tr>
-                            <th className="text-left px-4 py-2">📁 Archivo</th>
-                            <th className="text-left px-4 py-2">📌 Tipo</th>
-                            <th className="text-left px-4 py-2">🕒 Fecha</th>
-                            <th className="text-left px-4 py-2">👤 Usuario</th>
-                            <th className="text-left px-4 py-2">🔗 Descargar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {historial.length === 0 && (
-                            <tr>
-                                <td colSpan="5" className="px-4 py-3 text-center text-gray-500">
-                                    No se encontraron exportaciones.
-                                </td>
-                            </tr>
-                        )}
-
-                        {historial.map((exp, i) => (
-                            <tr
-                                key={i}
-                                className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            >
-                                <td className="px-4 py-2">{exp.nombre_archivo || "—"}</td>
-                                <td className="px-4 py-2">{exp.tipo || "—"}</td>
-                                <td className="px-4 py-2">
-                                    {exp.timestamp
-                                        ? format(new Date(exp.timestamp), "dd-MM-yyyy HH:mm")
-                                        : "—"}
-                                </td>
-                                <td className="px-4 py-2">{exp.email || "Anónimo"}</td>
-                                <td className="px-4 py-2">
-                                    {exp.url || exp.endpoint ? (
-                                        <button
-                                            onClick={() => handleDescargar(exp.url || exp.endpoint)}
-                                            className="flex items-center gap-1 text-blue-600 hover:underline"
-                                        >
-                                            <Download size={14} /> Descargar
-                                        </button>
-                                    ) : (
-                                        <span className="text-gray-400 italic">No disponible</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <ExportacionesTable
+                rows={filtered}
+                onDownload={(row) => handleDescargar(row.url || row.endpoint)}
+                formatDate={formatDate}
+            />
         </div>
     );
 }

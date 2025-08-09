@@ -13,7 +13,6 @@ import * as Tooltip from "@radix-ui/react-tooltip";
  *    <FiltrosFecha filtros={filtros} setFiltros={setFiltros} />
  */
 export default function FiltrosFecha(props) {
-    // Detecta modo 1 (props separados) o modo 2 (objeto filtros)
     const isObjectMode = props.filtros && props.setFiltros;
     const desde = isObjectMode ? (props.filtros.fechaInicio ?? "") : (props.desde ?? "");
     const hasta = isObjectMode ? (props.filtros.fechaFin ?? "") : (props.hasta ?? "");

@@ -3,29 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import axiosClient from "./axiosClient";
 import toast from "react-hot-toast";
 
-// ✅ Entrenar bot
-const trainBot = () => axiosClient.post("/admin/train");
-
-// ✅ Subir intents
-const uploadIntents = () => axiosClient.post("/admin/upload");
-
-// ✅ Reiniciar servidor
-const restartServer = () => axiosClient.post("/admin/restart");
-
-// ✅ Exportar logs con filtros de fecha (CSV)
-const exportLogsCsv = ({ desde, hasta }) =>
-    axiosClient.get("/admin/exportaciones", {
-        responseType: "blob",
-        params: { desde, hasta },
-    });
-
-// (Opcional) Export específico de pruebas test_all.sh si lo usas en StatsPage
-const exportTestsCsv = () =>
-    axiosClient.get("/admin/exportaciones/tests", {
-        responseType: "blob",
-    });
-
-// Util: tratar de obtener nombre de archivo del header
+// === Helpers internos ===
 function getFilenameFromCD(headers, fallback) {
     const cd = headers?.["content-disposition"];
     if (!cd) return fallback;
@@ -38,13 +16,11 @@ function getFilenameFromCD(headers, fallback) {
     }
 }
 
-// Util: descargar blob con BOM opcional (para CSV UTF-8 en Excel)
 function downloadBlob(blob, filename, addBom = false) {
     const finalBlob =
         addBom && blob.type?.startsWith("text/csv")
             ? new Blob(["\uFEFF", blob], { type: blob.type })
             : blob;
-
     const url = window.URL.createObjectURL(finalBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -56,17 +32,45 @@ function downloadBlob(blob, filename, addBom = false) {
     window.URL.revokeObjectURL(url);
 }
 
-export function useAdminActions() {
-    const trainMutation = useMutation({ mutationFn: trainBot });
-    const uploadMutation = useMutation({ mutationFn: uploadIntents });
-    const restartMutation = useMutation({ mutationFn: restartServer });
+// === Mutations base ===
+const trainBot = () => axiosClient.post("/admin/train");
+const uploadIntents = () => axiosClient.post("/admin/upload");
+const restartServerReq = () => axiosClient.post("/admin/restart");
 
-    // ✅ Exportar logs (CSV) con fechas
+// Export logs CSV (rango fechas) desde /admin/exportaciones
+const exportLogsCsv = ({ desde, hasta }) =>
+    axiosClient.get("/admin/exportaciones", {
+        responseType: "blob",
+        params: { desde, hasta },
+    });
+
+// Opcional: export tests
+const exportTestsCsv = () =>
+    axiosClient.get("/admin/exportaciones/tests", { responseType: "blob" });
+
+export function useAdminActions() {
+    const trainMutation = useMutation({
+        mutationFn: trainBot,
+        onSuccess: () => toast.success("🤖 Entrenamiento iniciado"),
+        onError: (e) => toast.error(e?.response?.data?.detail || "Error al entrenar"),
+    });
+
+    const uploadMutation = useMutation({
+        mutationFn: uploadIntents,
+        onSuccess: () => toast.success("📤 Intents enviados"),
+        onError: (e) => toast.error(e?.response?.data?.detail || "Error al subir intents"),
+    });
+
+    const restartMutation = useMutation({
+        mutationFn: restartServerReq,
+        onSuccess: () => toast.success("🔁 Reinicio solicitado"),
+        onError: (e) => toast.error(e?.response?.data?.detail || "Error al reiniciar"),
+    });
+
     const exportMutation = useMutation({
         mutationFn: async ({ desde, hasta }) => {
             const res = await exportLogsCsv({ desde, hasta });
 
-            // Si el servidor devolvió error JSON en vez de CSV, intenta leerlo
             const contentType = res.headers?.["content-type"] || "";
             if (contentType.includes("application/json")) {
                 const text = await res.data.text?.();
@@ -79,8 +83,7 @@ export function useAdminActions() {
             }
 
             const ts = new Date().toISOString().split("T")[0];
-            const range =
-                (desde ? `_${desde}` : "") + (hasta ? `_${hasta}` : "");
+            const range = (desde ? `_${desde}` : "") + (hasta ? `_${hasta}` : "");
             const fallbackName = `exportacion_logs${range || `_${ts}`}.csv`;
 
             const filename = getFilenameFromCD(res.headers, fallbackName);
@@ -91,7 +94,6 @@ export function useAdminActions() {
         onError: (err) => toast.error(err?.message || "❌ Error al exportar resultados"),
     });
 
-    // (Opcional) Exportar CSV de tests (si lo usas)
     const exportTestsMutation = useMutation({
         mutationFn: async () => {
             const res = await exportTestsCsv();
@@ -108,7 +110,6 @@ export function useAdminActions() {
         uploadMutation,
         restartMutation,
         exportMutation,
-        // expórtalo si lo necesitas en StatsPage
-        exportTestsMutation,
+        exportTestsMutation, // úsalo si lo necesitas
     };
 }

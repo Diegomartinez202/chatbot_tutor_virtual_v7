@@ -1,15 +1,14 @@
 // src/utils/formatDate.js
 /**
- * Convierte una fecha ISO (o timestamp) a formato dd/mm/yyyy en español (Colombia).
- * Si quieres mostrar también hora, pasa { withTime: true }
+ * Convierte una fecha a dd/mm/yyyy (ES-CO).
+ * { withTime: true } para incluir hora (HH:mm).
  */
 export function formatDate(dateInput, options = {}) {
     if (!dateInput) return "";
     const date = new Date(dateInput);
-
     if (isNaN(date)) return "";
 
-    const { withTime = false } = options;
+    const { withTime = true } = options;
 
     const dateStr = date.toLocaleDateString("es-CO", {
         day: "2-digit",

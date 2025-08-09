@@ -19,10 +19,10 @@ export function exportToCsv(data, filename = "exportacion.csv", headers) {
     const cols = headers && headers.length ? headers : Object.keys(data[0]);
     const lines = [
         cols.join(","),
-        ...data.map(row => cols.map(h => toCsvCell(row[h])).join(",")),
+        ...data.map((row) => cols.map((h) => toCsvCell(row[h])).join(",")),
     ];
 
-    // Agregar BOM para que Excel reconozca UTF-8
+    // BOM para Excel (UTF-8)
     const bom = "\uFEFF";
     const csvContent = bom + lines.join("\n");
 
@@ -37,6 +37,8 @@ export function exportToCsv(data, filename = "exportacion.csv", headers) {
     link.click();
     document.body.removeChild(link);
 
-    // liberar memoria del objeto URL
     URL.revokeObjectURL(url);
 }
+
+// Alias por compatibilidad con otros módulos (si usaban exportCsv)
+export const exportCsv = exportToCsv;

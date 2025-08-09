@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useAdminActions } from "@/services/useAdminActions";
 import { Button } from "@/components/ui/button";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { BrainCog, Upload, RefreshCw, Download } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -15,9 +15,8 @@ function BotonesAdmin() {
     const allowed = user?.rol === "admin" || user?.rol === "soporte";
     if (!allowed) return null;
 
-    // 📅 Estados para fechas dinámicas
-    const [desde, setDesde] = useState("2025-07-01");
-    const [hasta, setHasta] = useState("2025-08-31");
+    const [desde, setDesde] = useState("");
+    const [hasta, setHasta] = useState("");
 
     const handleTrain = () =>
         trainMutation.mutate(null, {
@@ -48,12 +47,10 @@ function BotonesAdmin() {
 
     return (
         <>
-            {/* 📅 Filtro de Fechas */}
             <FiltrosFecha desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
 
             <div className="flex flex-wrap gap-4">
                 <Tooltip.Provider>
-                    {/* 🧠 Entrenar Bot */}
                     <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                             <Button
@@ -68,12 +65,11 @@ function BotonesAdmin() {
                         </Tooltip.Trigger>
                         <Tooltip.Portal>
                             <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
-                                Reentrenar modelo Rasa con nuevos intents
+                                Reentrenar modelo con nuevos intents
                             </Tooltip.Content>
                         </Tooltip.Portal>
                     </Tooltip.Root>
 
-                    {/* ⬆️ Subir Intents */}
                     <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                             <Button
@@ -93,7 +89,6 @@ function BotonesAdmin() {
                         </Tooltip.Portal>
                     </Tooltip.Root>
 
-                    {/* 🔁 Reiniciar Servidor */}
                     <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                             <Button
@@ -113,7 +108,6 @@ function BotonesAdmin() {
                         </Tooltip.Portal>
                     </Tooltip.Root>
 
-                    {/* 📤 Exportar CSV */}
                     <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                             <Button

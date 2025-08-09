@@ -12,7 +12,6 @@ const UsersTable = ({
     onEdit,
     onCancel,
     onDelete,
-    // ⬇️ Recibimos el componente Badge desde el padre para unificar estilo
     Badge: BadgeComponent,
 }) => {
     const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +78,6 @@ const UsersTable = ({
                 </tbody>
             </table>
 
-            {/* Paginación */}
             {users.length > usersPerPage && (
                 <div className="flex justify-center mt-4 items-center gap-3">
                     <button

@@ -1,16 +1,23 @@
+// src/components/Badge.jsx
 import React from "react";
-import { cn } from "@/lib/utils"; // si no tienes cn, reemplaza cn(a,b) por [a,b].filter(Boolean).join(" ")
-import { ROLE_STYLES, STATUS_STYLES, INTENT_STYLES } from "@/lib/constants";
+import {
+    ROLE_STYLES,
+    STATUS_STYLES,
+    INTENT_STYLES,
+} from "@/lib/constants";
+
+// Fallback si no tienes util cn()
+const cn = (...args) => args.filter(Boolean).join(" ");
 
 export default function Badge({
     type = "neutral",      // "role" | "status" | "intent" | "neutral"
     value = "",
-    variant,               // legacy: si te llega, se asume type="role" y value=variant
+    variant,               // compat: si llega, se asume type="role" y value=variant
     className = "",
     children,
     size = "sm",           // "xs" | "sm" | "md"
 }) {
-    // Compatibilidad hacia atrás
+    // Compat hacia atrás
     if (variant && !value) {
         value = variant;
         if (type === "neutral") type = "role";

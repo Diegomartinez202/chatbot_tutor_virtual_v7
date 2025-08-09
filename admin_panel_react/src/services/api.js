@@ -2,7 +2,7 @@
 import axiosClient from "./axiosClient";
 
 /* =========================
-   Utils de descarga (CSV/Blob)
+   Utils descarga (CSV/Blob)
    ========================= */
 function getFilenameFromCD(headers, fallback) {
     const cd = headers?.["content-disposition"];
@@ -39,7 +39,7 @@ function downloadBlob(blob, filename, addBom = false) {
 export const fetchIntents = () =>
     axiosClient.get("/admin/intents").then((r) => r.data);
 
-// Alias retro (si en algún sitio usan getIntents)
+// Alias retro
 export const getIntents = fetchIntents;
 
 export const fetchIntentsByFilters = ({ intent, example, response }) => {
@@ -81,7 +81,7 @@ export const trainBot = () => axiosClient.post("/admin/train");
 export const fetchUsers = () =>
     axiosClient.get("/admin/users").then((r) => r.data);
 
-// Alias retro (tu UI usaba getUsers)
+// Alias retro
 export const getUsers = fetchUsers;
 
 export const deleteUser = (userId) => axiosClient.delete(`/admin/users/${userId}`);
@@ -140,10 +140,19 @@ export const getSystemLogs = async () => {
 /* =========================
    📊 ESTADÍSTICAS
    ========================= */
+// Intenta /admin/stats y si no existe, cae a /api/stats (compat)
 export async function getStats(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const res = await axiosClient.get(`/admin/stats${query ? "?" + query : ""}`);
-    return res.data;
+    const qs = new URLSearchParams(params).toString();
+    try {
+        const res = await axiosClient.get(`/admin/stats${qs ? "?" + qs : ""}`);
+        return res.data;
+    } catch (e) {
+        if (e?.response?.status === 404) {
+            const res2 = await axiosClient.get(`/api/stats${qs ? "?" + qs : ""}`);
+            return res2.data;
+        }
+        throw e;
+    }
 }
 
 /* =========================
@@ -188,5 +197,51 @@ export const exportTestResults = async () => {
    ========================= */
 export const restartServer = () => axiosClient.post("/admin/restart");
 
-// 🌐 Default export opcional
+// Default export opcional
 export { default as axios } from "@/services/axiosClient";
+/* =========================
+   ❌ INTENTOS FALLIDOS
+   ========================= */
+
+// Top intents fallidos: [{ intent, count }]
+export const getTopFailedIntents = ({ desde, hasta, limit } = {}) =>
+    axiosClient
+        .get("/admin/intentos-fallidos/top", {
+            params: { desde, hasta, limit },
+        })
+        .then((r) => r.data);
+
+// Logs de fallos (opcional para tabla): lista paginada
+export const getFailedLogs = ({
+    desde,
+    hasta,
+    intent,
+    page,
+    page_size,
+} = {}) =>
+    axiosClient
+        .get("/admin/intentos-fallidos/logs", {
+            params: { desde, hasta, intent, page, page_size },
+        })
+        .then((r) => r.data);
+
+// Alias simple usado por FallbackLogsTable (sin filtros)
+export const getFallbackLogs = () => getFailedLogs({ page: 1, page_size: 50 });
+
+// Exportar CSV de intentos fallidos
+export const exportFailedIntentsCSV = async ({
+    desde,
+    hasta,
+    intent,
+} = {}) => {
+    const res = await axiosClient.get("/admin/intentos-fallidos/export", {
+        params: { desde, hasta, intent },
+        responseType: "blob",
+    });
+    const filename = getFilenameFromCD(
+        res.headers,
+        `intentos_fallidos_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
+    downloadBlob(blob, filename, /* addBom */ true);
+};

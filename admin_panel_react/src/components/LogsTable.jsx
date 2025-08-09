@@ -17,7 +17,6 @@ import { formatDate } from "@/utils/formatDate";
 import { exportToCsv } from "@/utils/exportCsvHelper";
 import Badge from "@/components/Badge";
 
-/** Mapas de estilos para Badges (fallback por className) */
 const ROLE_CLASS = {
     admin: "bg-purple-100 text-purple-800",
     soporte: "bg-blue-100 text-blue-800",
@@ -42,12 +41,11 @@ const INTENT_CLASS = {
 
 const LogsTable = ({
     filters = { email: "", endpoint: "", rol: "" },
-    fechas = { fechaInicio: null, fechaFin: null },
+    fechas = { fechaInicio: "", fechaFin: "" },
 }) => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Cargar logs una sola vez (el filtrado se hace en memoria)
     useEffect(() => {
         const fetchLogs = async () => {
             try {
@@ -111,17 +109,11 @@ const LogsTable = ({
         ]);
     };
 
-    if (loading) {
-        return <p className="text-gray-600">Cargando logs…</p>;
-    }
-
-    if (filteredLogs.length === 0) {
-        return <p className="text-gray-500">No hay registros coincidentes.</p>;
-    }
+    if (loading) return <p className="text-gray-600">Cargando logs…</p>;
+    if (filteredLogs.length === 0) return <p className="text-gray-500">No hay registros coincidentes.</p>;
 
     return (
         <div className="overflow-x-auto rounded-md shadow border border-gray-200">
-            {/* Botón Exportar CSV (vista) */}
             <div className="flex justify-end p-3">
                 <Tooltip.Provider>
                     <Tooltip.Root>
@@ -208,27 +200,19 @@ const LogsTable = ({
                                 <td className="px-4 py-2 whitespace-nowrap">
                                     {log.timestamp ? formatDate(log.timestamp, { withTime: true }) : "—"}
                                 </td>
-
                                 <td className="px-4 py-2">
                                     {log.email || log.user_email || log.user_id || "—"}
                                 </td>
-
                                 <td className="px-4 py-2">
                                     <Badge className="bg-gray-100 text-gray-800">
                                         {log.endpoint || "—"}
                                     </Badge>
                                 </td>
-
                                 <td className="px-4 py-2">{log.method || "—"}</td>
-
                                 <td className="px-4 py-2">
-                                    <Badge className={ROLE_CLASS[role] || ROLE_CLASS.user}>
-                                        {role}
-                                    </Badge>
+                                    <Badge className={ROLE_CLASS[role] || ROLE_CLASS.user}>{role}</Badge>
                                 </td>
-
                                 <td className="px-4 py-2">{log.ip || log.ip_address || "—"}</td>
-
                                 <td className="px-4 py-2 max-w-[260px]">
                                     <Tooltip.Provider>
                                         <Tooltip.Root>
@@ -245,13 +229,11 @@ const LogsTable = ({
                                         </Tooltip.Root>
                                     </Tooltip.Provider>
                                 </td>
-
                                 <td className="px-4 py-2">
                                     <Badge className={STATUS_CLASS[status] || "bg-gray-100 text-gray-800"}>
                                         {log.status || "—"}
                                     </Badge>
                                 </td>
-
                                 <td className="px-4 py-2">
                                     <Badge className={INTENT_CLASS[intent] || INTENT_CLASS.default}>
                                         {log.intent || "—"}

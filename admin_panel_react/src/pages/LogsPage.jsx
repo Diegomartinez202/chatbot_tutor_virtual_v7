@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import LogsTable from "@/components/LogsTable";
 import { useAdminActions } from "@/services/useAdminActions";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { FileText, Lock, Download, Search } from "lucide-react";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { Button } from "@/components/ui/button";
@@ -19,19 +19,27 @@ function LogsPage() {
         rol: "",
     });
 
+    // ⬇️ usar strings (no null) para inputs controlados
     const [fechas, setFechas] = useState({
-        fechaInicio: null,
-        fechaFin: null,
+        fechaInicio: "",
+        fechaFin: "",
     });
 
     const handleExport = () => {
-        exportMutation.mutate(fechas, {
-            onSuccess: () => toast.success("Exportación iniciada/exitosa."),
-            onError: (err) => {
-                const msg = err?.response?.data?.detail || "No se pudo exportar.";
-                toast.error(msg);
+        // ⬇️ normaliza a {desde, hasta} para exportMutation
+        exportMutation.mutate(
+            {
+                desde: fechas.fechaInicio || "",
+                hasta: fechas.fechaFin || "",
             },
-        });
+            {
+                onSuccess: () => toast.success("Exportación iniciada/exitosa."),
+                onError: (err) => {
+                    const msg = err?.response?.data?.detail || "No se pudo exportar.";
+                    toast.error(msg);
+                },
+            }
+        );
     };
 
     if (user?.rol !== "admin" && user?.rol !== "soporte") {
@@ -65,7 +73,7 @@ function LogsPage() {
                                 <Button
                                     onClick={handleExport}
                                     disabled={exportMutation.isLoading}
-                                    variant="outline"
+                                    variant="secondary"
                                 >
                                     <Download size={16} className="mr-2" />
                                     Exportar CSV
@@ -121,7 +129,6 @@ function LogsPage() {
             </div>
 
             {/* 📋 Tabla de resultados */}
-            {/* Pasamos fechas a la tabla para que aplique el filtro en el fetch/render */}
             <LogsTable filters={filters} fechas={fechas} Badge={Badge} />
         </div>
     );

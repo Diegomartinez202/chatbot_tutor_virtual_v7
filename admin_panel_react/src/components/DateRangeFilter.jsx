@@ -4,8 +4,7 @@ import { CalendarRange, RotateCcw } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 function DateRangeFilter({ desde = "", hasta = "", setDesde, setHasta }) {
-    const invalid =
-        Boolean(desde) && Boolean(hasta) && new Date(desde) > new Date(hasta);
+    const invalid = Boolean(desde) && Boolean(hasta) && new Date(desde) > new Date(hasta);
 
     const clear = () => {
         setDesde("");
@@ -84,10 +83,7 @@ function DateRangeFilter({ desde = "", hasta = "", setDesde, setHasta }) {
 
             {/* Error rango inválido */}
             {invalid && (
-                <p
-                    id="drf-error"
-                    className="text-xs text-red-600 mt-2 basis-full"
-                >
+                <p id="drf-error" className="text-xs text-red-600 mt-2 basis-full">
                     Rango inválido: <strong>Desde</strong> no puede ser mayor que <strong>Hasta</strong>.
                 </p>
             )}
