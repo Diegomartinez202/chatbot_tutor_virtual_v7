@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chatbot Tutor Virtual — Embed</title>
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font: 14px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+            color: #111827;
+            background: #fff;
+        }
+
+        .wrap {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .box {
+            text-align: center;
+        }
+
+        .avatar {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto 10px;
+            box-shadow: 0 6px 24px rgba(0,0,0,.12);
+        }
+
+        .muted {
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 9999px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            display: inline-block;
+            vertical-align: middle;
+            animation: spin .8s linear infinite;
+            margin-left: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        iframe.chat {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+    <script>
+        // Lee parámetros: ?src=URL-del-widget&avatar=/bot-avatar.png&title=Chatbot
+        (function () {
+            const params = new URLSearchParams(location.search);
+            window.__CHAT_SRC__ = params.get("src") || "";               // URL del widget backend (opcional)
+            window.__CHAT_AVATAR__ = params.get("avatar") || "/bot-avatar.png";
+            window.__CHAT_TITLE__ = params.get("title") || "Conectando con el Chatbot…";
+        })();
+    </script>
+</head>
+<body>
+    <div id="mount" class="wrap">
+        <div class="box" id="placeholder">
+            <img src="" alt="Bot" class="avatar" id="phAvatar" />
+            <div class="muted" id="phText"></div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const src = window.__CHAT_SRC__;
+            const avatar = window.__CHAT_AVATAR__;
+            const title = window.__CHAT_TITLE__;
+
+            document.getElementById("phAvatar").src = avatar;
+            document.getElementById("phText").innerHTML =
+                `${title} <span class="spinner" aria-hidden="true"></span>`;
+
+            // Si hay src (tu widget.html del backend), lo incrustamos en iframe
+            if (src) {
+                const mount = document.getElementById("mount");
+                mount.innerHTML = "";
+                const frame = document.createElement("iframe");
+                frame.className = "chat";
+                frame.loading = "eager";
+                frame.src = src;
+                mount.appendChild(frame);
+                return;
+            }
+
+            // Si no hay src, dejamos el placeholder (loader con avatar)
+        })();
+    </script>
+</body>
+</html>
