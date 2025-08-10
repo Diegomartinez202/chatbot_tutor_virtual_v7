@@ -1,3 +1,4 @@
+// src/routes/AppRoutes.jsx
 import { Routes, Route } from "react-router-dom";
 
 import Dashboard from "@/pages/Dashboard";
@@ -18,6 +19,8 @@ import ExportacionesPage from "@/pages/ExportacionesPage";
 import TrainBotPage from "@/pages/TrainBotPage";
 import DiagnosticoPage from "@/pages/TestPage";
 
+import ChatPage from "@/pages/ChatPage"; // ✅ NUEVO: página de chat
+
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
@@ -27,7 +30,14 @@ const AppRoutes = () => {
             {/* 🌐 Rutas públicas */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="*" element={<LoginPage />} />
+
+            {/* ✅ NUEVAS RUTAS DE CHAT (públicas) */}
+            {/* /chat → pública; ChatPage internamente redirige a /login si no trae embed=1 */}
+            <Route path="/chat" element={<ChatPage />} />
+            {/* /chat-embed → pública y forzada a embed (ideal para iframes antiguos) */}
+            <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+
+            {/* Si mantienes una versión protegida de /chat, deja la anterior y usa solo /chat-embed como alias público. */}
 
             {/* 🔐 Rutas protegidas con roles */}
             <Route
@@ -160,6 +170,9 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
+
+            {/* Catch-all: mantengo como estaba */}
+            <Route path="*" element={<LoginPage />} />
         </Routes>
     );
 };

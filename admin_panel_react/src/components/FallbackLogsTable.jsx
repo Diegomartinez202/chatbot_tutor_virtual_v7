@@ -1,11 +1,22 @@
 // src/components/FallbackLogsTable.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getFailedLogs, exportFailedIntentsCSV } from "@/services/api";
 import { formatDate } from "@/utils/formatDate";
-import { Download, ChevronLeft, ChevronRight, Calendar, User, MessageCircle, AlertTriangle } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import {
+    Download,
+    ChevronLeft,
+    ChevronRight,
+    Calendar,
+    User,
+    MessageCircle,
+    AlertTriangle,
+    XCircle,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
+import IconTooltip from "@/components/ui/IconTooltip";
+import Badge from "@/components/Badge";
+import { Button } from "@/components/ui/button";
 
 /**
  * Props:
@@ -14,7 +25,7 @@ import { toast } from "react-hot-toast";
  * - intents: [{ intent, count }] (opcional, para poblar dropdown)
  * - initialIntent: string (opcional)
  * - pageSize: number (opcional, default 20)
- * - onIntentChange: (value: string) => void (opcional)  ← NUEVO
+ * - onIntentChange: (value: string) => void (opcional)
  */
 const FallbackLogsTable = ({
     desde = "",
@@ -22,10 +33,21 @@ const FallbackLogsTable = ({
     intents = [],
     initialIntent = "",
     pageSize = 20,
-    onIntentChange, // ← NUEVO
+    onIntentChange,
 }) => {
     const [intent, setIntent] = useState(initialIntent);
     const [page, setPage] = useState(1);
+
+    // Mantén intent sincronizado si el padre cambia initialIntent
+    useEffect(() => {
+        setIntent(initialIntent || "");
+        setPage(1);
+    }, [initialIntent]);
+
+    // Al cambiar el rango de fechas, vuelve a la primera página
+    useEffect(() => {
+        setPage(1);
+    }, [desde, hasta]);
 
     const queryKey = useMemo(
         () => ["failedLogs", { desde, hasta, intent, page, page_size: pageSize }],
@@ -35,10 +57,13 @@ const FallbackLogsTable = ({
     const { data, isFetching } = useQuery({
         queryKey,
         queryFn: async () => {
-            const res = await getFailedLogs({ desde, hasta, intent: intent || undefined, page, page_size: pageSize });
-            // Soporta dos formas:
-            // 1) { items, total, page, page_size }
-            // 2) [ ...rows ] simple
+            const res = await getFailedLogs({
+                desde,
+                hasta,
+                intent: intent || undefined,
+                page,
+                page_size: pageSize,
+            });
             if (Array.isArray(res)) {
                 return { items: res, total: res.length, page, page_size: pageSize };
             }
@@ -57,20 +82,26 @@ const FallbackLogsTable = ({
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     const exportMutation = useMutation({
-        mutationFn: () => exportFailedIntentsCSV({ desde, hasta, intent: intent || undefined }),
-        onSuccess: () => toast.success("✅ CSV exportado"),
-        onError: () => toast.error("❌ Error al exportar CSV"),
+        mutationFn: () =>
+            exportFailedIntentsCSV({ desde, hasta, intent: intent || undefined }),
+        onSuccess: () =>
+            toast.success("CSV exportado", {
+                icon: <Download className="w-4 h-4" />,
+            }),
+        onError: () =>
+            toast.error("Error al exportar CSV", {
+                icon: <XCircle className="w-4 h-4" />,
+            }),
     });
 
     const intentsOptions = useMemo(() => {
         const base = intents?.map((i) => i?.intent).filter(Boolean) || [];
-        const unique = Array.from(new Set(base));
-        return unique;
+        return Array.from(new Set(base));
     }, [intents]);
 
     const changeIntent = (value) => {
         setIntent(value);
-        setPage(1); // reset de paginación al cambiar filtro
+        setPage(1);
     };
 
     const prev = () => setPage((p) => Math.max(1, p - 1));
@@ -88,7 +119,7 @@ const FallbackLogsTable = ({
                         onChange={(e) => {
                             const v = e.target.value;
                             changeIntent(v);
-                            onIntentChange?.(v); // ← notifica al padre para sincronizar el botón de export “arriba”
+                            onIntentChange?.(v);
                         }}
                     >
                         <option value="">Todos</option>
@@ -100,14 +131,18 @@ const FallbackLogsTable = ({
                     </select>
                 </div>
 
-                <button
-                    onClick={() => exportMutation.mutate()}
-                    disabled={exportMutation.isLoading}
-                    className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow ml-auto"
-                >
-                    <Download size={16} />
-                    {exportMutation.isLoading ? "Exportando..." : "Exportar CSV (filtros)"}
-                </button>
+                <IconTooltip label="Exportar CSV con los filtros aplicados" side="top">
+                    <Button
+                        onClick={() => exportMutation.mutate()}
+                        disabled={exportMutation.isLoading}
+                        className="ml-auto inline-flex items-center gap-2"
+                        type="button"
+                        aria-busy={exportMutation.isLoading}
+                    >
+                        <Download size={16} />
+                        {exportMutation.isLoading ? "Exportando..." : "Exportar CSV (filtros)"}
+                    </Button>
+                </IconTooltip>
             </div>
 
             {/* Tabla */}
@@ -115,29 +150,29 @@ const FallbackLogsTable = ({
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100 text-left">
                         <tr>
-                            <th className="px-4 py-2">
+                            <th scope="col" className="px-4 py-2">
                                 <span className="inline-flex items-center gap-1">
                                     <Calendar size={16} /> Fecha
                                 </span>
                             </th>
-                            <th className="px-4 py-2">
+                            <th scope="col" className="px-4 py-2">
                                 <span className="inline-flex items-center gap-1">
                                     <User size={16} /> Usuario/Email
                                 </span>
                             </th>
-                            <th className="px-4 py-2">
+                            <th scope="col" className="px-4 py-2">
                                 <span className="inline-flex items-center gap-1">
                                     <MessageCircle size={16} /> Mensaje
                                 </span>
                             </th>
-                            <th className="px-4 py-2">
+                            <th scope="col" className="px-4 py-2">
                                 <span className="inline-flex items-center gap-1">
                                     <AlertTriangle size={16} /> Intent
                                 </span>
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody aria-busy={isFetching}>
                         {isFetching ? (
                             <tr>
                                 <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
@@ -160,24 +195,17 @@ const FallbackLogsTable = ({
                                         {log.email || log.user_email || log.user_id || "—"}
                                     </td>
                                     <td className="px-4 py-2 max-w-[420px]">
-                                        <Tooltip.Root>
-                                            <Tooltip.Trigger asChild>
-                                                <span className="block truncate cursor-help">
-                                                    {log.message || log.text || "—"}
-                                                </span>
-                                            </Tooltip.Trigger>
-                                            <Tooltip.Portal>
-                                                <Tooltip.Content
-                                                    className="rounded-md bg-black text-white px-2 py-1 text-xs max-w-[560px]"
-                                                    side="top"
-                                                >
-                                                    {log.message || log.text || "—"}
-                                                </Tooltip.Content>
-                                            </Tooltip.Portal>
-                                        </Tooltip.Root>
+                                        <IconTooltip label={log.message || log.text || "—"} side="top">
+                                            <span className="block truncate cursor-help">
+                                                {log.message || log.text || "—"}
+                                            </span>
+                                        </IconTooltip>
                                     </td>
-                                    <td className="px-4 py-2 text-red-600">
-                                        {log.intent || log.predicted_intent || "—"}
+                                    <td className="px-4 py-2">
+                                        <Badge
+                                            type="intent"
+                                            value={log.intent || log.predicted_intent || "—"}
+                                        />
                                     </td>
                                 </tr>
                             ))
@@ -188,23 +216,28 @@ const FallbackLogsTable = ({
 
             {/* Paginación */}
             <div className="flex justify-center items-center gap-3">
-                <button
+                <Button
                     onClick={prev}
                     disabled={page <= 1}
-                    className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                    variant="secondary"
+                    className="inline-flex items-center gap-1"
+                    type="button"
                 >
                     <ChevronLeft className="w-4 h-4" /> Anterior
-                </button>
+                </Button>
                 <span className="px-2 py-1 text-sm">
-                    Página <strong>{total ? page : 0}</strong> de <strong>{total ? totalPages : 0}</strong>
+                    Página <strong>{total ? page : 0}</strong> de{" "}
+                    <strong>{total ? totalPages : 0}</strong>
                 </span>
-                <button
+                <Button
                     onClick={next}
                     disabled={page >= totalPages}
-                    className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                    variant="secondary"
+                    className="inline-flex items-center gap-1"
+                    type="button"
                 >
                     Siguiente <ChevronRight className="w-4 h-4" />
-                </button>
+                </Button>
             </div>
         </div>
     );

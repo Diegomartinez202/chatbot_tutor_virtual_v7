@@ -21,6 +21,8 @@ import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage"; // ✅ NUEVO
 
+import ChatPage from "@/pages/ChatPage"; // ✅ NUEVO: página de chat
+
 import { TooltipProvider } from "@/components/ui/IconTooltip"; // ✅ Provider global
 
 function CatchAllRedirect() {
@@ -35,6 +37,12 @@ function App() {
                 {/* 🌐 Públicas */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
+
+                {/* ✅ Chat público */}
+                {/* /chat → pública; ChatPage redirige a /login si NO viene embed=1 */}
+                <Route path="/chat" element={<ChatPage />} />
+                {/* /chat-embed → pública y forzada a embed (ideal para iframes/embeds antiguos) */}
+                <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
 
                 {/* Home protegido */}
                 <Route

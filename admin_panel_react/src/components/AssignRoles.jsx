@@ -1,18 +1,12 @@
 // src/components/AssignRoles.jsx
 import { useEffect, useState } from "react";
-import axiosClient from "@/services/axiosClient"; // ✅ correcto
+import axiosClient from "@/services/axiosClient";
 import IconTooltip from "@/components/ui/IconTooltip";
 import { Shield, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Badge from "@/components/Badge";
 
 const rolesDisponibles = ["admin", "soporte", "usuario"];
-
-const ROLE_CLASS = {
-    admin: "bg-purple-100 text-purple-800",
-    soporte: "bg-blue-100 text-blue-800",
-    usuario: "bg-gray-100 text-gray-800",
-};
 
 function AssignRoles() {
     const [users, setUsers] = useState([]);
@@ -43,7 +37,6 @@ function AssignRoles() {
             setMensaje("");
             setMensajeTipo(null);
 
-            // Soporte para id o _id
             const user = users.find((u) => (u.id || u._id) === userId);
             if (!user) throw new Error("Usuario no encontrado");
 
@@ -112,17 +105,15 @@ function AssignRoles() {
                 <tbody>
                     {users.map((user) => {
                         const uid = user.id || user._id;
-                        const roleKey = (user.rol || "usuario").toLowerCase();
                         const isSelf = uid === currentUser?._id;
+                        const roleValue = (user.rol || "usuario");
 
                         return (
                             <tr key={uid} className="border-t">
                                 <td className="p-2">{user.nombre}</td>
                                 <td className="p-2">{user.email}</td>
                                 <td className="p-2 capitalize">
-                                    <Badge className={ROLE_CLASS[roleKey] || ROLE_CLASS.usuario}>
-                                        {user.rol}
-                                    </Badge>
+                                    <Badge type="role" value={roleValue} />
                                 </td>
                                 <td className="p-2">
                                     <IconTooltip

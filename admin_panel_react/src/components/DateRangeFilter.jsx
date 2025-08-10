@@ -1,7 +1,7 @@
 // src/components/DateRangeFilter.jsx
 import React from "react";
 import { CalendarRange, RotateCcw } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import IconTooltip from "@/components/ui/IconTooltip";
 
 function DateRangeFilter({ desde = "", hasta = "", setDesde, setHasta }) {
     const invalid = Boolean(desde) && Boolean(hasta) && new Date(desde) > new Date(hasta);
@@ -57,29 +57,17 @@ function DateRangeFilter({ desde = "", hasta = "", setDesde, setHasta }) {
             </div>
 
             {/* Botón limpiar */}
-            <Tooltip.Provider>
-                <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                        <button
-                            type="button"
-                            onClick={clear}
-                            className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow
-                         dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700"
-                        >
-                            <RotateCcw className="w-4 h-4" />
-                            Limpiar
-                        </button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Portal>
-                        <Tooltip.Content
-                            className="rounded-md bg-black text-white px-2 py-1 text-xs"
-                            side="top"
-                        >
-                            Limpiar rango de fechas
-                        </Tooltip.Content>
-                    </Tooltip.Portal>
-                </Tooltip.Root>
-            </Tooltip.Provider>
+            <IconTooltip label="Limpiar rango de fechas" side="top">
+                <button
+                    type="button"
+                    onClick={clear}
+                    className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow
+                     dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700"
+                >
+                    <RotateCcw className="w-4 h-4" />
+                    Limpiar
+                </button>
+            </IconTooltip>
 
             {/* Error rango inválido */}
             {invalid && (

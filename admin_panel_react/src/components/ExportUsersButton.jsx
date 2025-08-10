@@ -1,7 +1,19 @@
+// src/components/ExportUserButton.jsx
 import { saveAs } from "file-saver";
-import axiosClient from "@/services/axiosClient"; // ✅ corregido
+import axiosClient from "@/services/axiosClient";
+import { Button } from "@/components/ui/button";
+import IconTooltip from "@/components/ui/IconTooltip";
+import { Download, XCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
-const ExportUsersButton = () => {
+function filenameWithStamp(prefix = "usuarios", ext = "csv") {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    return `${prefix}_${stamp}.${ext}`;
+}
+
+const ExportUserButton = () => {
     const exportarUsuarios = async () => {
         try {
             const res = await axiosClient.get("/admin/users/export", {
@@ -9,21 +21,27 @@ const ExportUsersButton = () => {
             });
 
             const blob = new Blob([res.data], { type: "text/csv;charset=utf-8;" });
-            saveAs(blob, "usuarios_exportados.csv");
+            saveAs(blob, filenameWithStamp());
+
+            toast.success("Usuarios exportados correctamente", {
+                icon: <Download className="w-4 h-4" />,
+            });
         } catch (error) {
-            alert("❌ Error al exportar usuarios");
             console.error("Error exportando usuarios:", error);
+            toast.error("Error al exportar usuarios", {
+                icon: <XCircle className="w-4 h-4" />,
+            });
         }
     };
 
     return (
-        <button
-            onClick={exportarUsuarios}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
-        >
-            📤 Exportar Usuarios (CSV)
-        </button>
+        <IconTooltip label="Exportar usuarios a CSV" side="top">
+            <Button onClick={exportarUsuarios} className="inline-flex items-center gap-2" type="button">
+                <Download className="w-4 h-4" />
+                Exportar Usuarios (CSV)
+            </Button>
+        </IconTooltip>
     );
 };
 
-export default ExportUsersButton;
+export default ExportUserButton;

@@ -34,8 +34,7 @@ function ProfilePage() {
                         <strong>ID de usuario:</strong> {profile.user_id}
                     </p>
                     <p className="flex items-center gap-2">
-                        <strong>Rol:</strong>{" "}
-                        <Badge type="role" value={roleValue} />
+                        <strong>Rol:</strong> <Badge type="role" value={roleValue} />
                     </p>
                 </div>
             )}

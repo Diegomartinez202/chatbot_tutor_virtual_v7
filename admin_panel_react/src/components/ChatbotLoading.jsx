@@ -1,5 +1,8 @@
 // src/components/ChatbotLoading.jsx
-import React from "react";
+import React, { useState } from "react";
+import { Loader2, Bot } from "lucide-react";
+import IconTooltip from "@/components/ui/IconTooltip";
+import Badge from "@/components/Badge";
 
 /**
  * Loader del chatbot con avatar.
@@ -7,35 +10,71 @@ import React from "react";
  * - avatarSrc: string (ruta pública, ej: "/bot-loading.png" o "/bot-avatar.png")
  * - label: string
  * - useSpinner: boolean (muestra spinner superpuesto)
+ * - showStatusBadge: boolean (muestra un Badge de estado debajo)
+ * - status: "connecting" | "ready" | "error" | string (mapea a Badge type="status")
+ * - statusMessage: string (opc. para sobreescribir texto del badge)
  */
 export default function ChatbotLoading({
     avatarSrc = "/bot-loading.png",
     label = "Cargando…",
     useSpinner = true,
+    showStatusBadge = false,
+    status,                // opcional
+    statusMessage,         // opcional
 }) {
+    const [imgError, setImgError] = useState(false);
+
+    // Mapeo simple para el Badge (mantiene compat con tus STATUS_STYLES)
+    const statusValue =
+        status === "connecting" ? "pendiente" :
+            status === "ready" ? "ok" :
+                status === "error" ? "error" :
+                    status || undefined;
+
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+        <div
+            className="w-full h-full flex flex-col items-center justify-center gap-3"
+            role="status"
+            aria-live="polite"
+        >
             <div className="relative">
-                <img
-                    src={avatarSrc}
-                    alt="Avatar del chatbot"
-                    className="w-20 h-20 rounded-full object-cover shadow-lg"
-                    loading="eager"
-                />
+                <IconTooltip label={label} side="top">
+                    <div
+                        className="w-20 h-20 rounded-full shadow-lg overflow-hidden bg-white"
+                        aria-busy={useSpinner}
+                    >
+                        {imgError ? (
+                            <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-white">
+                                <Bot className="w-8 h-8" aria-hidden="true" />
+                            </div>
+                        ) : (
+                            <img
+                                src={avatarSrc}
+                                alt="Avatar del chatbot"
+                                className="w-full h-full object-cover"
+                                loading="eager"
+                                onError={() => setImgError(true)}
+                            />
+                        )}
+                    </div>
+                </IconTooltip>
+
                 {useSpinner && (
-                    <span
+                    <Loader2
+                        className="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-indigo-600 bg-white rounded-full p-0.5"
                         aria-hidden="true"
-                        className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white animate-spin"
-                        style={{
-                            borderTopColor: "transparent",
-                            borderRightColor: "currentColor",
-                            borderBottomColor: "currentColor",
-                            borderLeftColor: "currentColor",
-                        }}
                     />
                 )}
             </div>
-            <p className="text-sm text-gray-600">{label}</p>
+
+            <div className="flex flex-col items-center gap-1">
+                <p className="text-sm text-gray-600">{label}</p>
+                {showStatusBadge && statusValue && (
+                    <Badge type="status" value={statusValue} size="xs">
+                        {statusMessage || statusValue}
+                    </Badge>
+                )}
+            </div>
         </div>
     );
 }
