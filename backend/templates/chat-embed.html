@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Chatbot Tutor Virtual — Embed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            background: #0b1220;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial;
+        }
+
+        .wrap {
+            width: min(100%, var(--w, 380px));
+            height: min(100%, var(--h, 560px));
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            border: 1px solid #1f2937;
+            background: #ffffff;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <iframe id="chat-iframe" title="Chatbot" referrerpolicy="no-referrer"
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+                allow="clipboard-write"></iframe>
+    </div>
+
+    <script>
+        (function () {
+            const qs = new URLSearchParams(location.search);
+            const src = qs.get("src") || "/static/widgets/widget.html";
+            const w = qs.get("w") || "380px";
+            const h = qs.get("h") || "560px";
+            document.querySelector(".wrap").style.setProperty("--w", w);
+            document.querySelector(".wrap").style.setProperty("--h", h);
+
+            // reenviar params útiles
+            const forwardKeys = ["api", "user_id", "avatar"];
+            const fwd = new URLSearchParams();
+            forwardKeys.forEach(k => { if (qs.get(k)) fwd.set(k, qs.get(k)); });
+
+            const finalUrl = src + (src.includes("?") ? "&" : "?") + fwd.toString();
+            document.getElementById("chat-iframe").src = finalUrl;
+        })();
+    </script>
+</body>
+</html>

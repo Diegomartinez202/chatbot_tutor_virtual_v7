@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Chatbot Tutor Virtual — Embed</title>
+    <title>Chatbot Tutor Virtual â€” Embed</title>
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" href="/favicon.ico" />
     <style>
@@ -16,17 +16,23 @@
             font: 14px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
             color: #111827;
             background: #fff;
-        }
-
-        .wrap {
-            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .box {
+        .wrap {
+            width: min(100%, var(--w, 380px));
+            height: min(100%, var(--h, 560px));
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,.15);
+            border: 1px solid #e5e7eb;
+        }
+
+        .ph {
             text-align: center;
+            padding: 16px;
         }
 
         .avatar {
@@ -43,7 +49,7 @@
             color: #6b7280;
         }
 
-        .spinner {
+        .spin {
             width: 18px;
             height: 18px;
             border-radius: 9999px;
@@ -65,21 +71,27 @@
             width: 100%;
             height: 100%;
             border: 0;
+            display: block;
         }
     </style>
     <script>
-        // Lee parámetros: ?src=URL-del-widget&avatar=/bot-avatar.png&title=Chatbot
         (function () {
-            const params = new URLSearchParams(location.search);
-            window.__CHAT_SRC__ = params.get("src") || "";               // URL del widget backend (opcional)
-            window.__CHAT_AVATAR__ = params.get("avatar") || "/bot-avatar.png";
-            window.__CHAT_TITLE__ = params.get("title") || "Conectando con el Chatbot…";
+            const qs = new URLSearchParams(location.search);
+            const w = qs.get("w") || "380px";
+            const h = qs.get("h") || "560px";
+            document.documentElement.style.setProperty("--w", w);
+            document.documentElement.style.setProperty("--h", h);
+            window.__CHAT_SRC__ = qs.get("src") || "";                 // URL del widget (backend)
+            window.__CHAT_AVATAR__ = qs.get("avatar") || "/bot-avatar.png";
+            window.__CHAT_TITLE__ = qs.get("title") || "Conectando con el Chatbotâ€¦";
+            window.__IFR_ALLOW__ = qs.get("allow") || "clipboard-write";
+            window.__IFR_SBOX__ = qs.get("sandbox") || "allow-scripts allow-forms allow-same-origin allow-popups";
         })();
     </script>
 </head>
 <body>
-    <div id="mount" class="wrap">
-        <div class="box" id="placeholder">
+    <div class="wrap" id="mount">
+        <div class="ph" id="placeholder">
             <img src="" alt="Bot" class="avatar" id="phAvatar" />
             <div class="muted" id="phText"></div>
         </div>
@@ -90,24 +102,24 @@
             const src = window.__CHAT_SRC__;
             const avatar = window.__CHAT_AVATAR__;
             const title = window.__CHAT_TITLE__;
+            const allow = window.__IFR_ALLOW__;
+            const sandbox = window.__IFR_SBOX__;
 
             document.getElementById("phAvatar").src = avatar;
-            document.getElementById("phText").innerHTML =
-                `${title} <span class="spinner" aria-hidden="true"></span>`;
+            document.getElementById("phText").innerHTML = `${title} <span class="spin" aria-hidden="true"></span>`;
 
-            // Si hay src (tu widget.html del backend), lo incrustamos en iframe
             if (src) {
                 const mount = document.getElementById("mount");
                 mount.innerHTML = "";
                 const frame = document.createElement("iframe");
                 frame.className = "chat";
                 frame.loading = "eager";
+                frame.referrerPolicy = "no-referrer";
+                frame.allow = allow;
+                frame.sandbox = sandbox;
                 frame.src = src;
                 mount.appendChild(frame);
-                return;
             }
-
-            // Si no hay src, dejamos el placeholder (loader con avatar)
         })();
     </script>
 </body>

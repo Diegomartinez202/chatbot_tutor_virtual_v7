@@ -7,7 +7,7 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background: #f4f4f4;
         }
 
         #chat-container {
@@ -68,7 +68,7 @@
                 font-size: 14px;
                 border: none;
                 border-radius: 5px;
-                background-color: #007bff;
+                background: #007bff;
                 color: white;
                 cursor: pointer;
             }
@@ -176,7 +176,7 @@
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
 
-            <div id="carrusel-cursos" class="carousel-container" style="display: none; margin-top: 10px;">
+            <div id="carrusel-cursos" class="carousel-container" style="display:none; margin-top:10px;">
                 <h4>Cursos recomendados 🎓</h4>
                 <div class="carousel">
                     <div class="carousel-item">
@@ -210,7 +210,11 @@
     </div>
 
     <script>
-        const userId = new URLSearchParams(window.location.search).get("user_id") || "anonimo";
+        // === Config por querystring ===
+        const qs = new URLSearchParams(location.search);
+        const apiBase = qs.get("api") || "/api"; // 👈 ahora configurable
+        const userId = qs.get("user_id") || "anonimo";
+
         const messagesDiv = document.getElementById("messages");
         const inputForm = document.getElementById("input-form");
         const userInput = document.getElementById("user-input");
@@ -254,7 +258,7 @@
             addMessage("⏳ Pensando...", "bot");
 
             try {
-                const response = await fetch("/chat", {
+                const response = await fetch(apiBase + "/chat", {     // 👈 usa apiBase
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -264,10 +268,14 @@
                 });
 
                 const data = await response.json();
-                const botReply = data?.responses?.[0]?.text || "🤖 No tengo respuesta para eso todavía.";
-                document.querySelectorAll(".msg.bot").slice(-1)[0].textContent = botReply;
+                const botReply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
+
+                // ✅ Fix: tomar el último .msg.bot de forma segura
+                const bots = Array.from(document.querySelectorAll(".msg.bot"));
+                if (bots.length) bots[bots.length - 1].textContent = botReply;
             } catch (err) {
-                document.querySelectorAll(".msg.bot").slice(-1)[0].textContent = "❌ Error de conexión con el chatbot.";
+                const bots = Array.from(document.querySelectorAll(".msg.bot"));
+                if (bots.length) bots[bots.length - 1].textContent = "❌ Error de conexión con el chatbot.";
             }
         }
 
@@ -287,15 +295,20 @@
             };
 
             sendMessageToBot(payload);
-
             document.getElementById("soporte-nombre").value = "";
             document.getElementById("soporte-email").value = "";
             document.getElementById("soporte-mensaje").value = "";
-
             alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
         }
 
+        // Mostrar carrusel demo
         document.getElementById("carrusel-cursos").style.display = "block";
+
+        // Exponer helpers (si los usa tu CSS/JS externo)
+        window.showSubmenu = showSubmenu;
+        window.backToMain = backToMain;
+        window.mostrarFormularioSoporte = mostrarFormularioSoporte;
+        window.enviarSoporte = enviarSoporte;
     </script>
 </body>
 </html>
