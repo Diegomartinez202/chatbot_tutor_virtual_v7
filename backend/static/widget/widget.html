@@ -3,11 +3,32 @@
 <head>
     <meta charset="UTF-8" />
     <title>Chatbot Tutor Virtual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+        :root {
+            color-scheme: light;
+        }
+
+            :root.dark {
+                color-scheme: dark;
+            }
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
             background: #f4f4f4;
+            color: #111827;
+        }
+
+        :root.dark body {
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        /* alto contraste simple */
+        .high-contrast * {
+            outline: 2px solid currentColor !important;
+            outline-offset: 2px;
         }
 
         #chat-container {
@@ -23,6 +44,10 @@
             background: #f4f4f4;
         }
 
+        :root.dark #messages {
+            background: #111827;
+        }
+
         .msg {
             margin-bottom: 10px;
         }
@@ -34,6 +59,10 @@
         .user {
             text-align: right;
             color: #444;
+        }
+
+        :root.dark .user {
+            color: #cbd5e1;
         }
 
         #input-form {
@@ -85,6 +114,10 @@
             overflow-x: auto;
         }
 
+        :root.dark .carousel-container {
+            background: #0b1220;
+        }
+
         .carousel {
             display: flex;
             gap: 10px;
@@ -101,10 +134,15 @@
             padding: 5px;
         }
 
-            .carousel-item img {
-                width: 100%;
-                border-radius: 6px;
-            }
+        :root.dark .carousel-item {
+            background: #111827;
+            border-color: #374151;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            border-radius: 6px;
+        }
 
         #formulario-soporte {
             display: none;
@@ -112,24 +150,31 @@
             padding: 10px;
         }
 
-            #formulario-soporte input,
-            #formulario-soporte textarea {
+            #formulario-soporte input, #formulario-soporte textarea {
                 display: block;
                 width: 100%;
                 margin-bottom: 5px;
                 padding: 8px;
                 border-radius: 5px;
                 border: 1px solid #ccc;
+                background: #fff;
+                color: #111827;
             }
 
-            #formulario-soporte button {
-                background: #28a745;
-                color: white;
-                border: none;
-                padding: 10px;
-                border-radius: 5px;
-                cursor: pointer;
-            }
+        :root.dark #formulario-soporte input, :root.dark #formulario-soporte textarea {
+            background: #111827;
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+
+        #formulario-soporte button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -149,19 +194,16 @@
                 <button>💻 Programación Web</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
-
             <div class="submenu" id="submenu-zajuna">
                 <button>🔑 Recuperar contraseña</button>
                 <button>🔗 Enlace de ingreso</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
-
             <div class="submenu" id="submenu-cursos">
                 <button>📋 Ver cursos activos</button>
                 <button>📈 Progreso</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
-
             <div class="submenu" id="submenu-academico">
                 <button>📜 Certificados</button>
                 <button>📝 Inscripción</button>
@@ -169,13 +211,11 @@
                 <button>👨‍🏫 Tutor asignado</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
-
             <div class="submenu" id="submenu-soporte">
                 <button>❓ Preguntas frecuentes</button>
                 <button onclick="mostrarFormularioSoporte()">📩 Contactar soporte</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
-
             <div class="submenu" id="submenu-info">
                 <button>ℹ️ Información general</button>
                 <button>💡 Cómo usar el chatbot</button>
@@ -218,7 +258,7 @@
     <script>
         // === Config por querystring ===
         const qs = new URLSearchParams(location.search);
-        const apiBase = qs.get("api") || "/api"; // 👈 configurable
+        const apiBase = qs.get("api") || "/api";
         const userId = qs.get("user_id") || "anonimo";
 
         const messagesDiv = document.getElementById("messages");
@@ -253,7 +293,6 @@
 
         // ---- helper retrocompatible: /api/chat → fallback /chat ----
         async function postChat(payload) {
-            // 1) intento moderno
             try {
                 const r = await fetch(apiBase + "/chat", {
                     method: "POST",
@@ -265,8 +304,6 @@
             } catch (e) {
                 console.warn("[chat] fallo /api/chat, probando /chat (legacy)...", e);
             }
-
-            // 2) legacy
             const r2 = await fetch("/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-User-Id": userId },
@@ -289,7 +326,7 @@
                 const reply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
                 if (bots.length) bots[bots.length - 1].textContent = reply;
-            } catch (err) {
+            } catch {
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
                 if (bots.length) bots[bots.length - 1].textContent = "❌ Error de conexión con el chatbot.";
             }
@@ -299,29 +336,48 @@
             const nombre = document.getElementById("soporte-nombre").value;
             const email = document.getElementById("soporte-email").value;
             const mensaje = document.getElementById("soporte-mensaje").value;
-
-            if (!nombre || !email || !mensaje) {
-                alert("⚠️ Por favor completa todos los campos.");
-                return;
-            }
+            if (!nombre || !email || !mensaje) { alert("⚠️ Completa todos los campos."); return; }
 
             const payload = {
                 sender: userId,
-                message: `/enviar_soporte{"nombre": "${nombre}", "email": "${email}", "mensaje": "${mensaje}"}`
+                message: `/enviar_soporte{"nombre":"${nombre}","email":"${email}","mensaje":"${mensaje}"}`
             };
-
-            try {
-                await postChat(payload);
-                alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
-            } catch {
-                alert("❌ Error enviando soporte.");
-            }
+            try { await postChat(payload); alert("✅ Solicitud de soporte enviada."); }
+            catch { alert("❌ Error enviando soporte."); }
         }
 
         // Mostrar carrusel demo
         document.getElementById("carrusel-cursos").style.display = "block";
 
-        // Exponer helpers globales (si los usas desde HTML)
+        // === Escuchar accesibilidad/idioma desde el widget padre ===
+        window.addEventListener("message", (ev) => {
+            try {
+                const { type, theme, contrast, lang } = ev.data || {};
+                if (type !== "chat:settings") return;
+
+                // Tema
+                if (theme === "dark") {
+                    document.documentElement.classList.add("dark");
+                } else {
+                    document.documentElement.classList.remove("dark");
+                }
+
+                // Alto contraste
+                if (contrast) {
+                    document.body.classList.add("high-contrast");
+                } else {
+                    document.body.classList.remove("high-contrast");
+                }
+
+                // Idioma (si solo afecta al atributo lang)
+                if (lang) {
+                    document.documentElement.setAttribute("lang", lang);
+                }
+
+            } catch { }
+        });
+
+        // Exponer helpers globales
         window.showSubmenu = showSubmenu;
         window.backToMain = backToMain;
         window.mostrarFormularioSoporte = mostrarFormularioSoporte;

@@ -67,3 +67,14 @@ header {
         transform: translateY(0);
     }
 }
+html.high-contrast * {
+    outline-color: currentColor;
+}
+
+.high-contrast .btn {
+    border-width: 2px;
+}
+html.high-contrast * {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}

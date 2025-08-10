@@ -18,6 +18,7 @@ from backend.config.settings import settings
 from backend.routes import exportaciones
 from app.routers import admin_failed
 from backend.routes.chat import router_public as chat_public_router
+from fastapi.responses import RedirectResponse
 # === Paths útiles ===
 STATIC_DIR = Path(settings.static_dir).resolve()
 ICONS_DIR = STATIC_DIR / "icons"
@@ -177,3 +178,10 @@ logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
+@app.api_route("/chat", methods=["POST", "OPTIONS"])
+async def chat_alias(request: Request):
+    # Preflight simple si algún cliente manda OPTIONS
+    if request.method == "OPTIONS":
+        return Response(status_code=200)
+    # 307 mantiene método y body (POST) ➜ el navegador re-envía a /api/chat
+    return RedirectResponse(url="/api/chat", status_code=307)
