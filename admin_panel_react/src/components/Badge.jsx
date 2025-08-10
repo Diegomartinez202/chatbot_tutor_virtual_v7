@@ -1,5 +1,6 @@
 // src/components/Badge.jsx
 import React from "react";
+import IconTooltip from "@/components/ui/IconTooltip";
 import {
     ROLE_STYLES,
     STATUS_STYLES,
@@ -10,12 +11,16 @@ import {
 const cn = (...args) => args.filter(Boolean).join(" ");
 
 export default function Badge({
-    type = "neutral",      // "role" | "status" | "intent" | "neutral"
+    type = "neutral",         // "role" | "status" | "intent" | "neutral"
     value = "",
-    variant,               // compat: si llega, se asume type="role" y value=variant
+    variant,                  // compat: si llega, se asume type="role" y value=variant
     className = "",
     children,
-    size = "sm",           // "xs" | "sm" | "md"
+    size = "sm",              // "xs" | "sm" | "md"
+    tooltip,                  // si viene, se usa IconTooltip
+    leadingIcon: LeadingIcon, // opcional: componente de ícono (lucide)
+    trailingIcon: TrailingIcon, // opcional
+    "aria-label": ariaLabel,
 }) {
     // Compat hacia atrás
     if (variant && !value) {
@@ -24,9 +29,9 @@ export default function Badge({
     }
 
     const maps = {
-        role: ROLE_STYLES,
-        status: STATUS_STYLES,
-        intent: INTENT_STYLES,
+        role: ROLE_STYLES || {},
+        status: STATUS_STYLES || {},
+        intent: INTENT_STYLES || {},
         neutral: {},
     };
 
@@ -40,17 +45,29 @@ export default function Badge({
         (maps[type] && maps[type][String(value).toLowerCase()]) ||
         "bg-gray-100 text-gray-800";
 
-    return (
+    const content = (
         <span
             className={cn(
-                "inline-flex items-center rounded-full font-medium",
+                "inline-flex items-center gap-1.5 rounded-full font-medium",
                 sizing[size] || sizing.sm,
                 style,
                 className
             )}
-            title={typeof value === "string" ? value : undefined}
+            title={!tooltip && typeof value === "string" ? value : undefined}
+            aria-label={ariaLabel || (typeof value === "string" ? value : undefined)}
         >
+            {LeadingIcon ? <LeadingIcon className="w-3.5 h-3.5" /> : null}
             {children ?? value ?? ""}
+            {TrailingIcon ? <TrailingIcon className="w-3.5 h-3.5" /> : null}
         </span>
+    );
+
+    // Si hay tooltip, envolvemos; si no, devolvemos directo (con title fallback arriba)
+    return tooltip ? (
+        <IconTooltip label={tooltip} side="top">
+            {content}
+        </IconTooltip>
+    ) : (
+        content
     );
 }

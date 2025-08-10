@@ -2,25 +2,16 @@
 import React from "react";
 import TrainBotButton from "@/components/TrainBotButton";
 import { BrainCog } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import IconTooltip from "@/components/ui/IconTooltip";
 
 function TrainBotPage() {
     return (
         <div className="p-6 space-y-6">
             {/* Encabezado */}
             <div className="flex items-center gap-2 mb-4">
-                <Tooltip.Provider>
-                    <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                            <BrainCog className="w-6 h-6 text-gray-700" />
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                            <Tooltip.Content className="tooltip" side="top">
-                                Entrenamiento del modelo conversacional
-                            </Tooltip.Content>
-                        </Tooltip.Portal>
-                    </Tooltip.Root>
-                </Tooltip.Provider>
+                <IconTooltip label="Entrenamiento del modelo conversacional" side="top">
+                    <BrainCog className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
                 <h1 className="text-2xl font-bold">Reentrenar Chatbot</h1>
             </div>
 

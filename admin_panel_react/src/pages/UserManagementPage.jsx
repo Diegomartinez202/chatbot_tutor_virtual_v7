@@ -1,11 +1,12 @@
+// src/pages/UserManagementPage.jsx
 import { useEffect, useState } from "react";
 import { getUsers, updateUser, deleteUser, exportUsersCSV } from "@/services/api";
 import UsersTable from "@/components/UsersTable";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { Search, FileDown, Loader2, Users, Lock } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import Badge from "@/components/Badge";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
 
 const UserManagementPage = () => {
     const { user } = useAuth();
@@ -94,7 +95,7 @@ const UserManagementPage = () => {
             </h1>
 
             <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w/full max-w-md">
+                <div className="relative w-full max-w-md">{/* ← corregido w/full a w-full */}
                     <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
                     <input
                         type="text"
@@ -116,31 +117,24 @@ const UserManagementPage = () => {
                     <option value="usuario">Usuario</option>
                 </select>
 
-                <Tooltip.Provider>
-                    <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        await exportUsersCSV();
-                                        toast.success("CSV exportado");
-                                    } catch (err) {
-                                        toast.error("Error al exportar usuarios");
-                                    }
-                                }}
-                                className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2"
-                            >
-                                <FileDown className="w-4 h-4" />
-                                Exportar usuarios
-                            </button>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                            <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs" side="top">
-                                Exporta el listado actual de usuarios a CSV
-                            </Tooltip.Content>
-                        </Tooltip.Portal>
-                    </Tooltip.Root>
-                </Tooltip.Provider>
+                {/* ✅ Tooltip con wrapper reutilizable */}
+                <IconTooltip label="Exporta el listado actual de usuarios a CSV" side="top">
+                    <button
+                        onClick={async () => {
+                            try {
+                                await exportUsersCSV();
+                                toast.success("CSV exportado");
+                            } catch (err) {
+                                toast.error("Error al exportar usuarios");
+                            }
+                        }}
+                        className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                        type="button"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        Exportar usuarios
+                    </button>
+                </IconTooltip>
             </div>
 
             {loading ? (

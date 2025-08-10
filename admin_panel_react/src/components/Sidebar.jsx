@@ -50,7 +50,8 @@ const Sidebar = () => {
                 <PanelLeft size={22} /> Panel Admin
             </h2>
 
-            <Tooltip.Provider>
+            {/* Mantengo Provider/Root/Trigger/Portal/Content/Arrow (mínimo diff) */}
+            <Tooltip.Provider delayDuration={200} skipDelayDuration={150}>
                 {Object.entries(menuSections).map(([section, links]) => (
                     <div key={section}>
                         <p className="text-gray-400 uppercase text-sm mt-6 px-4">{section}</p>
@@ -72,10 +73,12 @@ const Sidebar = () => {
                                 </Tooltip.Trigger>
                                 <Tooltip.Portal>
                                     <Tooltip.Content
-                                        className="rounded-md bg-black text-white px-2 py-1 text-xs"
+                                        className="rounded-md bg-black/90 text-white px-2 py-1 text-xs shadow"
                                         side="right"
+                                        sideOffset={6}
                                     >
                                         {label}
+                                        <Tooltip.Arrow className="fill-black/90" />
                                     </Tooltip.Content>
                                 </Tooltip.Portal>
                             </Tooltip.Root>

@@ -9,6 +9,7 @@ import FiltrosFecha from "@/components/FiltrosFecha";
 import { exportarCSV, fetchHistorialExportaciones } from "@/services/api";
 import { formatDate } from "@/utils/formatDate";
 import ExportacionesTable from "@/components/ExportacionesTable";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
 
 function ExportacionesPage() {
     // ⬇️ fechas como strings (inputs controlados)
@@ -29,10 +30,10 @@ function ExportacionesPage() {
     const exportMutation = useMutation({
         mutationFn: async () => exportarCSV(desde, hasta), // descarga directa (Blob)
         onSuccess: () => {
-            toast.success("✅ Exportación generada");
+            toast.success("Exportación generada");
             refetch();
         },
-        onError: () => toast.error("❌ Error al exportar CSV"),
+        onError: () => toast.error("Error al exportar CSV"),
     });
 
     const filtered = useMemo(() => {
@@ -62,7 +63,10 @@ function ExportacionesPage() {
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
-                <FileText size={22} /> Exportaciones realizadas
+                <IconTooltip label="Exportaciones realizadas" side="top">
+                    <FileText size={22} />
+                </IconTooltip>
+                Exportaciones realizadas
             </h1>
 
             {/* 🎯 Filtros */}
@@ -90,24 +94,32 @@ function ExportacionesPage() {
                     onChange={(e) => e.target.value.length <= 60 && setTipo(e.target.value)}
                 />
 
-                <Button onClick={() => refetch()} disabled={isFetching}>
-                    <Search className="w-4 h-4 mr-1" />
-                    {isFetching ? "Buscando..." : "Buscar"}
-                </Button>
+                <IconTooltip label="Buscar en historial" side="top">
+                    <Button onClick={() => refetch()} disabled={isFetching} type="button">
+                        <Search className="w-4 h-4 mr-1" />
+                        {isFetching ? "Buscando..." : "Buscar"}
+                    </Button>
+                </IconTooltip>
 
-                <Button
-                    onClick={() => exportMutation.mutate()}
-                    disabled={exportMutation.isLoading}
-                    className="ml-auto flex gap-2"
-                >
-                    <Download className="w-4 h-4" />
-                    {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
-                </Button>
+                <IconTooltip label="Generar exportación CSV" side="top">
+                    <Button
+                        onClick={() => exportMutation.mutate()}
+                        disabled={exportMutation.isLoading}
+                        className="ml-auto flex gap-2"
+                        type="button"
+                    >
+                        <Download className="w-4 h-4" />
+                        {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
+                    </Button>
+                </IconTooltip>
             </div>
 
             {/* 📊 Tabla de resultados */}
             <h3 className="text-lg font-semibold mt-8 flex items-center gap-2">
-                <History size={18} /> Historial de Exportaciones
+                <IconTooltip label="Historial de exportaciones" side="top">
+                    <History size={18} />
+                </IconTooltip>
+                Historial de Exportaciones
             </h3>
 
             <ExportacionesTable

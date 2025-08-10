@@ -1,7 +1,7 @@
 // src/components/EditUserRow.jsx
 import { useState, useEffect } from "react";
 import { Check, X } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import IconTooltip from "@/components/ui/IconTooltip";
 
 export default function EditUserRow({
     formData,
@@ -53,6 +53,7 @@ export default function EditUserRow({
                         placeholder="Nombre"
                         value={formData?.nombre ?? ""}
                         onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                        aria-invalid={!!errors.nombre}
                     />
                     {errors.nombre && (
                         <p className="text-xs text-red-600">{errors.nombre}</p>
@@ -70,6 +71,7 @@ export default function EditUserRow({
                         placeholder="correo@dominio.com"
                         value={formData?.email ?? ""}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        aria-invalid={!!errors.email}
                     />
                     {errors.email && (
                         <p className="text-xs text-red-600">{errors.email}</p>
@@ -85,6 +87,7 @@ export default function EditUserRow({
                         className="w-full border rounded px-2 py-1 capitalize"
                         value={formData?.rol ?? "usuario"}
                         onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                        aria-invalid={!!errors.rol}
                     >
                         <option value="admin">admin</option>
                         <option value="soporte">soporte</option>
@@ -96,49 +99,27 @@ export default function EditUserRow({
 
             <td className="p-2 border">
                 <div className="flex items-center gap-2">
-                    <Tooltip.Provider>
-                        <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                                <button
-                                    onClick={handleSave}
-                                    className="p-1.5 rounded bg-green-50 hover:bg-green-100 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-                                    aria-label="Guardar cambios"
-                                >
-                                    <Check className="w-5 h-5" />
-                                </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                                <Tooltip.Content
-                                    className="rounded-md bg-black text-white px-2 py-1 text-xs"
-                                    side="top"
-                                >
-                                    Guardar cambios (Enter)
-                                </Tooltip.Content>
-                            </Tooltip.Portal>
-                        </Tooltip.Root>
-                    </Tooltip.Provider>
+                    <IconTooltip label="Guardar cambios (Enter)" side="top">
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            className="p-1.5 rounded bg-green-50 hover:bg-green-100 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-300"
+                            aria-label="Guardar cambios"
+                        >
+                            <Check className="w-5 h-5" />
+                        </button>
+                    </IconTooltip>
 
-                    <Tooltip.Provider>
-                        <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                                <button
-                                    onClick={onCancel}
-                                    className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
-                                    aria-label="Cancelar edición"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                                <Tooltip.Content
-                                    className="rounded-md bg-black text-white px-2 py-1 text-xs"
-                                    side="top"
-                                >
-                                    Cancelar (Esc)
-                                </Tooltip.Content>
-                            </Tooltip.Portal>
-                        </Tooltip.Root>
-                    </Tooltip.Provider>
+                    <IconTooltip label="Cancelar (Esc)" side="top">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+                            aria-label="Cancelar edición"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </IconTooltip>
                 </div>
             </td>
         </tr>

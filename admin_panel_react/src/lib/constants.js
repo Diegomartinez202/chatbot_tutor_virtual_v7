@@ -72,4 +72,3 @@ export const INTENT_STYLES = {
     fallback: "bg-zinc-100 text-zinc-800",
     soporte_contacto: "bg-teal-100 text-teal-800",
     default: "bg-gray-100 text-gray-800",
-};

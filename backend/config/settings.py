@@ -1,7 +1,6 @@
-# ✅ backend/config/settings.py
-
+# backend/config/settings.py
 from pydantic import BaseSettings, Field, EmailStr
-from typing import List
+from typing import List, Optional, Literal
 
 class Settings(BaseSettings):
     # 📦 MongoDB
@@ -51,9 +50,20 @@ class Settings(BaseSettings):
     # 🌐 URL base de backend
     base_url: str = Field("http://localhost:8000", env="BASE_URL")
 
+    # 🧩 Embebido (opcional)
+    frame_ancestors: List[str] = Field(default_factory=list, env="FRAME_ANCESTORS")
+
+    # 🌱 Entorno
+    app_env: Literal["dev", "test", "prod"] = Field("dev", env="APP_ENV")
+
+    # 🚦 Rate limiting
+    rate_limit_enabled: bool = Field(True, env="RATE_LIMIT_ENABLED")
+    rate_limit_backend: Literal["memory", "redis"] = Field("memory", env="RATE_LIMIT_BACKEND")
+    rate_limit_window_sec: int = Field(60, env="RATE_LIMIT_WINDOW_SEC")
+    rate_limit_max_requests: int = Field(60, env="RATE_LIMIT_MAX_REQUESTS")
+    redis_url: Optional[str] = Field(None, env="REDIS_URL")
+
     class Config:
         env_file = ".env"
 
-
-# ✅ Instancia global lista para importar
 settings = Settings()

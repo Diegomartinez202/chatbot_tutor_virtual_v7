@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { BarChart3, Download, RefreshCw } from "lucide-react";
+import { BarChart3, Download, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import {
     ResponsiveContainer,
     BarChart,
@@ -16,6 +16,7 @@ import {
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { getTopFailedIntents, exportFailedIntentsCSV } from "@/services/api";
 import FallbackLogsTable from "@/components/FallbackLogsTable";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
 
 const IntentosFallidosPage = () => {
     const [desde, setDesde] = useState("");
@@ -49,15 +50,20 @@ const IntentosFallidosPage = () => {
                 hasta,
                 intent: selectedIntent || undefined, // 👈 incluye intent elegido
             }),
-        onSuccess: () => toast.success("✅ CSV generado"),
-        onError: () => toast.error("❌ Error al exportar CSV"),
+        onSuccess: () =>
+            toast.success("CSV generado", { icon: <CheckCircle className="w-4 h-4" /> }),
+        onError: () =>
+            toast.error("Error al exportar CSV", { icon: <XCircle className="w-4 h-4" /> }),
     });
 
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-end justify-between gap-4 flex-wrap">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <BarChart3 size={22} /> Intentos Fallidos del Chatbot
+                    <IconTooltip label="Ranking de intents fallidos" side="top">
+                        <BarChart3 size={22} />
+                    </IconTooltip>
+                    Intentos Fallidos del Chatbot
                 </h1>
 
                 <div className="flex items-end gap-2">
@@ -75,24 +81,35 @@ const IntentosFallidosPage = () => {
                         />
                     </div>
 
-                    <button
-                        onClick={() => refetch()}
-                        disabled={isFetching}
-                        className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
-                    >
-                        <RefreshCw className={isFetching ? "animate-spin" : ""} size={16} />
-                        {isFetching ? "Actualizando..." : "Actualizar"}
-                    </button>
+                    <IconTooltip label="Actualizar datos" side="top">
+                        <button
+                            onClick={() => refetch()}
+                            disabled={isFetching}
+                            className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
+                            type="button"
+                            aria-label="Actualizar"
+                        >
+                            <RefreshCw className={isFetching ? "animate-spin" : ""} size={16} />
+                            {isFetching ? "Actualizando..." : "Actualizar"}
+                        </button>
+                    </IconTooltip>
 
-                    <button
-                        onClick={() => exportMutation.mutate()}
-                        disabled={exportMutation.isLoading}
-                        className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
-                        title={selectedIntent ? `Exportando intent: ${selectedIntent}` : "Exportar CSV"}
+                    <IconTooltip
+                        label={selectedIntent ? `Exportar CSV (intent: ${selectedIntent})` : "Exportar CSV"}
+                        side="top"
                     >
-                        <Download size={16} />
-                        {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
-                    </button>
+                        <button
+                            onClick={() => exportMutation.mutate()}
+                            disabled={exportMutation.isLoading}
+                            className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
+                            type="button"
+                            aria-label="Exportar CSV"
+                            title={selectedIntent ? `Exportando intent: ${selectedIntent}` : "Exportar CSV"}
+                        >
+                            <Download size={16} />
+                            {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
+                        </button>
+                    </IconTooltip>
                 </div>
             </div>
 
@@ -122,7 +139,7 @@ const IntentosFallidosPage = () => {
             <FallbackLogsTable
                 desde={desde}
                 hasta={hasta}
-                intents={data}               // para poblar el dropdown
+                intents={data}                 // para poblar el dropdown
                 initialIntent={selectedIntent} // valor inicial
                 // 👇 asegúrate de que el componente llame a este callback al cambiar el dropdown
                 onIntentChange={setSelectedIntent}

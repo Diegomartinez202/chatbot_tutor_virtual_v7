@@ -21,6 +21,8 @@ import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage"; // ✅ NUEVO
 
+import { TooltipProvider } from "@/components/ui/IconTooltip"; // ✅ Provider global
+
 function CatchAllRedirect() {
     const { isAuthenticated } = useAuth();
     return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
@@ -28,148 +30,150 @@ function CatchAllRedirect() {
 
 function App() {
     return (
-        <Routes>
-            {/* 🌐 Públicas */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+        <TooltipProvider>
+            <Routes>
+                {/* 🌐 Públicas */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Home protegido */}
-            <Route
-                path="/"
-                element={
-                    <ProtectedRoute>
-                        <Dashboard />
-                    </ProtectedRoute>
-                }
-            />
+                {/* Home protegido */}
+                <Route
+                    path="/"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
-            {/* 🔐 Protegidas sin rol */}
-            <Route
-                path="/dashboard"
-                element={
-                    <ProtectedRoute>
-                        <Dashboard />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/profile"
-                element={
-                    <ProtectedRoute>
-                        <ProfilePage />
-                    </ProtectedRoute>
-                }
-            />
+                {/* 🔐 Protegidas sin rol */}
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute>
+                            <ProfilePage />
+                        </ProtectedRoute>
+                    }
+                />
 
-            {/* 🛠️ admin/soporte */}
-            <Route
-                path="/logs"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <LogsPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/diagnostico"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <TestPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
+                {/* 🛠️ admin/soporte */}
+                <Route
+                    path="/logs"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin", "soporte"]}>
+                                <LogsPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/diagnostico"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin", "soporte"]}>
+                                <TestPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
 
-            {/* 👑 admin-only */}
-            <Route
-                path="/intents"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <IntentsPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/stats"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <StatsPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/stats-v2"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <StatsPageV2 />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/users"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <UserManagementPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/assign-roles"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <AssignRoles />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/upload-intents"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <UploadIntentsCSV />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/admin/exportaciones"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <ExportacionesPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
+                {/* 👑 admin-only */}
+                <Route
+                    path="/intents"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <IntentsPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/stats"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <StatsPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/stats-v2"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <StatsPageV2 />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/users"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <UserManagementPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/assign-roles"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <AssignRoles />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/upload-intents"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <UploadIntentsCSV />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/exportaciones"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <ExportacionesPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
 
-            {/* ✅ NUEVA RUTA: Fallos del bot (admin) */}
-            <Route
-                path="/intentos-fallidos"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin"]}>
-                            <IntentosFallidosPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
+                {/* ✅ NUEVA RUTA: Fallos del bot (admin) */}
+                <Route
+                    path="/intentos-fallidos"
+                    element={
+                        <ProtectedRoute>
+                            <RequireRole allowedRoles={["admin"]}>
+                                <IntentosFallidosPage />
+                            </RequireRole>
+                        </ProtectedRoute>
+                    }
+                />
 
-            {/* Catch-all */}
-            <Route path="*" element={<CatchAllRedirect />} />
-        </Routes>
+                {/* Catch-all */}
+                <Route path="*" element={<CatchAllRedirect />} />
+            </Routes>
+        </TooltipProvider>
     );
 }
 

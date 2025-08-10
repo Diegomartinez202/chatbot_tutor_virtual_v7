@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ añadido
 
 const Header = () => {
     const { user, logout: doLogout } = useAuth();
@@ -65,7 +66,8 @@ const Header = () => {
 
                     {/* 🌐 Navegación */}
                     <nav className="flex flex-col gap-2">
-                        <Tooltip.Provider>
+                        {/* ✅ mejora: delays + sideOffset + Arrow; mantiene tu estructura */}
+                        <Tooltip.Provider delayDuration={200} skipDelayDuration={150}>
                             {navLinks.filter(canSee).map(({ to, label, icon: Icon, tip }) => (
                                 <Tooltip.Root key={to}>
                                     <Tooltip.Trigger asChild>
@@ -84,10 +86,12 @@ const Header = () => {
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
                                         <Tooltip.Content
-                                            className="rounded-md bg-black text-white px-2 py-1 text-xs"
+                                            className="rounded-md bg-black/90 text-white px-2 py-1 text-xs shadow"
                                             side="right"
+                                            sideOffset={6}
                                         >
                                             {tip || label}
+                                            <Tooltip.Arrow className="fill-black/90" />
                                         </Tooltip.Content>
                                     </Tooltip.Portal>
                                 </Tooltip.Root>
@@ -98,15 +102,17 @@ const Header = () => {
 
                 {/* ⚙️ Config + 🔚 Logout */}
                 <div className="p-6 flex items-center justify-between gap-2">
-                    <button
-                        onClick={() => setOpenSettings(true)}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded bg-white/10 hover:bg-white/20"
-                        title="Configuración"
-                        aria-label="Configuración"
-                        type="button"
-                    >
-                        <Cog size={16} /> Config.
-                    </button>
+                    {/* ✅ reemplaza title por tooltip real, sin romper estilos */}
+                    <IconTooltip label="Configuración" side="top">
+                        <button
+                            onClick={() => setOpenSettings(true)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded bg-white/10 hover:bg-white/20"
+                            aria-label="Configuración"
+                            type="button"
+                        >
+                            <Cog size={16} /> Config.
+                        </button>
+                    </IconTooltip>
                     <LogoutButton />
                 </div>
             </aside>
@@ -117,7 +123,7 @@ const Header = () => {
                 onClose={() => setOpenSettings(false)}
                 isAuthenticated={isAuthenticated}
                 onLogout={logout}
-                // cerrar chat (útil cuando no hay sesión): 
+                // cerrar chat (útil cuando no hay sesión):
                 onCloseChat={() => window.dispatchEvent(new CustomEvent("chat:close"))}
                 // cambio de idioma: broadcast al resto de la app o al widget si lo escuchas
                 onLanguageChange={(lang) =>

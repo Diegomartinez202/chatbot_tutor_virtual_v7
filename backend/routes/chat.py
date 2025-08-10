@@ -1,77 +1,71 @@
+# backend/routes/chat.py
 from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
-from backend.config.settings import settings  # ✅ Uso correcto del settings global
-from backend.db.mongodb import get_logs_collection  # ✅ Asegúrate de que el archivo se llame mongodb.py
+from typing import Optional, Any, Dict, List
+
+from backend.config.settings import settings  # Por si en el futuro usas flags/config aquí
+from backend.db.mongodb import get_logs_collection
 from backend.services.chat_service import process_user_message
-from backend.schemas.chat import ChatRequest
 
-router = APIRouter(prefix="/api", tags=["Chat"])
+# Un solo router; el alias se crea en main.py incluyéndolo con dos prefijos
+chat_router = APIRouter(tags=["Chat"])
 
-# 📥 Modelo del mensaje recibido desde frontend o widget
 class ChatRequest(BaseModel):
-    sender_id: str = "anonimo"
+    sender_id: str = Field(default="anonimo", description="ID de sesión o usuario")
     message: str
+    metadata: Optional[Dict[str, Any]] = None
+    mode: Optional[str] = "anonymous"
 
-@router.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
+@chat_router.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
 async def send_message_to_bot(data: ChatRequest, request: Request):
-    ip = request.state.ip
-    user_agent = request.state.user_agent
+    # Preferimos lo que setee tu middleware; si no, usamos headers
+    ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") or getattr(request.client, "host", None)
+    user_agent = getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
 
+    # 🔁 Procesar mensaje con Rasa (servicio propio)
     try:
-        # 🔁 Procesar mensaje con Rasa
-        bot_responses = await process_user_message(data.message, data.sender_id)
+        bot_responses: List[Dict[str, Any]] = await process_user_message(data.message, data.sender_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al comunicar con Rasa: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Error al comunicar con Rasa: {str(e)}")
+
+    # Intent (defensivo: depende de lo que retorne tu servicio)
+    intent = None
+    try:
+        if bot_responses and isinstance(bot_responses[0], dict):
+            intent = (
+                bot_responses[0].get("intent", {}).get("name")
+                or bot_responses[0].get("metadata", {}).get("intent")
+            )
+    except Exception:
+        intent = None
 
     # 📝 Registro en logs de conversación
     log = {
         "sender_id": data.sender_id,
         "user_message": data.message,
-        "bot_response": [r.get("text", "") for r in bot_responses],
-        "intent": bot_responses[0].get("intent", {}).get("name") if bot_responses else None,
-        "timestamp": datetime.utcnow(),
-        "ip": ip,
-        "user_agent": user_agent,
-        "origen": "widget" if data.sender_id == "anonimo" else "autenticado"
-    }
-
-    get_logs_collection().insert_one(log)
-    return bot_responses
-# Router principal (API)
-router_api = APIRouter(prefix="/api", tags=["Chat"])
-
-@router_api.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
-async def send_message_to_bot(data: ChatRequest, request: Request):
-    ip = getattr(request.state, "ip", None)
-    user_agent = getattr(request.state, "user_agent", None)
-
-    try:
-        bot_responses = await process_user_message(data.message, data.sender_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al comunicar con Rasa: {str(e)}")
-
-    log = {
-        "sender_id": data.sender_id,
-        "user_message": data.message,
-        "bot_response": [r.get("text", "") for r in bot_responses],
-        "intent": bot_responses[0].get("intent", {}).get("name") if bot_responses else None,
+        "bot_response": [
+            r.get("text") if isinstance(r, dict) else str(r)
+            for r in (bot_responses or [])
+        ],
+        "intent": intent,
         "timestamp": datetime.utcnow(),
         "ip": ip,
         "user_agent": user_agent,
         "origen": "widget" if data.sender_id == "anonimo" else "autenticado",
+        "metadata": data.metadata or {},
     }
-    get_logs_collection().insert_one(log)
+
+    try:
+        get_logs_collection().insert_one(log)
+    except Exception:
+        # No rompemos la respuesta si falla el log
+        pass
+
+    # 🔁 Compatibilidad: regresamos la lista de respuestas de Rasa, no un wrapper {"ok": True, ...}
     return bot_responses
 
-# Router PÚBLICO sin prefijo: expone /chat como alias del mismo endpoint
-router_public = APIRouter(tags=["Chat (alias)"])
-router_public.add_api_route(
-    path="/chat",
-    endpoint=send_message_to_bot,   # misma función que /api/chat
-    methods=["POST"],
-    summary="Alias de /api/chat (retrocompatibilidad)",
-)
-
-# Mantener compat: tu __init__.py importa chat.router
-router = router_api
+# Healthcheck útil para widget/panel
+@chat_router.get("/chat/health", summary="Healthcheck de chat")
+async def chat_health():
+    return {"ok": True}

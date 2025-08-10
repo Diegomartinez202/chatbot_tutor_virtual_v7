@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import UserRow from "@/components/UserRow";
 import EditUserRow from "@/components/EditUserRow";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
 
 const UsersTable = ({
     users = [],
@@ -80,29 +81,35 @@ const UsersTable = ({
 
             {users.length > usersPerPage && (
                 <div className="flex justify-center mt-4 items-center gap-3">
-                    <button
-                        onClick={handlePrevious}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
-                        aria-label="Página anterior"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                        Anterior
-                    </button>
+                    <IconTooltip label="Página anterior" side="top">
+                        <button
+                            onClick={handlePrevious}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                            aria-label="Página anterior"
+                            type="button"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                            Anterior
+                        </button>
+                    </IconTooltip>
 
                     <span className="px-2 py-1 text-sm">
                         Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong>
                     </span>
 
-                    <button
-                        onClick={handleNext}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
-                        aria-label="Página siguiente"
-                    >
-                        Siguiente
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <IconTooltip label="Página siguiente" side="top">
+                        <button
+                            onClick={handleNext}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 bg-gray-200 rounded disabled:opacity-50 inline-flex items-center gap-1"
+                            aria-label="Página siguiente"
+                            type="button"
+                        >
+                            Siguiente
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </IconTooltip>
                 </div>
             )}
         </div>

@@ -1,14 +1,18 @@
 # backend/main.py
-
 from dotenv import load_dotenv
 load_dotenv()
+
 from pathlib import Path
-from typing import List
-from fastapi import FastAPI, Request
+from typing import List, Deque, DefaultDict
+from time import time
+from collections import defaultdict, deque
+
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
+
 from backend.routes import router as api_router
 from backend.utils.logger import logger
 from backend.middleware.auth_middleware import AuthMiddleware
@@ -17,15 +21,23 @@ from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.config.settings import settings
 from backend.routes import exportaciones
 from app.routers import admin_failed
-from backend.routes.chat import router_public as chat_public_router
-from fastapi.responses import RedirectResponse
+
+# Router canónico y endpoints para alias
+from backend.routes.chat import chat_router, send_message_to_bot, chat_health
+
+# Redis opcional (rate limiting)
+try:
+    import redis.asyncio as aioredis  # pip install redis>=5
+except Exception:
+    aioredis = None
+
 # === Paths útiles ===
 STATIC_DIR = Path(settings.static_dir).resolve()
 ICONS_DIR = STATIC_DIR / "icons"
 WIDGETS_DIR = STATIC_DIR / "widgets"
 TEMPLATES_DIR = Path(settings.template_dir).resolve()
 
-# ⚙️ Inicialización FastAPI
+# ⚙️ FastAPI
 app = FastAPI(
     title="Chatbot Tutor Virtual API",
     description="Backend para gestión de intents, autenticación, logs y estadísticas del Chatbot Tutor Virtual",
@@ -34,7 +46,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# 🌐 CORS (usa settings.allowed_origins)
+# 🌐 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -43,53 +55,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 📁 Estáticos y templates
+# 📁 Estáticos / templates
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-# 🔀 Rutas API
+# 🔀 Rutas API agregadas
 app.include_router(api_router, prefix="/api")
 app.include_router(admin_failed.router)
 app.include_router(exportaciones.router)
-app.include_router(chat_public_router)
+
+# 🔁 Chat: visible en docs
+app.include_router(chat_router, prefix="")  # /chat, /chat/health visibles
+
+# 🔁 Chat alias: oculto en docs pero activo en /api
+api_alias_router = APIRouter()
+api_alias_router.add_api_route("/chat", send_message_to_bot, methods=["POST"], include_in_schema=False)
+api_alias_router.add_api_route("/chat/health", chat_health, methods=["GET"], include_in_schema=False)
+app.include_router(api_alias_router, prefix="/api")
+
 # 🧠 Middlewares personalizados
 app.add_middleware(AccessLogMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 
-# 📝 Middleware: adjunta IP y User-Agent a la request
+# 📝 Adjunta IP y UA
 @app.middleware("http")
 async def add_ip_and_user_agent(request: Request, call_next):
     request.state.ip = request.client.host
     request.state.user_agent = request.headers.get("user-agent")
     return await call_next(request)
 
-# 🔒 CSP: permite embeber desde dominios autorizados (Zajuna, etc.)
+# 🔒 CSP (embebidos)
 @app.middleware("http")
 async def csp_headers(request: Request, call_next):
     resp: Response = await call_next(request)
-
-    # TODO: añade aquí tus dominios reales del frontend o sitios donde se incruste el widget
     default_ancestors = ["'self'", "https://zajuna.com", "https://www.zajuna.com"]
     try:
-        # Si tienes settings.frame_ancestors puedes usarlo, si no, defaults:
-        frame_ancestors: List[str] = getattr(settings, "frame_ancestors", []) or default_ancestors
+        frame_ancestors: List[str] = settings.frame_ancestors or default_ancestors
     except Exception:
         frame_ancestors = default_ancestors
-
     resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(frame_ancestors)};"
-    # X-Frame-Options está deprecado, pero lo dejamos para compat con navegadores viejos
-    # (ten en cuenta que solo admite 'DENY', 'SAMEORIGIN' o 'ALLOW-FROM <url>' en algunos IE antiguos)
     resp.headers["X-Frame-Options"] = "SAMEORIGIN"
     return resp
 
-# 🖼️ Favicon e iconos "amigables" en raíz
+# 🖼️ Iconos/fav
 @app.get("/favicon.ico")
 async def favicon():
     path = ICONS_DIR / "favicon.ico"
     if path.is_file():
         return FileResponse(path)
-    # Fallback a settings si lo tienes configurado
     try:
         return FileResponse(Path(settings.favicon_path))
     except Exception:
@@ -110,7 +124,6 @@ async def android_512():
     path = ICONS_DIR / "android-chrome-512x512.png"
     return FileResponse(path) if path.is_file() else Response(status_code=404)
 
-# (Opcional) accesos directos para tu avatar/loader desde raíz:
 @app.get("/bot-avatar.png")
 async def bot_avatar():
     path = ICONS_DIR / "bot-avatar.png"
@@ -121,7 +134,7 @@ async def bot_loading():
     path = ICONS_DIR / "bot-loading.png"
     return FileResponse(path) if path.is_file() else Response(status_code=404)
 
-# 📄 Manifest (dinámico para backend)
+# 📄 Manifest
 @app.get("/site.webmanifest")
 async def manifest(_: Request):
     data = {
@@ -141,9 +154,9 @@ async def manifest(_: Request):
             {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
     }
-   return JSONResponse(data, media_type="application/manifest+json")
+    return JSONResponse(data, media_type="application/manifest+json")
 
-# ✅ Alias "bonitos" para tus widgets estáticos
+# ✅ Atajos widgets
 @app.get("/widget.html")
 async def widget_alias():
     return FileResponse(WIDGETS_DIR / "widget.html")
@@ -152,10 +165,9 @@ async def widget_alias():
 async def embedded_alias():
     return FileResponse(WIDGETS_DIR / "embedded.js")
 
-# ✅ Página de embed (plantilla Jinja)
+# ✅ Página de embed
 @app.get("/chat-embed.html", response_class=HTMLResponse)
 async def chat_embed(request: Request):
-    # Asegúrate de tener templates/chat-embed.html
     return templates.TemplateResponse("chat-embed.html", {"request": request})
 
 # 🌱 Root
@@ -172,16 +184,88 @@ else:
 if settings.secret_key == "supersecretkey" or len(settings.secret_key or "") < 32:
     logger.warning("⚠️ SECRET_KEY es débil. Genera una con: python -c \"import secrets; print(secrets.token_urlsafe(64))\"")
 
-logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api")
+logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api y /chat")
+
+# ─────────────────────────────────────────
+# 🚦 Rate limiting: memory | redis (por ENV)
+# ─────────────────────────────────────────
+_RATE_BUCKETS: DefaultDict[str, Deque[float]] = defaultdict(deque)
+redis_client = None
+
+@app.on_event("startup")
+async def _init_rate_limiter():
+    global redis_client
+    # Desactiva si APP_ENV=test
+    if settings.app_env == "test":
+        settings.rate_limit_enabled = False
+    if not settings.rate_limit_enabled:
+        return
+    if settings.rate_limit_backend == "redis":
+        if aioredis is None:
+            logger.error("RateLimit: 'redis' seleccionado pero no está instalada la librería 'redis'. Usando 'memory'.")
+            settings.rate_limit_backend = "memory"
+            return
+        if not settings.redis_url:
+            logger.error("RateLimit: 'redis' seleccionado pero REDIS_URL no está configurada. Usando 'memory'.")
+            settings.rate_limit_backend = "memory"
+            return
+        try:
+            redis_client = aioredis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
+            await redis_client.ping()
+            logger.info("RateLimit: backend Redis inicializado correctamente.")
+        except Exception as e:
+            logger.error(f"RateLimit: no se pudo conectar a Redis ({e}). Usando 'memory'.")
+            settings.rate_limit_backend = "memory"
+
+@app.on_event("shutdown")
+async def _close_rate_limiter():
+    global redis_client
+    if redis_client:
+        try:
+            await redis_client.aclose()
+        except Exception:
+            pass
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Desactivado por ENV/flag
+    if not settings.rate_limit_enabled:
+        return await call_next(request)
+
+    path = request.url.path
+    is_chat = path == "/chat" or path == "/api/chat"
+    if request.method == "POST" and is_chat:
+        ip = request.client.host
+        now = time()
+        window = settings.rate_limit_window_sec
+        max_req = settings.rate_limit_max_requests
+
+        # Redis
+        if settings.rate_limit_backend == "redis" and redis_client:
+            key = f"rl:{ip}"
+            try:
+                async with redis_client.pipeline(transaction=True) as pipe:
+                    pipe.incr(key)
+                    pipe.expire(key, window)
+                    count, _ = await pipe.execute()
+                if int(count) > max_req:
+                    return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
+            except Exception as e:
+                logger.error(f"RateLimit Redis error: {e}. Fallback a 'memory'.")
+                settings.rate_limit_backend = "memory"
+
+        # Memory
+        if settings.rate_limit_backend == "memory":
+            dq = _RATE_BUCKETS[ip]
+            while dq and (now - dq[0]) > window:
+                dq.popleft()
+            if len(dq) >= max_req:
+                return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
+            dq.append(now)
+
+    return await call_next(request)
 
 # 🔥 Standalone (dev)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
-@app.api_route("/chat", methods=["POST", "OPTIONS"])
-async def chat_alias(request: Request):
-    # Preflight simple si algún cliente manda OPTIONS
-    if request.method == "OPTIONS":
-        return Response(status_code=200)
-    # 307 mantiene método y body (POST) ➜ el navegador re-envía a /api/chat
-    return RedirectResponse(url="/api/chat", status_code=307)

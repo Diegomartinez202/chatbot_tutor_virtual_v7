@@ -1,8 +1,11 @@
+// src/components/AssignRoles.jsx
 import { useEffect, useState } from "react";
 import axiosClient from "@/services/axiosClient";         // ✅ corregido
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";          // ✅ corregido
 
+import IconTooltip from "@/components/ui/IconTooltip";
+import { Lock, CheckCircle, XCircle } from "lucide-react";
 
 const AssignRoles = () => {
     const [users, setUsers] = useState([]);
@@ -14,7 +17,7 @@ const AssignRoles = () => {
             const res = await axiosClient.get("/admin/users");
             setUsers(res.data);
         } catch (err) {
-            toast.error("❌ Error al obtener usuarios");
+            toast.error("Error al obtener usuarios", { icon: <XCircle className="w-4 h-4" /> });
             console.error(err);
         }
     };
@@ -28,10 +31,10 @@ const AssignRoles = () => {
                 nombre: user.nombre,
                 rol: newRole,
             });
-            toast.success("✅ Rol actualizado correctamente");
+            toast.success("Rol actualizado correctamente", { icon: <CheckCircle className="w-4 h-4" /> });
             await fetchUsers();
         } catch (err) {
-            toast.error("❌ Error al actualizar rol");
+            toast.error("Error al actualizar rol", { icon: <XCircle className="w-4 h-4" /> });
             console.error(err);
         } finally {
             setLoading(false);
@@ -44,7 +47,12 @@ const AssignRoles = () => {
 
     return (
         <div className="p-6">
-            <h2 className="text-2xl font-semibold mb-4">🔐 Asignar Roles de Usuario</h2>
+            <div className="flex items-center gap-2 mb-4">
+                <IconTooltip label="Asignar Roles de Usuario" side="top">
+                    <Lock className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
+                <h2 className="text-2xl font-semibold">Asignar Roles de Usuario</h2>
+            </div>
 
             {loading && <p>Cargando...</p>}
 
@@ -69,14 +77,15 @@ const AssignRoles = () => {
                                     <select
                                         value={user.rol}
                                         onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                                        disabled={user._id === currentUser._id} // ❌ No permitir editarse a sí mismo
+                                        disabled={user._id === currentUser?._id} // ❌ No permitir editarse a sí mismo
                                         className="p-1 border rounded bg-white shadow-sm"
+                                        aria-label={`Cambiar rol de ${user.email}`}
                                     >
                                         <option value="admin">Admin</option>
                                         <option value="soporte">Soporte</option>
                                         <option value="invitado">Invitado</option>
                                     </select>
-                                    {user._id === currentUser._id && (
+                                    {user._id === currentUser?._id && (
                                         <span className="text-xs text-gray-500 ml-2">(tú)</span>
                                     )}
                                 </td>

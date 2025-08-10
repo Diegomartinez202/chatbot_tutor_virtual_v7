@@ -1,3 +1,4 @@
+// src/pages/UsersPage.jsx
 import { useEffect, useState } from "react";
 import { fetchUsers, deleteUser, updateUser } from "@/services/api";
 import apiClient from "@/services/axiosClient";
@@ -5,6 +6,10 @@ import apiClient from "@/services/axiosClient";
 import AssignRoles from "@/components/AssignRoles";
 import UserModal from "@/components/UserModal";
 import EditUserModal from "@/components/EditUserModal";
+
+import toast from "react-hot-toast";
+import IconTooltip from "@/components/ui/IconTooltip";
+import { Users as UsersIcon, Pencil, Trash2, XCircle } from "lucide-react";
 
 const UsersPage = () => {
     const [users, setUsers] = useState([]);
@@ -27,7 +32,11 @@ const UsersPage = () => {
             await apiClient.post("/admin/create-user", userData);
             loadUsers();
         } catch (error) {
-            alert("❌ Error al crear usuario: " + (error.response?.data?.detail || error.message));
+            // Reemplazo del emoji por toast + icono lucide
+            toast.error(
+                "Error al crear usuario: " + (error.response?.data?.detail || error.message),
+                { icon: <XCircle className="w-4 h-4" /> }
+            );
         }
     };
 
@@ -37,7 +46,13 @@ const UsersPage = () => {
 
     return (
         <div className="p-6">
-            <h1 className="text-3xl font-bold mb-4">👥 Gestión de Usuarios</h1>
+            <div className="flex items-center gap-2 mb-4">
+                <IconTooltip label="Gestión de Usuarios" side="top">
+                    <UsersIcon className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
+                <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+            </div>
+
             <UserModal onSubmit={handleCreateUser} />
 
             {/* ✅ Formulario de edición con modal */}
@@ -70,18 +85,29 @@ const UsersPage = () => {
                             <td className="border px-2 py-1">{u.email}</td>
                             <td className="border px-2 py-1">{u.rol}</td>
                             <td className="border px-2 py-1">
-                                <button
-                                    onClick={() => setEditingUser(u)}
-                                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
-                                >
-                                    Editar
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(u._id)}
-                                    className="bg-red-600 text-white px-2 py-1 rounded"
-                                >
-                                    Eliminar
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <IconTooltip label="Editar usuario" side="top">
+                                        <button
+                                            onClick={() => setEditingUser(u)}
+                                            className="bg-yellow-500 text-white px-2 py-1 rounded inline-flex items-center gap-1 hover:brightness-95"
+                                            type="button"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                            Editar
+                                        </button>
+                                    </IconTooltip>
+
+                                    <IconTooltip label="Eliminar usuario" side="top">
+                                        <button
+                                            onClick={() => handleDelete(u._id)}
+                                            className="bg-red-600 text-white px-2 py-1 rounded inline-flex items-center gap-1 hover:bg-red-700"
+                                            type="button"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Eliminar
+                                        </button>
+                                    </IconTooltip>
+                                </div>
                             </td>
                         </tr>
                     ))}

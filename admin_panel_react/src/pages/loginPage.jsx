@@ -1,3 +1,4 @@
+// src/pages/LoginPage.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -5,6 +6,8 @@ import Input from '@/components/Input';
 import { Button } from "@/components/ui/button";
 import { login as loginApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { Lock } from 'lucide-react';
+import IconTooltip from '@/components/ui/IconTooltip';
 
 function LoginPage() {
     const [email, setEmail] = useState('');
@@ -35,7 +38,13 @@ function LoginPage() {
 
     return (
         <div className="p-6 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">🔐 Iniciar sesión</h2>
+            <div className="flex items-center gap-2 mb-4">
+                <IconTooltip label="Iniciar sesión" side="top">
+                    <Lock className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
+                <h2 className="text-xl font-semibold">Iniciar sesión</h2>
+            </div>
+
             <form onSubmit={handleLogin} aria-describedby="login-error">
                 <Input
                     label="Email"
@@ -57,6 +66,7 @@ function LoginPage() {
                     {loading ? 'Ingresando...' : 'Ingresar'}
                 </Button>
             </form>
+
             {error && (
                 <p id="login-error" className="text-red-600 mt-2" role="alert">
                     {error}

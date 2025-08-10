@@ -8,9 +8,10 @@ import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/Badge"; // ✅ CORRECTO
 import {
     TestTube, Server, Bot, ListChecks, TimerReset,
-    RefreshCw, Download
+    RefreshCw, Download, Search, Loader2, ClipboardList, Cloud, CheckCircle
 } from "lucide-react";
 import ResumenSistema from "@/components/ResumenSistema";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
 
 function TestPage() {
     const [results, setResults] = useState([]);
@@ -54,7 +55,8 @@ function TestPage() {
             fn: () => axiosClient.post("/admin/restart"),
         },
         {
-            name: "🔗 Conexión S3 (/admin/exportaciones/tests)",
+            name: "Conexión S3 (/admin/exportaciones/tests)",
+            icon: <Cloud className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/exportaciones/tests"),
         },
     ];
@@ -133,7 +135,9 @@ function TestPage() {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            toast.success("✅ Archivo descargado");
+            toast.success("Archivo descargado", {
+                icon: <CheckCircle className="w-4 h-4" />,
+            });
 
             const latency = Date.now() - start;
             setResults((prev) => [
@@ -146,7 +150,7 @@ function TestPage() {
                 },
             ]);
         } catch (err) {
-            toast.error("❌ Error al exportar resultados");
+            toast.error("Error al exportar resultados");
             setResults((prev) => [
                 ...prev,
                 {
@@ -161,24 +165,31 @@ function TestPage() {
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
-            <Header title="🔎 Diagnóstico del sistema" />
+            {/* 🔎 Reemplazo de emoji en título del Header */}
+            <Header title="Diagnóstico del sistema" />
 
             <ResumenSistema />
 
             <div className="bg-gray-100 p-4 rounded-lg shadow mb-6">
-                <h2 className="text-md font-semibold mb-2">🔍 Estado General del Sistema</h2>
+                <h2 className="text-md font-semibold mb-2">Estado General del Sistema</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-white rounded shadow flex items-center justify-between">
                         <span>Servidor Backend</span>
-                        <Badge variant="success">✅ Activo</Badge>
+                        <Badge variant="success">
+                            <CheckCircle className="w-4 h-4 mr-1" /> Activo
+                        </Badge>
                     </div>
                     <div className="p-4 bg-white rounded shadow flex items-center justify-between">
                         <span>Motor Rasa</span>
-                        <Badge variant="success">✅ Conectado</Badge>
+                        <Badge variant="success">
+                            <CheckCircle className="w-4 h-4 mr-1" /> Conectado
+                        </Badge>
                     </div>
                     <div className="p-4 bg-white rounded shadow flex items-center justify-between">
                         <span>Base de datos</span>
-                        <Badge variant="success">✅ MongoDB OK</Badge>
+                        <Badge variant="success">
+                            <CheckCircle className="w-4 h-4 mr-1" /> MongoDB OK
+                        </Badge>
                     </div>
                 </div>
             </div>
@@ -186,43 +197,63 @@ function TestPage() {
             <div className="flex justify-between items-end gap-4 flex-wrap">
                 <FiltrosFecha filtros={filtros} setFiltros={setFiltros} />
                 <div className="flex gap-2">
-                    <Button onClick={handleExport} disabled={exportMutation.isLoading} variant="outline">
-                        <Download className="w-4 h-4 mr-2" /> Exportar CSV
-                    </Button>
-                    <Button onClick={handleExportTestResults} variant="outline">
-                        <Download className="w-4 h-4 mr-2" /> Exportar test_all.sh
-                    </Button>
+                    <IconTooltip label="Exportar CSV de logs" side="top">
+                        <Button onClick={handleExport} disabled={exportMutation.isLoading} variant="outline">
+                            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+                        </Button>
+                    </IconTooltip>
+                    <IconTooltip label="Exportar resultados de test_all.sh" side="top">
+                        <Button onClick={handleExportTestResults} variant="outline">
+                            <Download className="w-4 h-4 mr-2" /> Exportar test_all.sh
+                        </Button>
+                    </IconTooltip>
                 </div>
             </div>
 
             <div className="space-y-2">
-                <Button onClick={runAllTests} disabled={loading}>
-                    {loading ? "⏳ Ejecutando todo..." : "🔍 Ejecutar todas las pruebas"}
-                </Button>
+                <IconTooltip label="Ejecutar todas las pruebas" side="top">
+                    <Button onClick={runAllTests} disabled={loading}>
+                        {loading ? (
+                            <span className="inline-flex items-center">
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Ejecutando todo...
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center">
+                                <TestTube className="w-4 h-4 mr-2" /> Ejecutar todas las pruebas
+                            </span>
+                        )}
+                    </Button>
+                </IconTooltip>
 
                 <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 mt-4">
                     {tests.map((test, idx) => (
-                        <Button
-                            key={idx}
-                            onClick={() => runTest(test.name, test.fn)}
-                            disabled={loading}
-                            variant="secondary"
-                        >
-                            <span className="flex items-center">{test.icon}{test.name}</span>
-                        </Button>
+                        <IconTooltip key={idx} label={test.name} side="top">
+                            <Button
+                                onClick={() => runTest(test.name, test.fn)}
+                                disabled={loading}
+                                variant="secondary"
+                            >
+                                <span className="flex items-center">
+                                    {test.icon}{test.name}
+                                </span>
+                            </Button>
+                        </IconTooltip>
                     ))}
                 </div>
 
                 {loading && (
-                    <div className="mt-2 text-sm text-blue-500">
-                        ⏱️ Ejecutando pruebas... por favor espera.
+                    <div className="mt-2 text-sm text-blue-500 inline-flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Ejecutando pruebas... por favor espera.
                     </div>
                 )}
             </div>
 
             {results.length > 0 && (
                 <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">📋 Resultados</h3>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                        <ClipboardList className="w-5 h-5" /> Resultados
+                    </h3>
                     <table className="min-w-full bg-white rounded shadow text-sm">
                         <thead>
                             <tr className="bg-gray-100 text-left">

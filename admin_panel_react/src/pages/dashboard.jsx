@@ -1,26 +1,18 @@
+// src/pages/Dashboard.jsx
 import React from "react";
 import BotonesAdmin from "@/components/BotonesAdmin";
 import { LayoutDashboard, BarChart } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import { Link } from "react-router-dom";
+import IconTooltip from "@/components/ui/IconTooltip"; // ✅ wrapper de tooltips
 
 function Dashboard() {
     return (
         <div className="p-6 space-y-4">
             {/* Encabezado con ícono y tooltip */}
             <div className="flex items-center gap-2 mb-4">
-                <Tooltip.Provider>
-                    <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                            <LayoutDashboard className="w-6 h-6 text-gray-700" />
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                            <Tooltip.Content className="tooltip" side="top">
-                                Vista general del administrador
-                            </Tooltip.Content>
-                        </Tooltip.Portal>
-                    </Tooltip.Root>
-                </Tooltip.Provider>
+                <IconTooltip label="Vista general del administrador" side="top">
+                    <LayoutDashboard className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
                 <h1 className="text-2xl font-bold">Panel de Administración</h1>
             </div>
 

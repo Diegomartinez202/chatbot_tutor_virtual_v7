@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { getExportStats } from "@/services/api";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+    BarChart as RechartsBarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip as RechartsTooltip,
+    ResponsiveContainer,
+    Legend,
+} from "recharts";
+import { BarChart3 } from "lucide-react";
+import IconTooltip from "@/components/ui/IconTooltip";
 
 const StadisticasLogsPage = () => {
     const [data, setData] = useState([]);
@@ -11,13 +22,15 @@ const StadisticasLogsPage = () => {
         const fetchStats = async () => {
             try {
                 const result = await getExportStats();
-                const formatted = Object.entries(result).map(([date, count]) => ({
+                const obj = result && typeof result === "object" ? result : {};
+                const formatted = Object.entries(obj).map(([date, count]) => ({
                     fecha: date,
                     exportaciones: count,
                 }));
                 setData(formatted);
             } catch (error) {
                 console.error("Error al cargar estadísticas:", error);
+                setData([]);
             }
         };
         fetchStats();
@@ -25,20 +38,26 @@ const StadisticasLogsPage = () => {
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">📊 Estadísticas de Exportaciones de Logs</h1>
+            <div className="flex items-center gap-2">
+                <IconTooltip label="Estadísticas de exportaciones de logs" side="top">
+                    <BarChart3 className="w-6 h-6 text-gray-700" />
+                </IconTooltip>
+                <h1 className="text-2xl font-bold">Estadísticas de Exportaciones de Logs</h1>
+            </div>
+
             {data.length === 0 ? (
                 <p className="text-gray-600">No hay exportaciones registradas aún.</p>
             ) : (
                 <div className="w-full h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data}>
+                        <RechartsBarChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="fecha" />
                             <YAxis allowDecimals={false} />
-                            <Tooltip />
+                            <RechartsTooltip />
                             <Legend />
                             <Bar dataKey="exportaciones" fill="#4F46E5" />
-                        </BarChart>
+                        </RechartsBarChart>
                     </ResponsiveContainer>
                 </div>
             )}

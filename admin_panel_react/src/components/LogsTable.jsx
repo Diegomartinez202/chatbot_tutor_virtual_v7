@@ -1,6 +1,7 @@
+// src/components/LogsTable.jsx
 import { useEffect, useState, useMemo } from "react";
 import { getLogsList } from "@/services/api";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import IconTooltip from "@/components/ui/IconTooltip";
 import {
     Calendar,
     User,
@@ -16,28 +17,6 @@ import {
 import { formatDate } from "@/utils/formatDate";
 import { exportToCsv } from "@/utils/exportCsvHelper";
 import Badge from "@/components/Badge";
-
-const ROLE_CLASS = {
-    admin: "bg-purple-100 text-purple-800",
-    soporte: "bg-blue-100 text-blue-800",
-    user: "bg-gray-100 text-gray-800",
-};
-
-const STATUS_CLASS = {
-    ok: "bg-green-100 text-green-800",
-    success: "bg-green-100 text-green-800",
-    error: "bg-red-100 text-red-800",
-    fail: "bg-red-100 text-red-800",
-    warning: "bg-yellow-100 text-yellow-800",
-    pendiente: "bg-yellow-100 text-yellow-800",
-};
-
-const INTENT_CLASS = {
-    saludo: "bg-sky-100 text-sky-800",
-    fallback: "bg-zinc-100 text-zinc-800",
-    soporte_contacto: "bg-teal-100 text-teal-800",
-    default: "bg-gray-100 text-gray-800",
-};
 
 const LogsTable = ({
     filters = { email: "", endpoint: "", rol: "" },
@@ -115,27 +94,15 @@ const LogsTable = ({
     return (
         <div className="overflow-x-auto rounded-md shadow border border-gray-200">
             <div className="flex justify-end p-3">
-                <Tooltip.Provider>
-                    <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                            <button
-                                onClick={handleExport}
-                                className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
-                            >
-                                <Download className="w-4 h-4" />
-                                Exportar CSV (vista)
-                            </button>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                            <Tooltip.Content
-                                className="rounded-md bg-black text-white px-2 py-1 text-xs"
-                                side="top"
-                            >
-                                Exporta los registros filtrados actualmente
-                            </Tooltip.Content>
-                        </Tooltip.Portal>
-                    </Tooltip.Root>
-                </Tooltip.Provider>
+                <IconTooltip label="Exporta los registros filtrados actualmente" side="top">
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 text-sm px-3 py-2 border rounded bg-white hover:bg-gray-100 shadow"
+                    >
+                        <Download className="w-4 h-4" />
+                        Exportar CSV (vista)
+                    </button>
+                </IconTooltip>
             </div>
 
             <table className="min-w-full table-auto bg-white text-sm">
@@ -191,7 +158,7 @@ const LogsTable = ({
                 <tbody>
                     {filteredLogs.map((log, index) => {
                         const key = log._id || index;
-                        const role = (log.rol || log.role || "user").toLowerCase();
+                        const role = (log.rol || log.role || "usuario").toLowerCase();
                         const status = (log.status || "ok").toLowerCase();
                         const intent = (log.intent || "default").toLowerCase();
 
@@ -204,40 +171,25 @@ const LogsTable = ({
                                     {log.email || log.user_email || log.user_id || "—"}
                                 </td>
                                 <td className="px-4 py-2">
-                                    <Badge className="bg-gray-100 text-gray-800">
-                                        {log.endpoint || "—"}
-                                    </Badge>
+                                    <Badge value={log.endpoint || "—"} />
                                 </td>
                                 <td className="px-4 py-2">{log.method || "—"}</td>
                                 <td className="px-4 py-2">
-                                    <Badge className={ROLE_CLASS[role] || ROLE_CLASS.user}>{role}</Badge>
+                                    <Badge type="role" value={role} />
                                 </td>
                                 <td className="px-4 py-2">{log.ip || log.ip_address || "—"}</td>
                                 <td className="px-4 py-2 max-w-[260px]">
-                                    <Tooltip.Provider>
-                                        <Tooltip.Root>
-                                            <Tooltip.Trigger asChild>
-                                                <span className="block truncate cursor-help">
-                                                    {log.user_agent || "—"}
-                                                </span>
-                                            </Tooltip.Trigger>
-                                            <Tooltip.Portal>
-                                                <Tooltip.Content className="rounded-md bg-black text-white px-2 py-1 text-xs max-w-[480px]">
-                                                    {log.user_agent || "—"}
-                                                </Tooltip.Content>
-                                            </Tooltip.Portal>
-                                        </Tooltip.Root>
-                                    </Tooltip.Provider>
+                                    <IconTooltip label={log.user_agent || "—"} side="top">
+                                        <span className="block truncate cursor-help">
+                                            {log.user_agent || "—"}
+                                        </span>
+                                    </IconTooltip>
                                 </td>
                                 <td className="px-4 py-2">
-                                    <Badge className={STATUS_CLASS[status] || "bg-gray-100 text-gray-800"}>
-                                        {log.status || "—"}
-                                    </Badge>
+                                    <Badge type="status" value={status} />
                                 </td>
                                 <td className="px-4 py-2">
-                                    <Badge className={INTENT_CLASS[intent] || INTENT_CLASS.default}>
-                                        {log.intent || "—"}
-                                    </Badge>
+                                    <Badge type="intent" value={intent} />
                                 </td>
                             </tr>
                         );
