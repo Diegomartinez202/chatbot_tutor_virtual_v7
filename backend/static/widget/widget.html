@@ -68,7 +68,7 @@
                 font-size: 14px;
                 border: none;
                 border-radius: 5px;
-                background: #007bff;
+                background-color: #007bff;
                 color: white;
                 cursor: pointer;
             }
@@ -112,7 +112,8 @@
             padding: 10px;
         }
 
-            #formulario-soporte input, #formulario-soporte textarea {
+            #formulario-soporte input,
+            #formulario-soporte textarea {
                 display: block;
                 width: 100%;
                 margin-bottom: 5px;
@@ -148,16 +149,19 @@
                 <button>💻 Programación Web</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
+
             <div class="submenu" id="submenu-zajuna">
                 <button>🔑 Recuperar contraseña</button>
                 <button>🔗 Enlace de ingreso</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
+
             <div class="submenu" id="submenu-cursos">
                 <button>📋 Ver cursos activos</button>
                 <button>📈 Progreso</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
+
             <div class="submenu" id="submenu-academico">
                 <button>📜 Certificados</button>
                 <button>📝 Inscripción</button>
@@ -165,11 +169,13 @@
                 <button>👨‍🏫 Tutor asignado</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
+
             <div class="submenu" id="submenu-soporte">
                 <button>❓ Preguntas frecuentes</button>
                 <button onclick="mostrarFormularioSoporte()">📩 Contactar soporte</button>
                 <button onclick="backToMain()">⬅️ Volver</button>
             </div>
+
             <div class="submenu" id="submenu-info">
                 <button>ℹ️ Información general</button>
                 <button>💡 Cómo usar el chatbot</button>
@@ -212,7 +218,7 @@
     <script>
         // === Config por querystring ===
         const qs = new URLSearchParams(location.search);
-        const apiBase = qs.get("api") || "/api"; // 👈 ahora configurable
+        const apiBase = qs.get("api") || "/api"; // 👈 configurable
         const userId = qs.get("user_id") || "anonimo";
 
         const messagesDiv = document.getElementById("messages");
@@ -245,41 +251,51 @@
             document.getElementById("formulario-soporte").style.display = "block";
         }
 
+        // ---- helper retrocompatible: /api/chat → fallback /chat ----
+        async function postChat(payload) {
+            // 1) intento moderno
+            try {
+                const r = await fetch(apiBase + "/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-User-Id": userId },
+                    body: JSON.stringify(payload)
+                });
+                if (r.status !== 404) return await r.json();
+                console.warn("[chat] /api/chat devolvió 404, probando /chat (legacy)...");
+            } catch (e) {
+                console.warn("[chat] fallo /api/chat, probando /chat (legacy)...", e);
+            }
+
+            // 2) legacy
+            const r2 = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-User-Id": userId },
+                body: JSON.stringify(payload)
+            });
+            return await r2.json();
+        }
+
         inputForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const message = userInput.value.trim();
             if (!message) return;
-            sendMessageToBot({ sender: userId, message });
             userInput.value = "";
-        });
 
-        async function sendMessageToBot(payload) {
-            addMessage(payload.message || payload, "user");
+            addMessage(message, "user");
             addMessage("⏳ Pensando...", "bot");
 
             try {
-                const response = await fetch(apiBase + "/chat", {     // 👈 usa apiBase
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-User-Id": userId
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                const botReply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
-
-                // ✅ Fix: tomar el último .msg.bot de forma segura
+                const data = await postChat({ sender: userId, message });
+                const reply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
-                if (bots.length) bots[bots.length - 1].textContent = botReply;
+                if (bots.length) bots[bots.length - 1].textContent = reply;
             } catch (err) {
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
                 if (bots.length) bots[bots.length - 1].textContent = "❌ Error de conexión con el chatbot.";
             }
-        }
+        });
 
-        function enviarSoporte() {
+        async function enviarSoporte() {
             const nombre = document.getElementById("soporte-nombre").value;
             const email = document.getElementById("soporte-email").value;
             const mensaje = document.getElementById("soporte-mensaje").value;
@@ -294,17 +310,18 @@
                 message: `/enviar_soporte{"nombre": "${nombre}", "email": "${email}", "mensaje": "${mensaje}"}`
             };
 
-            sendMessageToBot(payload);
-            document.getElementById("soporte-nombre").value = "";
-            document.getElementById("soporte-email").value = "";
-            document.getElementById("soporte-mensaje").value = "";
-            alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
+            try {
+                await postChat(payload);
+                alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
+            } catch {
+                alert("❌ Error enviando soporte.");
+            }
         }
 
         // Mostrar carrusel demo
         document.getElementById("carrusel-cursos").style.display = "block";
 
-        // Exponer helpers (si los usa tu CSS/JS externo)
+        // Exponer helpers globales (si los usas desde HTML)
         window.showSubmenu = showSubmenu;
         window.backToMain = backToMain;
         window.mostrarFormularioSoporte = mostrarFormularioSoporte;

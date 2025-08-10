@@ -2,16 +2,13 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-
 from pathlib import Path
 from typing import List
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
-
 from backend.routes import router as api_router
 from backend.utils.logger import logger
 from backend.middleware.auth_middleware import AuthMiddleware
@@ -20,7 +17,7 @@ from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.config.settings import settings
 from backend.routes import exportaciones
 from app.routers import admin_failed
-
+from backend.routes.chat import router_public as chat_public_router
 # === Paths útiles ===
 STATIC_DIR = Path(settings.static_dir).resolve()
 ICONS_DIR = STATIC_DIR / "icons"
@@ -53,7 +50,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.include_router(api_router, prefix="/api")
 app.include_router(admin_failed.router)
 app.include_router(exportaciones.router)
-
+app.include_router(chat_public_router)
 # 🧠 Middlewares personalizados
 app.add_middleware(AccessLogMiddleware)
 app.add_middleware(LoggingMiddleware)
