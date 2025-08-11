@@ -3,32 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <title>Chatbot Tutor Virtual</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        :root {
-            color-scheme: light;
-        }
-
-            :root.dark {
-                color-scheme: dark;
-            }
-
         body {
             margin: 0;
             font-family: Arial, sans-serif;
             background: #f4f4f4;
-            color: #111827;
-        }
-
-        :root.dark body {
-            background: #0f172a;
-            color: #e5e7eb;
-        }
-
-        /* alto contraste simple */
-        .high-contrast * {
-            outline: 2px solid currentColor !important;
-            outline-offset: 2px;
         }
 
         #chat-container {
@@ -44,10 +23,6 @@
             background: #f4f4f4;
         }
 
-        :root.dark #messages {
-            background: #111827;
-        }
-
         .msg {
             margin-bottom: 10px;
         }
@@ -59,10 +34,6 @@
         .user {
             text-align: right;
             color: #444;
-        }
-
-        :root.dark .user {
-            color: #cbd5e1;
         }
 
         #input-form {
@@ -97,7 +68,7 @@
                 font-size: 14px;
                 border: none;
                 border-radius: 5px;
-                background-color: #007bff;
+                background: #007bff;
                 color: white;
                 cursor: pointer;
             }
@@ -112,10 +83,6 @@
             padding: 10px;
             border-radius: 10px;
             overflow-x: auto;
-        }
-
-        :root.dark .carousel-container {
-            background: #0b1220;
         }
 
         .carousel {
@@ -134,15 +101,10 @@
             padding: 5px;
         }
 
-        :root.dark .carousel-item {
-            background: #111827;
-            border-color: #374151;
-        }
-
-        .carousel-item img {
-            width: 100%;
-            border-radius: 6px;
-        }
+            .carousel-item img {
+                width: 100%;
+                border-radius: 6px;
+            }
 
         #formulario-soporte {
             display: none;
@@ -157,24 +119,16 @@
                 padding: 8px;
                 border-radius: 5px;
                 border: 1px solid #ccc;
-                background: #fff;
-                color: #111827;
             }
 
-        :root.dark #formulario-soporte input, :root.dark #formulario-soporte textarea {
-            background: #111827;
-            color: #e5e7eb;
-            border-color: #374151;
-        }
-
-        #formulario-soporte button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+            #formulario-soporte button {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
     </style>
 </head>
 <body>
@@ -258,7 +212,7 @@
     <script>
         // === Config por querystring ===
         const qs = new URLSearchParams(location.search);
-        const apiBase = qs.get("api") || "/api";
+        const apiBase = qs.get("api") || "/api";   // <- configurable
         const userId = qs.get("user_id") || "anonimo";
 
         const messagesDiv = document.getElementById("messages");
@@ -278,106 +232,66 @@
             document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
             document.getElementById(`submenu-${name}`).style.display = "flex";
         }
-
         function backToMain() {
             document.querySelector(".menu-buttons").style.display = "flex";
             document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
             document.getElementById("formulario-soporte").style.display = "none";
         }
-
         function mostrarFormularioSoporte() {
             document.querySelector(".menu-buttons").style.display = "none";
             document.querySelectorAll(".submenu").forEach(el => el.style.display = "none");
             document.getElementById("formulario-soporte").style.display = "block";
         }
 
-        // ---- helper retrocompatible: /api/chat → fallback /chat ----
-        async function postChat(payload) {
-            try {
-                const r = await fetch(apiBase + "/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "X-User-Id": userId },
-                    body: JSON.stringify(payload)
-                });
-                if (r.status !== 404) return await r.json();
-                console.warn("[chat] /api/chat devolvió 404, probando /chat (legacy)...");
-            } catch (e) {
-                console.warn("[chat] fallo /api/chat, probando /chat (legacy)...", e);
-            }
-            const r2 = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-User-Id": userId },
-                body: JSON.stringify(payload)
-            });
-            return await r2.json();
-        }
-
         inputForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const message = userInput.value.trim();
             if (!message) return;
+            sendMessageToBot({ sender: userId, message });
             userInput.value = "";
+        });
 
-            addMessage(message, "user");
+        async function sendMessageToBot(payload) {
+            addMessage(payload.message || String(payload), "user");
             addMessage("⏳ Pensando...", "bot");
 
             try {
-                const data = await postChat({ sender: userId, message });
-                const reply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
+                const response = await fetch(apiBase + "/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-User-Id": userId },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                const botReply = (data?.responses?.[0]?.text) || "🤖 No tengo respuesta para eso todavía.";
+
+                // tomar el último .msg.bot de forma segura
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
-                if (bots.length) bots[bots.length - 1].textContent = reply;
-            } catch {
+                if (bots.length) bots[bots.length - 1].textContent = botReply;
+            } catch (err) {
                 const bots = Array.from(document.querySelectorAll(".msg.bot"));
                 if (bots.length) bots[bots.length - 1].textContent = "❌ Error de conexión con el chatbot.";
             }
-        });
+        }
 
-        async function enviarSoporte() {
+        function enviarSoporte() {
             const nombre = document.getElementById("soporte-nombre").value;
             const email = document.getElementById("soporte-email").value;
             const mensaje = document.getElementById("soporte-mensaje").value;
-            if (!nombre || !email || !mensaje) { alert("⚠️ Completa todos los campos."); return; }
+            if (!nombre || !email || !mensaje) { alert("⚠️ Por favor completa todos los campos."); return; }
 
-            const payload = {
-                sender: userId,
-                message: `/enviar_soporte{"nombre":"${nombre}","email":"${email}","mensaje":"${mensaje}"}`
-            };
-            try { await postChat(payload); alert("✅ Solicitud de soporte enviada."); }
-            catch { alert("❌ Error enviando soporte."); }
+            const payload = { sender: userId, message: `/enviar_soporte{"nombre":"${nombre}","email":"${email}","mensaje":"${mensaje}"}` };
+            sendMessageToBot(payload);
+
+            document.getElementById("soporte-nombre").value = "";
+            document.getElementById("soporte-email").value = "";
+            document.getElementById("soporte-mensaje").value = "";
+            alert("✅ Solicitud de soporte enviada. Te contactaremos pronto.");
         }
 
-        // Mostrar carrusel demo
+        // demo
         document.getElementById("carrusel-cursos").style.display = "block";
 
-        // === Escuchar accesibilidad/idioma desde el widget padre ===
-        window.addEventListener("message", (ev) => {
-            try {
-                const { type, theme, contrast, lang } = ev.data || {};
-                if (type !== "chat:settings") return;
-
-                // Tema
-                if (theme === "dark") {
-                    document.documentElement.classList.add("dark");
-                } else {
-                    document.documentElement.classList.remove("dark");
-                }
-
-                // Alto contraste
-                if (contrast) {
-                    document.body.classList.add("high-contrast");
-                } else {
-                    document.body.classList.remove("high-contrast");
-                }
-
-                // Idioma (si solo afecta al atributo lang)
-                if (lang) {
-                    document.documentElement.setAttribute("lang", lang);
-                }
-
-            } catch { }
-        });
-
-        // Exponer helpers globales
+        // export helpers (si los usa CSS/JS externo)
         window.showSubmenu = showSubmenu;
         window.backToMain = backToMain;
         window.mostrarFormularioSoporte = mostrarFormularioSoporte;

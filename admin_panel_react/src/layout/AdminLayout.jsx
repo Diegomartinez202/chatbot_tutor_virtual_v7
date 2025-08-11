@@ -1,9 +1,10 @@
 // src/layouts/AdminLayout.jsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import ChatWidget from "@/components/ChatWidget";
 import IconTooltip from "@/components/ui/IconTooltip";
-
+import ChatWidget from "@/components/ChatWidget";
+import { connectDemo } from "@/services/chat/connectDemo";
+import { connectRasaRest } from "@/services/chat/connectRasaRest";
 import {
     Bot,
     Mail,
@@ -15,6 +16,8 @@ import {
     FlaskConical,
     LogOut,
 } from "lucide-react";
+import { connectWS } from "@/services/chat/connectWS";
+
 
 const AdminLayout = () => {
     const { logout, user } = useAuth();
@@ -117,8 +120,12 @@ const AdminLayout = () => {
                 <Outlet />
             </main>
 
-            {/* Widget flotante in-app */}
-            <ChatWidget />
+            {/* Widget flotante in-app (usa demo mientras cableamos la API real) */}
+            <ChatWidget connectFn={connectDemo} />
+            <ChatWidget connectFn={connectRasaRest} />;
+            <ChatWidget connectFn={() => connectWS({
+                wsUrl: import.meta.env.VITE_RASA_WS_URL || "wss://tu-ws",
+            })} />
         </div>
     );
 };

@@ -1,4 +1,3 @@
-// src/pages/ChatPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Bot, RefreshCw } from "lucide-react";
@@ -6,7 +5,9 @@ import ChatUI from "@/components/chat/ChatUI";
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import { useAuth } from "@/context/AuthContext";
-
+import { connectRasaRest } from "@/services/chat/connectRasaRest";
+import { connectWS } from "@/services/chat/connectWS";
+<ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
 /**
  * Página completa del chat.
  * - Mantiene compat con /chat
@@ -18,8 +19,8 @@ export default function ChatPage({
     forceEmbed = false,
     avatarSrc = "/bot-avatar.png",
     title = "Asistente",
-    connectFn,     // opcional: función de conexión real (health/socket)
-    children,      // opcional: tu UI de chat; si no viene, usa <ChatUI />
+    connectFn = connectRasaRest, // ✅ por defecto conectamos contra /api/chat/health
+    children,                    // opcional: tu UI de chat; si no viene, usa <ChatUI />
 }) {
     const [params] = useSearchParams();
     const isEmbed = forceEmbed || params.get("embed") === "1";
@@ -35,7 +36,7 @@ export default function ChatPage({
             if (connectFn) {
                 await connectFn();
             } else {
-                // Stub de conexión para no bloquear mientras se cablea la API real
+                // Fallback breve por si no llega connectFn
                 await new Promise((r) => setTimeout(r, 700));
             }
             setStatus("ready");

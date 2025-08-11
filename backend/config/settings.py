@@ -1,6 +1,8 @@
 # backend/config/settings.py
-from pydantic import BaseSettings, Field, EmailStr
+from pydantic import BaseSettings, Field, EmailStr, validator
 from typing import List, Optional, Literal
+import json
+
 
 class Settings(BaseSettings):
     # 📦 MongoDB
@@ -14,9 +16,9 @@ class Settings(BaseSettings):
 
     # 🤖 Rasa Bot
     rasa_url: str = Field(..., env="RASA_URL")
-    rasa_data_path: str = Field(..., env="RASA_DATA_PATH")
-    rasa_domain_path: str = Field(..., env="RASA_DOMAIN_PATH")
-    rasa_model_path: str = Field(..., env="RASA_MODEL_PATH")
+    rasa_data_path: str = Field("rasa/data/nlu.yml", env="RASA_DATA_PATH")
+    rasa_domain_path: str = Field("rasa/domain.yml", env="RASA_DOMAIN_PATH")
+    rasa_model_path: str = Field("rasa/models", env="RASA_MODEL_PATH")
     rasa_train_command: str = Field("rasa train", env="RASA_TRAIN_COMMAND")
 
     # 📧 SMTP
@@ -33,25 +35,31 @@ class Settings(BaseSettings):
     # 🧾 Logs y entorno
     debug: bool = Field(False, env="DEBUG")
     log_dir: str = Field("logs", env="LOG_DIR")
-    allowed_origins: List[str] = Field(["http://localhost:5173"], env="ALLOWED_ORIGINS")
+    allowed_origins: List[str] = Field(
+        default_factory=lambda: ["http://localhost:5173"],
+        env="ALLOWED_ORIGINS",
+    )
 
     # 📁 Rutas estáticas
     static_dir: str = Field("backend/static", env="STATIC_DIR")
     template_dir: str = Field("backend/templates", env="TEMPLATE_DIR")
     favicon_path: str = Field("backend/static/favicon.ico", env="FAVICON_PATH")
 
-    # ☁️ S3
-    aws_access_key_id: str = Field(..., env="AWS_ACCESS_KEY_ID")
-    aws_secret_access_key: str = Field(..., env="AWS_SECRET_ACCESS_KEY")
-    aws_s3_bucket_name: str = Field(..., env="AWS_S3_BUCKET_NAME")
+    # ☁️ S3 (opcional en dev)
+    aws_access_key_id: Optional[str] = Field(None, env="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: Optional[str] = Field(None, env="AWS_SECRET_ACCESS_KEY")
+    aws_s3_bucket_name: Optional[str] = Field(None, env="AWS_S3_BUCKET_NAME")
     aws_s3_region: str = Field("us-east-1", env="AWS_S3_REGION")
     aws_s3_endpoint_url: str = Field("https://s3.amazonaws.com", env="AWS_S3_ENDPOINT_URL")
 
     # 🌐 URL base de backend
     base_url: str = Field("http://localhost:8000", env="BASE_URL")
 
-    # 🧩 Embebido (opcional)
-    frame_ancestors: List[str] = Field(default_factory=list, env="FRAME_ANCESTORS")
+    # 🧩 Embebido (CSP frame-ancestors)
+    frame_ancestors: List[str] = Field(
+        default_factory=lambda: ["'self'"],
+        env="FRAME_ANCESTORS",
+    )
 
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod"] = Field("dev", env="APP_ENV")
@@ -63,7 +71,41 @@ class Settings(BaseSettings):
     rate_limit_max_requests: int = Field(60, env="RATE_LIMIT_MAX_REQUESTS")
     redis_url: Optional[str] = Field(None, env="REDIS_URL")
 
+    # ───── Normalizadores CSV/JSON ─────
+    @validator("allowed_origins", "frame_ancestors", pre=True)
+    def _csv_or_json(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            # JSON list
+            if s.startswith("["):
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+            # CSV
+            return [x.strip() for x in s.split(",") if x.strip()]
+        return v
+
+    # ✅ flag cómodo para decidir exportar a S3 o servir archivo local
+    @property
+    def s3_enabled(self) -> bool:
+        return bool(
+            self.aws_s3_bucket_name
+            and self.aws_access_key_id
+            and self.aws_secret_access_key
+        )
+
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
+
 
 settings = Settings()
