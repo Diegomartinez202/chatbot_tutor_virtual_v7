@@ -3,7 +3,6 @@ from pydantic import BaseSettings, Field, EmailStr, validator
 from typing import List, Optional, Literal
 import json
 
-
 class Settings(BaseSettings):
     # 📦 MongoDB
     mongo_uri: str = Field(..., env="MONGO_URI")
@@ -35,17 +34,14 @@ class Settings(BaseSettings):
     # 🧾 Logs y entorno
     debug: bool = Field(False, env="DEBUG")
     log_dir: str = Field("logs", env="LOG_DIR")
-    allowed_origins: List[str] = Field(
-        default_factory=lambda: ["http://localhost:5173"],
-        env="ALLOWED_ORIGINS",
-    )
+    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:5173"], env="ALLOWED_ORIGINS")
 
     # 📁 Rutas estáticas
     static_dir: str = Field("backend/static", env="STATIC_DIR")
     template_dir: str = Field("backend/templates", env="TEMPLATE_DIR")
     favicon_path: str = Field("backend/static/favicon.ico", env="FAVICON_PATH")
 
-    # ☁️ S3 (opcional en dev)
+    # ☁️ S3 (opcional)
     aws_access_key_id: Optional[str] = Field(None, env="AWS_ACCESS_KEY_ID")
     aws_secret_access_key: Optional[str] = Field(None, env="AWS_SECRET_ACCESS_KEY")
     aws_s3_bucket_name: Optional[str] = Field(None, env="AWS_S3_BUCKET_NAME")
@@ -55,11 +51,10 @@ class Settings(BaseSettings):
     # 🌐 URL base de backend
     base_url: str = Field("http://localhost:8000", env="BASE_URL")
 
-    # 🧩 Embebido (CSP frame-ancestors)
-    frame_ancestors: List[str] = Field(
-        default_factory=lambda: ["'self'"],
-        env="FRAME_ANCESTORS",
-    )
+    # 🧩 Embebido (CSP + redirects)
+    frame_ancestors: List[str] = Field(default_factory=lambda: ["'self'"], env="FRAME_ANCESTORS")
+    embed_enabled: bool = Field(True, env="EMBED_ENABLED")
+    frontend_site_url: str = Field("http://localhost:5173", env="FRONTEND_SITE_URL")
 
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod"] = Field("dev", env="APP_ENV")
@@ -82,7 +77,6 @@ class Settings(BaseSettings):
             s = v.strip()
             if not s:
                 return []
-            # JSON list
             if s.startswith("["):
                 try:
                     parsed = json.loads(s)
@@ -90,22 +84,15 @@ class Settings(BaseSettings):
                         return [str(x).strip() for x in parsed if str(x).strip()]
                 except Exception:
                     pass
-            # CSV
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
 
-    # ✅ flag cómodo para decidir exportar a S3 o servir archivo local
     @property
     def s3_enabled(self) -> bool:
-        return bool(
-            self.aws_s3_bucket_name
-            and self.aws_access_key_id
-            and self.aws_secret_access_key
-        )
+        return bool(self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key)
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
-
 
 settings = Settings()

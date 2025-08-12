@@ -6,11 +6,19 @@ from pathlib import Path
 from typing import List, Deque, DefaultDict
 from time import time
 from collections import defaultdict, deque
+from urllib.parse import urlencode, parse_qsl
+import os
 
 from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    Response,
+    RedirectResponse,
+)
 from fastapi.templating import Jinja2Templates
 
 from backend.routes import router as api_router
@@ -85,17 +93,28 @@ async def add_ip_and_user_agent(request: Request, call_next):
     request.state.user_agent = request.headers.get("user-agent")
     return await call_next(request)
 
-# 🔒 CSP (embebidos)
+# ─────────────────────────────────────────
+# 🔒 CSP (embebidos) — override por EMBED_ALLOWED_ORIGINS, fallback a settings.frame_ancestors
+# Acepta: espacio ("'self' https://a.com ...") o CSV ("https://a.com,https://b.com")
+# ─────────────────────────────────────────
+def _parse_csv_or_space(v: str):
+    s = (v or "").strip()
+    if not s:
+        return []
+    if "," in s:
+        return [x.strip() for x in s.split(",") if x.strip()]
+    return s.split()
+
 @app.middleware("http")
 async def csp_headers(request: Request, call_next):
     resp: Response = await call_next(request)
-    default_ancestors = ["'self'", "https://zajuna.com", "https://www.zajuna.com"]
-    try:
-        frame_ancestors: List[str] = settings.frame_ancestors or default_ancestors
-    except Exception:
-        frame_ancestors = default_ancestors
-    resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(frame_ancestors)};"
-    resp.headers["X-Frame-Options"] = "SAMEORIGIN"
+
+    raw_env = os.getenv("EMBED_ALLOWED_ORIGINS", "")
+    env_anc = _parse_csv_or_space(raw_env)
+    ancestors = env_anc if env_anc else (settings.frame_ancestors or ["'self'"])
+
+    resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(ancestors)};"
+    resp.headers["X-Frame-Options"] = "SAMEORIGIN"  # opcional con CSP
     return resp
 
 # 🖼️ Iconos/fav
@@ -156,19 +175,35 @@ async def manifest(_: Request):
     }
     return JSONResponse(data, media_type="application/manifest+json")
 
-# ✅ Atajos widgets
-@app.get("/widget.html")
-async def widget_alias():
-    return FileResponse(WIDGETS_DIR / "widget.html")
-
-@app.get("/embedded.js")
-async def embedded_alias():
-    return FileResponse(WIDGETS_DIR / "embedded.js")
-
-# ✅ Página de embed
+# ✅ Página de embed (canónica, servida por FastAPI)
 @app.get("/chat-embed.html", response_class=HTMLResponse)
 async def chat_embed(request: Request):
     return templates.TemplateResponse("chat-embed.html", {"request": request})
+
+# ✅ Redirects 301 de rutas legacy → **esta** canónica
+@app.get("/widget.html", include_in_schema=False)
+async def legacy_widget_alias():
+    return RedirectResponse(url="/chat-embed.html", status_code=301)
+
+@app.get("/static/widgets/widget.html", include_in_schema=False)
+async def legacy_static_widget_html():
+    return RedirectResponse(url="/chat-embed.html", status_code=301)
+
+# Redirige JS legacy al launcher del frontend (URL absoluta)
+@app.get("/embedded.js", include_in_schema=False)
+async def legacy_embedded_js_alias():
+    base = settings.frontend_site_url.rstrip("/")
+    return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
+
+@app.get("/static/widgets/embed.js", include_in_schema=False)
+async def legacy_static_embed_js():
+    base = settings.frontend_site_url.rstrip("/")
+    return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
+
+@app.get("/static/widgets/embedded.js", include_in_schema=False)
+async def legacy_static_embedded_js():
+    base = settings.frontend_site_url.rstrip("/")
+    return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
 
 # 🌱 Root
 @app.get("/")
@@ -182,7 +217,7 @@ else:
     logger.info("🛡️ Modo producción activado.")
 
 if settings.secret_key == "supersecretkey" or len(settings.secret_key or "") < 32:
-    logger.warning("⚠️ SECRET_KEY es débil. Genera una con: python -c \"import secrets; print(secrets.token_urlsafe(64))\"")
+    logger.warning('⚠️ SECRET_KEY es débil. Genera una con: python -c "import secrets; print(secrets.token_urlsafe(64))"')
 
 logger.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api y /chat")
 
@@ -195,7 +230,6 @@ redis_client = None
 @app.on_event("startup")
 async def _init_rate_limiter():
     global redis_client
-    # Desactiva si APP_ENV=test
     if settings.app_env == "test":
         settings.rate_limit_enabled = False
     if not settings.rate_limit_enabled:
@@ -228,7 +262,6 @@ async def _close_rate_limiter():
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    # Desactivado por ENV/flag
     if not settings.rate_limit_enabled:
         return await call_next(request)
 
@@ -240,7 +273,6 @@ async def rate_limit_middleware(request: Request, call_next):
         window = settings.rate_limit_window_sec
         max_req = settings.rate_limit_max_requests
 
-        # Redis
         if settings.rate_limit_backend == "redis" and redis_client:
             key = f"rl:{ip}"
             try:
@@ -254,7 +286,6 @@ async def rate_limit_middleware(request: Request, call_next):
                 logger.error(f"RateLimit Redis error: {e}. Fallback a 'memory'.")
                 settings.rate_limit_backend = "memory"
 
-        # Memory
         if settings.rate_limit_backend == "memory":
             dq = _RATE_BUCKETS[ip]
             while dq and (now - dq[0]) > window:
