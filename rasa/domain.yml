@@ -146,12 +146,13 @@ responses:
   utter_confirmacion_inscripcion:
     - text: "✅ Estás inscrito al curso. Te enviaremos confirmación por correo."
 
-  utter_default:
+  utter_fallback:
     - text: "❌ Lo siento, no entendí eso. ¿Podrías reformularlo por favor?"
 
 actions:
   - action_enviar_correo
   - action_conectar_humano
+  - action_enviar_soporte
 
 session_config:
   session_expiration_time: 60
