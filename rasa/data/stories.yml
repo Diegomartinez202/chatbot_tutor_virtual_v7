@@ -1,14 +1,14 @@
 version: "3.1"
 
 stories:
-- story: Flujo de saludo y exploraci�n
+- story: Flujo de saludo y exploración
   steps:
   - intent: saludo
   - action: utter_saludo
   - intent: explorar_temas
   - action: utter_cursos_recomendados
 
-- story: Flujo de recuperaci�n de contrase�a
+- story: Flujo de recuperación de contraseña
   steps:
   - intent: ingreso_zajuna
   - action: utter_preguntar_problema_acceso
@@ -18,7 +18,7 @@ stories:
   - action: action_enviar_correo
   - action: utter_confirmar_recuperacion
 
-- story: Flujo proceso acad�mico
+- story: Flujo proceso académico
   steps:
   - intent: proceso_academico
   - action: utter_menu_proceso_academico
@@ -29,7 +29,7 @@ stories:
   - intent: horarios_calendario
   - action: utter_menu_proceso_academico
 
-- story: Flujo soporte t�cnico
+- story: Flujo soporte técnico
   steps:
   - intent: soporte_tecnico
   - action: utter_soporte_tecnico
@@ -45,3 +45,23 @@ stories:
   - intent: confirmacion_escalar_humano
   - action: action_conectar_humano
   - action: utter_confirmar_escalado
+  
+  stories:
+- story: Saludo → Carrusel cursos
+  steps:
+  - intent: saludo
+  - action: utter_saludo
+  - intent: explorar_temas
+  - action: utter_cursos_carousel
+
+- story: Explorar temas directo → Carrusel
+  steps:
+  - intent: explorar_temas
+  - action: utter_cursos_carousel
+
+# (opcional) botón “Mis cursos y contenidos” del menú
+- story: Mis cursos → Carrusel
+  steps:
+  - intent: explorar_temas
+  - action: utter_cursos_recomendados
+  - action: utter_cursos_carousel

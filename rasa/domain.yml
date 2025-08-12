@@ -37,6 +37,27 @@ slots:
     mappings:
       - type: from_entity
         entity: email
+      - type: from_text
+  nombre:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+  mensaje:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+
+forms:
+  soporte_form:
+    required_slots:
+      - nombre
+      - email
+      - mensaje
+  recovery_form:
+    required_slots:
+      - email
 
 responses:
 
@@ -53,6 +74,29 @@ responses:
           payload: "/proceso_academico"
         - title: "🛠️ Soporte técnico"
           payload: "/soporte_tecnico"
+
+  # Ejemplo cards/carousel para tu ChatUI
+  utter_cursos_carousel:
+    - custom:
+        cards:
+          - title: "Excel Básico"
+            subtitle: "20h • Virtual"
+            image: "https://via.placeholder.com/300x160?text=Excel"
+            buttons:
+              - title: "Inscribirme"
+                payload: "/inscribirme"
+          - title: "Soldadura MIG"
+            subtitle: "40h • Presencial"
+            image: "https://via.placeholder.com/300x160?text=Soldadura"
+            buttons:
+              - title: "Inscribirme"
+                payload: "/inscribirme"
+          - title: "Programación Web"
+            subtitle: "60h • Virtual"
+            image: "https://via.placeholder.com/300x160?text=Web"
+            buttons:
+              - title: "Inscribirme"
+                payload: "/inscribirme"
 
   utter_cursos_recomendados:
     - text: "📘 Aquí tienes algunos cursos que podrían interesarte:"
@@ -109,16 +153,7 @@ responses:
           payload: "/tutor_asignado"
 
   utter_soporte_tecnico:
-    - text: "🤖 Lo siento 😟 ¿Qué tipo de problema estás experimentando?"
-      buttons:
-        - title: "🔌 No puedo ingresar"
-          payload: "/problema_no_ingreso"
-        - title: "🖥️ Pantalla en blanco"
-          payload: "/pantalla_blanca"
-        - title: "🐞 Error al abrir actividad"
-          payload: "/error_actividad"
-        - title: "❓ Otro problema"
-          payload: "/otro_problema_tecnico"
+    - text: "🤖 Entiendo. Vamos a tomar tus datos para ayudarte mejor."
 
   utter_estado_estudiante:
     - text: "🎓 Estás **activo** para el periodo académico 2025-2."
@@ -146,13 +181,25 @@ responses:
   utter_confirmacion_inscripcion:
     - text: "✅ Estás inscrito al curso. Te enviaremos confirmación por correo."
 
-  utter_fallback:
+  utter_default:
     - text: "❌ Lo siento, no entendí eso. ¿Podrías reformularlo por favor?"
+
+  # Prompts del FORM
+  utter_ask_nombre:
+    - text: "👤 ¿Cuál es tu nombre completo?"
+  utter_ask_email:
+    - text: "📧 ¿Cuál es tu correo de contacto?"
+  utter_ask_mensaje:
+    - text: "📝 Cuéntame brevemente el problema o solicitud de soporte."
+  utter_soporte_form_ok:
+    - text: "🙏 Gracias. Estoy registrando tu solicitud…"
 
 actions:
   - action_enviar_correo
   - action_conectar_humano
   - action_enviar_soporte
+  - validate_soporte_form
+  - validate_recovery_form
 
 session_config:
   session_expiration_time: 60

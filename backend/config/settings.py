@@ -2,6 +2,7 @@
 from pydantic import BaseSettings, Field, EmailStr, validator
 from typing import List, Optional, Literal
 import json
+from typing import Literal, Optional
 
 class Settings(BaseSettings):
     # 📦 MongoDB
@@ -95,4 +96,20 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
 
+class Settings(BaseSettings):
+    # ...tus otras variables (mongo, jwt, etc.)
+
+    # === Helpdesk / Escalada a humano ===
+    helpdesk_kind: Literal["webhook", "zendesk", "freshdesk", "jira", "zoho"] = Field(
+        "webhook", env="HELPDESK_KIND"
+    )
+    helpdesk_webhook: Optional[str] = Field(None, env="HELPDESK_WEBHOOK")
+    helpdesk_token: Optional[str] = Field(None, env="HELPDESK_TOKEN")
+
+    class Config:
+        env_file = ".env"
+# --- al final de Settings(...)
+helpdesk_kind: Literal["webhook","zendesk","freshdesk","jira","zoho"] = Field("webhook", env="HELPDESK_KIND")
+helpdesk_webhook: Optional[str] = Field(None, env="HELPDESK_WEBHOOK")
+helpdesk_token: Optional[str] = Field(None, env="HELPDESK_TOKEN")
 settings = Settings()

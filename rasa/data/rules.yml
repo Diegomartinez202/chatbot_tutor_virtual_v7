@@ -1,32 +1,71 @@
 version: "3.1"
-
 rules:
 
-- rule: Saludo del chatbot
+# Saludo directo
+- rule: Saludo
   steps:
     - intent: saludo
     - action: utter_saludo
 
-- rule: Recuperación de contraseña (pregunta email)
+# Iniciar formulario de soporte por cualquier problema técnico
+- rule: Iniciar formulario de soporte (soporte_tecnico)
+  steps:
+    - intent: soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- rule: Iniciar formulario de soporte (otros_problemas)
+  steps:
+    - intent: otro_problema_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- rule: Iniciar formulario de soporte (no_ingreso)
+  steps:
+    - intent: problema_no_ingreso
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- rule: Iniciar formulario de soporte (pantalla_blanca)
+  steps:
+    - intent: pantalla_blanca
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- rule: Iniciar formulario de soporte (error_actividad)
+  steps:
+    - intent: error_actividad
+    - action: soporte_form
+    - active_loop: soporte_form
+
+# Submit del form de soporte
+- rule: Enviar soporte tras completar form
+  condition:
+    - active_loop: soporte_form
+  steps:
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_form_ok
+    - action: action_enviar_soporte
+
+# Flujo de recuperación de contraseña (form sólo email)
+- rule: Iniciar recovery_form
   steps:
     - intent: recuperar_contrasena
-    - action: utter_pedir_correo
+    - action: recovery_form
+    - active_loop: recovery_form
 
-- rule: Enviar correo de recuperación
+- rule: Submit recovery_form
+  condition:
+    - active_loop: recovery_form
   steps:
-    - intent: enviar_correo
+    - action: recovery_form
+    - active_loop: null
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
+# Escalar a humano
 - rule: Escalar a humano
   steps:
     - intent: escalar_humano
     - action: utter_escalar_humano
-    - intent: confirmacion_escalar_humano
-    - action: action_conectar_humano
-    - action: utter_confirmar_escalado
-
-- rule: Fallback
-  steps:
-    - intent: fallback
-    - action: utter_fallback

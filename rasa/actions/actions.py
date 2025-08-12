@@ -1,24 +1,25 @@
-# rasa/actions/actions.py
+# rasa/actions/ac# rasa/actions/actions.py
 from typing import Any, Text, Dict, List, Optional
 from email.mime.text import MIMEText
+import re
 import smtplib
 from pymongo import MongoClient
-
-from rasa_sdk import Action, Tracker
+import os
+from rasa_sdk import Action, Tracker, FormValidationAction
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
+import os, json, time
+import requests
+HELPDESK_WEBHOOK = os.getenv("HELPDESK_WEBHOOK", "http://localhost:8000/api/helpdesk/tickets")
+HELPDESK_TOKEN = os.getenv("HELPDESK_TOKEN", "")
 
-# Si corres actions en un contenedor separado, usa variables de entorno directas
-# o crea un módulo settings liviano. Aquí lo hacemos con ENV para que funcione
-# tanto local como en Railway sin acoplar al backend.
-import os
-
+# ---- ENV helpers ----
 def _env(name: str, default: Optional[str] = None) -> Optional[str]:
     return os.getenv(name, default)
 
-# ---- Config via ENV (ajústalo en tu deployment de actions) ----
+# ---- Config via ENV (usa los mismos del backend/.env) ----
 MONGO_URI = _env("MONGO_URI", "mongodb://localhost:27017")
-MONGO_DB   = _env("MONGO_DB_NAME", "chatbot_tutor_virtual_v2")
+MONGO_DB  = _env("MONGO_DB_NAME", "chatbot_tutor_virtual_v2")
 
 SMTP_SERVER = _env("SMTP_SERVER", "")
 SMTP_PORT   = int(_env("SMTP_PORT", "587") or 587)
@@ -27,19 +28,16 @@ SMTP_PASS   = _env("SMTP_PASS", "")
 EMAIL_FROM  = _env("EMAIL_FROM", SMTP_USER or "bot@ejemplo.com")
 EMAIL_TO    = _env("EMAIL_TO", "soporte@ejemplo.com")
 
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 
 def send_email(subject: str, body: str, to_addr: str) -> bool:
-    """Envia correo si SMTP está configurado; retorna True si lo intentó/consiguió."""
-    if not (SMTP_SERVER and SMTP_USER and SMTP_PASS):
-        # SMTP no configurado → no romper; retornar False
+    if not (SMTP_SERVER and SMTP_USER and SMTP_PASS and to_addr):
         return False
     try:
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = EMAIL_FROM
         msg["To"] = to_addr
-
-        # TLS (587) por defecto; si usas 465, cambia a SMTP_SSL
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
@@ -49,29 +47,64 @@ def send_email(subject: str, body: str, to_addr: str) -> bool:
         print(f"[actions] Error enviando correo: {e}")
         return False
 
+# =========================
+#  Formularios (validación)
+# =========================
+class ValidateSoporteForm(FormValidationAction):
+    def name(self) -> Text:
+        return "validate_soporte_form"
 
+    def validate_nombre(self, value: Text, dispatcher, tracker, domain) -> Dict[Text, Any]:
+        val = (value or "").strip()
+        if len(val) < 3:
+            dispatcher.utter_message("⚠️ El nombre debe tener al menos 3 caracteres. Intenta de nuevo, por favor.")
+            return {"nombre": None}
+        return {"nombre": val}
+
+    def validate_email(self, value: Text, dispatcher, tracker, domain) -> Dict[Text, Any]:
+        val = (value or "").strip()
+        m = EMAIL_RE.search(val)
+        if not m:
+            dispatcher.utter_message("📧 Ese email no parece válido. Escribe algo como usuario@dominio.com")
+            return {"email": None}
+        return {"email": m.group(0)}
+
+    def validate_mensaje(self, value: Text, dispatcher, tracker, domain) -> Dict[Text, Any]:
+        val = (value or "").strip()
+        if len(val) < 8:
+            dispatcher.utter_message("📝 Dame un poco más de detalle del problema (mínimo 8 caracteres).")
+            return {"mensaje": None}
+        return {"mensaje": val}
+
+
+class ValidateRecoveryForm(FormValidationAction):
+    """Form para flujo de recuperación de contraseña (solo email)"""
+    def name(self) -> Text:
+        return "validate_recovery_form"
+
+    def validate_email(self, value: Text, dispatcher, tracker, domain) -> Dict[Text, Any]:
+        val = (value or "").strip()
+        m = EMAIL_RE.search(val)
+        if not m:
+            dispatcher.utter_message("📧 Ese email no parece válido. Escribe algo como usuario@dominio.com")
+            return {"email": None}
+        return {"email": m.group(0)}
+
+# ==============
+#    Acciones
+# ==============
 class ActionEnviarCorreo(Action):
-    """Envía link de recuperación al email capturado (slot email)."""
-
     def name(self) -> Text:
         return "action_enviar_correo"
 
-    def run(self,
-            dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
         email = tracker.get_slot("email")
         if not email:
             dispatcher.utter_message("⚠️ No detecté tu correo. Por favor, escríbelo (ej: usuario@ejemplo.com).")
             return []
-
-        # Aquí podrías generar un enlace real de recuperación
         reset_link = f"https://zajuna.com/reset?email={email}"
-
         body = (
-            "Hola,\n\n"
-            "Has solicitado recuperar tu contraseña.\n"
+            "Hola,\n\nHas solicitado recuperar tu contraseña.\n"
             f"Usa el siguiente enlace para continuar: {reset_link}\n\n"
             "Si no fuiste tú, ignora este mensaje."
         )
@@ -79,48 +112,116 @@ class ActionEnviarCorreo(Action):
         if sent:
             dispatcher.utter_message("📬 Te envié un enlace de recuperación a tu correo.")
         else:
-            dispatcher.utter_message("ℹ️ Dejé registrado tu correo. Si el envío falla, el equipo te contactará manualmente.")
-
+            dispatcher.utter_message("ℹ️ Registré tu solicitud. Si el envío falla, te contactará soporte.")
         return []
 
-
 class ActionConectarHumano(Action):
-    """Aquí conectarías con tu mesa de ayuda / Zendesk / Freshdesk / etc."""
-
     def name(self) -> Text:
         return "action_conectar_humano"
 
-    def run(self,
-            dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+        import json, requests
 
-        # Puedes levantar un ticket con la última entrada del usuario:
-        last_user_msg = tracker.latest_message.get("text", "")
-        # TODO: integrar con tu sistema de tickets
-        print(f"[actions] Escalando a humano. Último mensaje: {last_user_msg}")
-        dispatcher.utter_message("🧑‍💼 Te vamos a derivar con un agente humano. ¡Gracias por tu paciencia!")
+        user_text = tracker.latest_message.get("text", "")
+        nombre  = tracker.get_slot("nombre") or tracker.get_slot("user_name") or "Estudiante"
+        email   = tracker.get_slot("email") or "sin-correo@zajuna.edu"
+        contexto = {
+            "conversation_id": tracker.sender_id,
+            "last_message": user_text,
+            "slots": tracker.current_slot_values(),
+        }
+
+        kind = os.getenv("HELPDESK_KIND", "webhook").lower()
+
+        try:
+            if kind == "zendesk":
+                url = os.getenv("HELPDESK_URL")
+                token = os.getenv("HELPDESK_TOKEN")
+                agent = os.getenv("HELPDESK_EMAIL", "agent@zajuna.edu")
+                auth = (f"{agent}/token", token)
+                payload = {
+                    "ticket": {
+                        "subject": f"[Zajuna] Soporte para {nombre}",
+                        "comment": {"body": f"Email: {email}\n\nContexto:\n{json.dumps(contexto, ensure_ascii=False, indent=2)}"},
+                        "requester": {"name": nombre, "email": email},
+                        "priority": "normal",
+                    }
+                }
+                r = requests.post(url, json=payload, auth=auth, timeout=10)
+                r.raise_for_status()
+
+            elif kind == "freshdesk":
+                url = os.getenv("HELPDESK_URL")
+                api_key = os.getenv("HELPDESK_TOKEN")
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "email": email,
+                    "subject": f"[Zajuna] Soporte para {nombre}",
+                    "description": f"Contexto:\n{json.dumps(contexto, ensure_ascii=False, indent=2)}",
+                    "priority": 2,
+                    "status": 2,
+                }
+                r = requests.post(url, json=payload, auth=(api_key, "X"), headers=headers, timeout=10)
+                r.raise_for_status()
+
+            elif kind == "jira":
+                url = os.getenv("HELPDESK_URL")  # ej: https://TU.atlassian.net/rest/api/3/issue
+                api_user = os.getenv("HELPDESK_EMAIL")
+                api_token = os.getenv("HELPDESK_TOKEN")
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "fields": {
+                        "summary": f"[Zajuna] Soporte para {nombre}",
+                        "issuetype": {"name": "Task"},
+                        "project": {"key": "HELP"},  # ajusta KEY
+                        "description": f"Email: {email}\n\nContexto:\n{json.dumps(contexto, ensure_ascii=False, indent=2)}",
+                    }
+                }
+                r = requests.post(url, json=payload, auth=(api_user, api_token), headers=headers, timeout=10)
+                r.raise_for_status()
+
+            elif kind == "zoho":
+                url = os.getenv("HELPDESK_URL")
+                token = os.getenv("HELPDESK_TOKEN")
+                headers = {"Authorization": f"Zoho-oauthtoken {token}", "Content-Type": "application/json"}
+                payload = {
+                    "subject": f"[Zajuna] Soporte para {nombre}",
+                    "email": email,
+                    "description": f"Contexto:\n{json.dumps(contexto, ensure_ascii=False, indent=2)}",
+                    "departmentId": os.getenv("ZOHO_DEPT_ID"),
+                }
+                r = requests.post(url, json=payload, headers=headers, timeout=10)
+                r.raise_for_status()
+
+            else:
+                # Webhook genérico
+                url = os.getenv("HELPDESK_WEBHOOK")
+                token = os.getenv("HELPDESK_TOKEN", "")
+                headers = {"Content-Type": "application/json"}
+                if token:
+                    headers["Authorization"] = f"Bearer {token}"
+                payload = {"nombre": nombre, "email": email, "contexto": contexto}
+                r = requests.post(url, json=payload, headers=headers, timeout=10)
+                r.raise_for_status()
+
+            dispatcher.utter_message("🧑‍💼 Listo: te estamos derivando con un agente humano. Te contactarán pronto.")
+        except Exception as e:
+            print(f"[actions] Escalado falló: {e}")
+            dispatcher.utter_message("⚠️ No pude crear el ticket ahora. Dejé registrada tu solicitud y lo intentaremos de nuevo.")
+
         return []
 
-
 class ActionEnviarSoporte(Action):
-    """Persiste solicitud de soporte en MongoDB y notifica por email a soporte."""
-
     def name(self) -> Text:
         return "action_enviar_soporte"
 
-    def run(self,
-            dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        # Estos slots pueden llenarse via NLU/regex o un formulario (no definido aquí)
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
         nombre  = tracker.get_slot("nombre")
         email   = tracker.get_slot("email")
         mensaje = tracker.get_slot("mensaje")
 
         if not (nombre and email and mensaje):
-            dispatcher.utter_message("❌ Faltan datos para enviar el formulario de soporte. Escribe: nombre, email y el problema.")
+            dispatcher.utter_message("❌ Faltan datos para enviar el formulario de soporte.")
             return []
 
         # Guardar en Mongo
@@ -139,7 +240,7 @@ class ActionEnviarSoporte(Action):
             dispatcher.utter_message("⚠️ No pude guardar la solicitud en la base de datos.")
             return []
 
-        # Notificar por correo a la mesa
+        # Notificación por correo (opcional)
         body = (
             "📩 Nueva solicitud de soporte\n\n"
             f"👤 Nombre: {nombre}\n"
@@ -149,8 +250,47 @@ class ActionEnviarSoporte(Action):
         _ = send_email("🛠️ Nueva solicitud de soporte", body, EMAIL_TO)
 
         dispatcher.utter_message("✅ Hemos recibido tu solicitud de soporte. Te contactaremos pronto.")
-        return [
-            SlotSet("nombre", None),
-            SlotSet("email", None),
-            SlotSet("mensaje", None),
-        ]
+        return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+
+class ActionConectarHumano(Action):
+    def name(self) -> Text:
+        return "action_conectar_humano"
+
+    def run(self,
+            dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        # Datos básicos (si tienes slots nombre/email, úsalos)
+        nombre = tracker.get_slot("nombre") or tracker.sender_id
+        email = tracker.get_slot("email")
+        last_user_msg = next((e.get("text") for e in reversed(tracker.events) if e.get("event")=="user"), None)
+
+        payload = {
+            "name": nombre,
+            "email": email,
+            "subject": "Escalada a humano desde el chatbot",
+            "message": last_user_msg or "El usuario solicitó ser atendido por un humano.",
+            "conversation_id": tracker.sender_id,
+            "channel": "web",
+            "meta": {
+                "slots": tracker.current_slot_values(),
+                "latest_intent": tracker.latest_message.get("intent", {}).get("name"),
+                "timestamp": int(time.time()),
+            }
+        }
+
+        headers = {"Content-Type": "application/json"}
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+
+        try:
+            r = requests.post(HELPDESK_WEBHOOK, headers=headers, data=json.dumps(payload), timeout=10)
+            if r.status_code >= 300:
+                dispatcher.utter_message("⚠️ No pude crear el ticket de soporte en este momento.")
+            else:
+                dispatcher.utter_message("🧑‍💻 ¡Listo! Te conecto con un agente humano, por favor espera…")
+        except Exception:
+            dispatcher.utter_message("⚠️ No pude contactar a la mesa de ayuda. Intentaremos de nuevo en breve.")
+
+        return []

@@ -29,8 +29,9 @@ from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.config.settings import settings
 from backend.routes import exportaciones
 from app.routers import admin_failed
+from backend.routes import helpdesk  # <--- nuevo
+from backend.routes.helpdesk import router as helpdesk_router
 
-# Router canónico y endpoints para alias
 from backend.routes.chat import chat_router, send_message_to_bot, chat_health
 
 # Redis opcional (rate limiting)
@@ -71,8 +72,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.include_router(api_router, prefix="/api")
 app.include_router(admin_failed.router)
 app.include_router(exportaciones.router)
-
-# 🔁 Chat: visible en docs
+app.include_router(helpdesk.router)
 app.include_router(chat_router, prefix="")  # /chat, /chat/health visibles
 
 # 🔁 Chat alias: oculto en docs pero activo en /api

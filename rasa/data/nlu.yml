@@ -119,10 +119,14 @@ nlu:
     - quiero inscribirme a ese curso
     - me interesa ese curso
 
+- regex: email
+  examples: |
+    - [A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}
+
 - intent: enviar_correo
   examples: |
-    - mi correo es daniel@example.com
-    - usuario@ejemplo.com
-    - estudiante@zajuna.edu
+    - mi correo es juan.perez@ejemplo.com
+    - puedes escribir a maria_123@zajuna.edu
+    - usa este email: user+test@domain.io
   entities:
     - email
