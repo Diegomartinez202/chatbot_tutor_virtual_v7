@@ -1,7 +1,9 @@
 /* public/chat-widget.js
    Widget flotante para abrir un iframe del chat.
-   - Modo 1 (declarativo): <script src="/chat-widget.js" data-chat-url="/chat-embed?embed=1" ...></script>
-   - Modo 2 (programático): window.ChatWidget.mount({ iframeSrc: "/chat-embed?embed=1", ... })
+   - Modo 1 (declarativo):
+       <script src="/chat-widget.js" data-chat-url="/chat-embed.html?embed=1" ...></script>
+   - Modo 2 (programático):
+       window.ChatWidget.mount({ iframeSrc: "/chat-embed.html?embed=1", ... })
    Mantiene compatibilidad con tu versión previa (data-attrs, badge auto, accesibilidad, persistencia de preferencias).
 */
 (function () {
@@ -17,7 +19,7 @@
         offset: 24,
         zIndex: 2147483600,
         // Panel
-        iframeSrc: "/chat-embed?embed=1", // alias embed recomendado
+        iframeSrc: "/chat-embed.html?embed=1", // ruta canónica servida por FastAPI
         panelWidth: "380px",
         panelHeight: "560px",
         overlay: true,

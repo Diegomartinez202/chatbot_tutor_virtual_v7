@@ -1,26 +1,32 @@
+// src/pages/ChatPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Bot, RefreshCw } from "lucide-react";
+
+// ✅ usa UNA de estas dos importaciones según tu repo:
+// 1) Si está en src/components/chat/ChatUI.jsx:
 import ChatUI from "@/components/chat/ChatUI";
+// 2) Si lo tienes en src/components/ChatUI.jsx, usa esta y comenta la otra:
+// import ChatUI from "@/components/ChatUI";
+
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import { useAuth } from "@/context/AuthContext";
 import { connectRasaRest } from "@/services/chat/connectRasaRest";
 import { connectWS } from "@/services/chat/connectWS";
-<ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
+
 /**
  * Página completa del chat.
- * - Mantiene compat con /chat
- * - Soporta modo embed (?embed=1) o prop forceEmbed (no exige login y recorta el chrome)
- * - Muestra estados: connecting / error / ready
- * - Cuando está lista, renderiza children o ChatUI por defecto
+ * - Ruta /chat (con login) y modo embed (?embed=1) sin chrome (no exige login)
+ * - Estados: connecting | ready | error
+ * - Si se pasa children, renderiza tu UI; si no, <ChatUI />
  */
 export default function ChatPage({
     forceEmbed = false,
     avatarSrc = "/bot-avatar.png",
     title = "Asistente",
-    connectFn = connectRasaRest, // ✅ por defecto conectamos contra /api/chat/health
-    children,                    // opcional: tu UI de chat; si no viene, usa <ChatUI />
+    connectFn = connectRasaRest, // por defecto REST a /api/chat
+    children,
 }) {
     const [params] = useSearchParams();
     const isEmbed = forceEmbed || params.get("embed") === "1";
@@ -36,8 +42,7 @@ export default function ChatPage({
             if (connectFn) {
                 await connectFn();
             } else {
-                // Fallback breve por si no llega connectFn
-                await new Promise((r) => setTimeout(r, 700));
+                await new Promise((r) => setTimeout(r, 600));
             }
             setStatus("ready");
         } catch {
@@ -96,7 +101,7 @@ export default function ChatPage({
 
                 {status === "ready" && (
                     <div className="w-full h-full">
-                        {/* Tu widget real: Rasa, iframe, o UI propia; si no, ChatUI por defecto */}
+                        {/* Tu widget real; si no pasas children, usa ChatUI */}
                         {children ?? <ChatUI embed={isEmbed} />}
                     </div>
                 )}
@@ -104,3 +109,14 @@ export default function ChatPage({
         </div>
     );
 }
+
+/* Ejemplos de uso:
+   - REST (default):
+     <ChatPage />
+
+   - WebSocket:
+     <ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
+
+   - Forzar modo embed (sin depender de ?embed=1):
+     <ChatPage forceEmbed />
+*/
