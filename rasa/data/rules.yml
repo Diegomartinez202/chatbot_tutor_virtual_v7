@@ -69,3 +69,23 @@ rules:
   steps:
     - intent: escalar_humano
     - action: utter_escalar_humano
+ - rule: Iniciar formulario de soporte (intent principal)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar formulario de soporte (otros problemas técnicos)
+    steps:
+      - intent: otro_problema_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit

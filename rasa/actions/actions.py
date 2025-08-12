@@ -10,8 +10,13 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
 import os, json, time
 import requests
+from rasa_sdk import Action, Tracker, FormValidationAction
+from rasa_sdk.executor import CollectingDispatcher
+from rasa_sdk.types import DomainDict
+from rasa_sdk.events import SlotSet
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 HELPDESK_WEBHOOK = os.getenv("HELPDESK_WEBHOOK", "http://localhost:8000/api/helpdesk/tickets")
-HELPDESK_TOKEN = os.getenv("HELPDESK_TOKEN", "")
+HELPDESK_TOKEN = (os.getenv("HELPDESK_TOKEN") or "").strip()
 
 # ---- ENV helpers ----
 def _env(name: str, default: Optional[str] = None) -> Optional[str]:
@@ -294,3 +299,101 @@ class ActionConectarHumano(Action):
             dispatcher.utter_message("⚠️ No pude contactar a la mesa de ayuda. Intentaremos de nuevo en breve.")
 
         return []
+class ValidateSoporteForm(FormValidationAction):
+    def name(self) -> Text:
+        return "validate_soporte_form"
+
+    def validate_nombre(
+        self,
+        value: Text,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> Dict[Text, Any]:
+        v = (value or "").strip()
+        if len(v) < 2:
+            dispatcher.utter_message(text="⚠️ El nombre es muy corto. ¿Podrías escribir tu nombre completo?")
+            return {"nombre": None}
+        if len(v) > 120:
+            dispatcher.utter_message(text="⚠️ El nombre es muy largo. ¿Podrías abreviarlo un poco?")
+            return {"nombre": None}
+        return {"nombre": v}
+
+    def validate_email(
+        self,
+        value: Text,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> Dict[Text, Any]:
+        v = (value or "").strip()
+        if not EMAIL_RE.match(v):
+            dispatcher.utter_message(text="⚠️ Ese correo no parece válido. ¿Puedes verificarlo?")
+            return {"email": None}
+        return {"email": v}
+
+    def validate_mensaje(
+        self,
+        value: Text,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> Dict[Text, Any]:
+        v = (value or "").strip()
+        if len(v) < 5:
+            dispatcher.utter_message(text="⚠️ Cuéntame un poco más del problema (5+ caracteres).")
+            return {"mensaje": None}
+        if len(v) > 5000:
+            dispatcher.utter_message(text="⚠️ El mensaje es muy largo. Intenta resumirlo (máx. 5000).")
+            return {"mensaje": None}
+        return {"mensaje": v}
+
+
+class ActionSoporteSubmit(Action):
+    def name(self) -> Text:
+        return "action_soporte_submit"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[Dict[Text, Any]]:
+        nombre = tracker.get_slot("nombre")
+        email = tracker.get_slot("email")
+        mensaje = tracker.get_slot("mensaje")
+
+        # Contexto útil
+        meta: Dict[str, Any] = {
+            "rasa_sender_id": tracker.sender_id,
+            "latest_intent": (tracker.latest_message.get("intent") or {}).get("name"),
+            "conversation_id": tracker.sender_id,
+        }
+
+        payload = {
+            "name": nombre,
+            "email": email,
+            "subject": "Soporte técnico (Rasa)",
+            "message": mensaje,
+            "conversation_id": tracker.sender_id,
+            "metadata": meta,
+        }
+
+        headers = {"Content-Type": "application/json"}
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+
+        try:
+            resp = requests.post(HELPDESK_WEBHOOK, data=json.dumps(payload), headers=headers, timeout=10)
+            if resp.status_code >= 200 and resp.status_code < 300:
+                dispatcher.utter_message(response="utter_soporte_creado")
+                # Limpia slots
+                return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+            else:
+                dispatcher.utter_message(response="utter_soporte_error")
+                dispatcher.utter_message(text=f"(Detalle técnico: {resp.status_code})")
+                return []
+        except Exception as e:
+            dispatcher.utter_message(response="utter_soporte_error")
+            dispatcher.utter_message(text=f"(Excepción: {e})")
+            return []

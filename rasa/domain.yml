@@ -56,6 +56,7 @@ forms:
       - email
       - mensaje
   recovery_form:
+
     required_slots:
       - email
 
@@ -193,6 +194,29 @@ responses:
     - text: "📝 Cuéntame brevemente el problema o solicitud de soporte."
   utter_soporte_form_ok:
     - text: "🙏 Gracias. Estoy registrando tu solicitud…"
+  utter_ask_nombre:
+    - text: "👤 ¿Cuál es tu nombre completo?"
+
+  utter_ask_email:
+    - text: "📧 ¿Cuál es tu correo de contacto?"
+
+  utter_ask_mensaje:
+    - text: "📝 Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
+
+  utter_soporte_resumen:
+    - text: |
+        ✅ Gracias {nombre}. Voy a crear un ticket con:
+        • Email: {email}
+        • Mensaje: "{mensaje}"
+
+  utter_soporte_creado:
+    - text: "🎫 Ticket creado correctamente. Te enviaremos novedades a tu correo."
+
+  utter_soporte_error:
+    - text: "⚠️ Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
+
+  utter_default:
+    - text: "❌ No entendí eso. ¿Podrías reformularlo?"
 
 actions:
   - action_enviar_correo
@@ -200,7 +224,9 @@ actions:
   - action_enviar_soporte
   - validate_soporte_form
   - validate_recovery_form
-
+  - validate_soporte_form
+  - action_soporte_submit
+- 
 session_config:
   session_expiration_time: 60
   carry_over_slots_to_new_session: true
