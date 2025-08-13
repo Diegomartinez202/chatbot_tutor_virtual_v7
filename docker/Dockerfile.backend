@@ -1,23 +1,30 @@
+# 🐍 Backend FastAPI (Docker / Railway)
 FROM python:3.10-slim
 
-# Establecer directorio de trabajo
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Dependencias del sistema (mínimas)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copiar primero el requirements para aprovechar cache
-COPY backend/requirements.txt .
-
-# Instalar dependencias
+# Requisitos (usa requirements.txt en la raíz del repo)
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r /app/requirements.txt
 
-# Copiar el código del backend
-COPY backend/ ./backend
+# Código del backend
+COPY backend /app/backend
 
-# Copiar archivo .env si se quiere cargar en Railway
-COPY .env .env
+# (Opcional) Si tienes un entrypoint propio:
+# COPY docker/entrypoint.sh /entrypoint.sh
+# RUN chmod +x /entrypoint.sh
+# ENTRYPOINT ["/entrypoint.sh"]
 
-# Exponer el puerto
 EXPOSE 8000
 
-# Lanzar FastAPI
+# FastAPI
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

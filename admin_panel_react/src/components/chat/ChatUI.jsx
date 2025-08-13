@@ -5,6 +5,14 @@ import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import IconTooltip from "@/components/ui/IconTooltip";
 
+// Lee orígenes permitidos desde .env (coma separada)
+const ALLOWED_ORIGINS = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const originOK = (origin) => !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin);
+
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
 
@@ -29,7 +37,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         });
     }, []);
 
-    useEffect(() => { scrollToBottom(); }, [messages, sending, scrollToBottom]);
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, sending, scrollToBottom]);
 
     // 🔔 avisar al host (launcher) del conteo de no leídos
     const postBadge = useCallback((count) => {
@@ -40,12 +50,16 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         } catch { }
     }, []);
 
-    useEffect(() => { unreadRef.current = 0; postBadge(0); }, [postBadge]);
+    useEffect(() => {
+        unreadRef.current = 0;
+        postBadge(0);
+    }, [postBadge]);
 
-    // Resetear a 0 cuando el host abre el panel
+    // Resetear a 0 cuando el host abre el panel (validando origin permitido)
     useEffect(() => {
         const onMsg = (ev) => {
             const data = ev.data || {};
+            if (!originOK(ev.origin)) return;
             if (data.type === "chat:visibility" && data.open === true) {
                 unreadRef.current = 0;
                 postBadge(0);
@@ -61,12 +75,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         (rsp || []).forEach((item, idx) => {
             const baseId = `b-${Date.now()}-${idx}`;
 
-            if (item.text) {
-                out.push({ id: `${baseId}-t`, role: "bot", text: item.text });
-            }
-            if (item.image) {
-                out.push({ id: `${baseId}-img`, role: "bot", image: item.image });
-            }
+            if (item.text) out.push({ id: `${baseId}-t`, role: "bot", text: item.text });
+            if (item.image) out.push({ id: `${baseId}-img`, role: "bot", image: item.image });
+
             if (Array.isArray(item.buttons) && item.buttons.length) {
                 out.push({
                     id: `${baseId}-btns`,
@@ -78,6 +89,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                     })),
                 });
             }
+
             if (Array.isArray(item.quick_replies) && item.quick_replies.length) {
                 out.push({
                     id: `${baseId}-qr`,
@@ -184,7 +196,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     };
 
     const onKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
     };
 
     const handleActionClick = async (groupId, { title, payload, url }) => {
@@ -312,7 +327,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                                     ) : m.image ? (
                                         <div className="flex items-center gap-2">
                                             <ImgIcon className="w-4 h-4 opacity-70" />
-                                            <a href={m.image} target="_blank" rel="noreferrer" className="underline">Ver imagen</a>
+                                            <a href={m.image} target="_blank" rel="noreferrer" className="underline">
+                                                Ver imagen
+                                            </a>
                                         </div>
                                     ) : null}
                                 </div>

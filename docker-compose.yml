@@ -11,8 +11,13 @@ services:
     volumes:
       - mongo_data:/data/db
       - ./docker/init_mongo.js:/docker-entrypoint-initdb.d/init_mongo.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # 🤖 Rasa Bot
+  # 🤖 Rasa Bot (core)
   rasa:
     build:
       context: .
@@ -22,10 +27,25 @@ services:
       - "5005:5005"
     volumes:
       - ./rasa:/app
+    environment:
+      # Para que endpoints.yml use el Action Server interno (service name)
+      ACTIONS_URL: http://action_server:5055/webhook
     command: >
-      bash -c "rasa train && rasa run --enable-api --cors '*' --debug"
+      bash -c "rasa train && rasa run
+               --enable-api
+               --cors '*'
+               --debug
+               --port 5005"
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+      action_server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sS", "http://localhost:5005/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   # 🧠 Rasa Action Server
   action_server:
@@ -37,10 +57,23 @@ services:
       - "5055:5055"
     volumes:
       - ./rasa/actions:/app/actions
-    command: rasa run actions --debug
+    environment:
+      HELPDESK_WEBHOOK: http://backend:8000/api/helpdesk/tickets
+      HELPDESK_TOKEN:
+      SMTP_SERVER:
+      SMTP_PORT: "587"
+      SMTP_USER:
+      SMTP_PASS:
+      EMAIL_FROM: bot@ejemplo.com
+    command: rasa run actions --debug --port 5055
     depends_on:
-      - rasa
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   # 🟩 Backend FastAPI
   backend:
@@ -51,14 +84,42 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - backend/.env
     volumes:
       - ./backend:/app/backend
+      - ./logs:/app/logs
     depends_on:
-      - rasa
-      - action_server
-      - mongodb
+      mongodb:
+        condition: service_healthy
+      rasa:
+        condition: service_healthy
+      action_server:
+        condition: service_healthy
     entrypoint: ["/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  # 🟦 Frontend (Nginx sirviendo la build de Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: frontend_spa
+    environment:
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
 volumes:
   mongo_data:

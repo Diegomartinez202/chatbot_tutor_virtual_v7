@@ -1,6 +1,6 @@
 // src/components/Header.jsx
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -17,15 +17,55 @@ import {
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
-import IconTooltip from "@/components/ui/IconTooltip"; // ✅ añadido
+import IconTooltip from "@/components/ui/IconTooltip";
+
+// 🔒 Orígenes permitidos para mensajes del iframe (mismo valor que usa ChatUI/launcher)
+const ALLOWED_ORIGINS = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+const originOK = (origin) => !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin);
 
 const Header = () => {
     const { user, logout: doLogout } = useAuth();
-    const logout = doLogout || (() => { }); // por si el contexto aún no trae logout
+    const logout = doLogout || (() => { });
     const role = user?.rol || "usuario";
+    const isAuthenticated = !!user;
+    const navigate = useNavigate();
 
     const [openSettings, setOpenSettings] = React.useState(false);
-    const isAuthenticated = !!user;
+
+    // ✅ Badge interno opcional en la SPA (no reemplaza el del launcher; lo refleja)
+    const [chatBadge, setChatBadge] = React.useState(0);
+    React.useEffect(() => {
+        const onMsg = (ev) => {
+            const data = ev.data || {};
+            if (!originOK(ev.origin)) return;
+            if (data.type === "chat:badge" && typeof data.count === "number") {
+                setChatBadge(data.count);
+            }
+            if (data.type === "chat:visibility" && data.open === true) {
+                setChatBadge(0);
+            }
+        };
+        window.addEventListener("message", onMsg);
+        return () => window.removeEventListener("message", onMsg);
+    }, []);
+
+    // Abrir el widget de chat si está presente; si no, navegar a /chat (alias histórico)
+    const openChat = (e) => {
+        try {
+            if (window.ChatWidget?.open) {
+                e?.preventDefault?.();
+                window.ChatWidget.open();
+            } else {
+                // fallback a ruta interna si la app la expone
+                navigate("/chat");
+            }
+        } catch {
+            navigate("/chat");
+        }
+    };
 
     const navLinks = [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: "Vista general del sistema" },
@@ -34,7 +74,9 @@ const Header = () => {
         { to: "/stats", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
         { to: "/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
         { to: "/users", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
-        // 👇 nuevo (ya solicitado)
+        // 📌 Compatibilidad /chat: deja el alias y además intenta abrir el widget al click
+        { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
+        // Nuevo pedido
         { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
     ];
 
@@ -66,13 +108,13 @@ const Header = () => {
 
                     {/* 🌐 Navegación */}
                     <nav className="flex flex-col gap-2">
-                        {/* ✅ mejora: delays + sideOffset + Arrow; mantiene tu estructura */}
                         <Tooltip.Provider delayDuration={200} skipDelayDuration={150}>
-                            {navLinks.filter(canSee).map(({ to, label, icon: Icon, tip }) => (
+                            {navLinks.filter(canSee).map(({ to, label, icon: Icon, tip, isChat }) => (
                                 <Tooltip.Root key={to}>
                                     <Tooltip.Trigger asChild>
                                         <NavLink
                                             to={to}
+                                            onClick={isChat ? openChat : undefined}
                                             className={({ isActive }) =>
                                                 [
                                                     "hover:bg-gray-700 p-2 rounded flex items-center gap-2 transition-colors",
@@ -81,7 +123,16 @@ const Header = () => {
                                             }
                                         >
                                             <Icon size={18} />
-                                            {label}
+                                            <span className="truncate">{label}</span>
+                                            {/* 🔔 Badge opcional dentro del menú (solo para Chat) */}
+                                            {isChat && chatBadge > 0 && (
+                                                <span
+                                                    aria-label={`${chatBadge} mensajes sin leer`}
+                                                    className="ml-auto inline-flex min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] items-center justify-center"
+                                                >
+                                                    {chatBadge}
+                                                </span>
+                                            )}
                                         </NavLink>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>
@@ -102,7 +153,6 @@ const Header = () => {
 
                 {/* ⚙️ Config + 🔚 Logout */}
                 <div className="p-6 flex items-center justify-between gap-2">
-                    {/* ✅ reemplaza title por tooltip real, sin romper estilos */}
                     <IconTooltip label="Configuración" side="top">
                         <button
                             onClick={() => setOpenSettings(true)}
@@ -117,15 +167,13 @@ const Header = () => {
                 </div>
             </aside>
 
-            {/* Panel de Configuración (tema, idioma, accesibilidad, cerrar sesión / cerrar chat) */}
+            {/* Panel de Configuración */}
             <SettingsPanel
                 open={openSettings}
                 onClose={() => setOpenSettings(false)}
                 isAuthenticated={isAuthenticated}
                 onLogout={logout}
-                // cerrar chat (útil cuando no hay sesión):
                 onCloseChat={() => window.dispatchEvent(new CustomEvent("chat:close"))}
-                // cambio de idioma: broadcast al resto de la app o al widget si lo escuchas
                 onLanguageChange={(lang) =>
                     window.dispatchEvent(new CustomEvent("app:lang", { detail: { lang } }))
                 }

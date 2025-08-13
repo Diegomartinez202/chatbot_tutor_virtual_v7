@@ -26,13 +26,12 @@ from backend.utils.logger import logger
 from backend.middleware.auth_middleware import AuthMiddleware
 from backend.middleware.logging_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
+from backend.middleware.request_meta import request_meta_middleware  # ✅ NUEVO
 from backend.config.settings import settings
 from backend.routes import exportaciones
 from app.routers import admin_failed
-from backend.routes import helpdesk  # <--- nuevo
-from backend.routes.helpdesk import router as helpdesk_router
-
-from backend.routes.chat import chat_router, send_message_to_bot, chat_health
+from backend.routes import helpdesk
+from backend.routes.chat import chat_router  # ✅ usamos el router (sin alias manual)
 
 # Redis opcional (rate limiting)
 try:
@@ -64,6 +63,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ➕ Middleware IP/UA centralizado (reemplaza el inline previo)
+app.middleware("http")(request_meta_middleware)
+
 # 📁 Estáticos / templates
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -73,25 +75,11 @@ app.include_router(api_router, prefix="/api")
 app.include_router(admin_failed.router)
 app.include_router(exportaciones.router)
 app.include_router(helpdesk.router)
-app.include_router(chat_router, prefix="")  # /chat, /chat/health visibles
 
-# 🔁 Chat alias: oculto en docs pero activo en /api
-api_alias_router = APIRouter()
-api_alias_router.add_api_route("/chat", send_message_to_bot, methods=["POST"], include_in_schema=False)
-api_alias_router.add_api_route("/chat/health", chat_health, methods=["GET"], include_in_schema=False)
-app.include_router(api_alias_router, prefix="/api")
-
-# 🧠 Middlewares personalizados
-app.add_middleware(AccessLogMiddleware)
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(AuthMiddleware)
-
-# 📝 Adjunta IP y UA
-@app.middleware("http")
-async def add_ip_and_user_agent(request: Request, call_next):
-    request.state.ip = request.client.host
-    request.state.user_agent = request.headers.get("user-agent")
-    return await call_next(request)
+# ✅ Chat router montado dos veces (compat): raíz y /api
+#    Esto expone /chat, /chat/health, /chat/debug y sus equivalentes en /api/*
+app.include_router(chat_router)             # /chat, /chat/health, /chat/debug
+app.include_router(chat_router, prefix="/api")  # /api/chat, /api/chat/health, /api/chat/debug
 
 # ─────────────────────────────────────────
 # 🔒 CSP (embebidos) — override por EMBED_ALLOWED_ORIGINS, fallback a settings.frame_ancestors
@@ -113,9 +101,15 @@ async def csp_headers(request: Request, call_next):
     env_anc = _parse_csv_or_space(raw_env)
     ancestors = env_anc if env_anc else (settings.frame_ancestors or ["'self'"])
 
+    # Nota: mantenemos X-Frame-Options por compat, aunque CSP ya gobierna.
     resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(ancestors)};"
-    resp.headers["X-Frame-Options"] = "SAMEORIGIN"  # opcional con CSP
+    resp.headers["X-Frame-Options"] = "SAMEORIGIN"
     return resp
+
+# 🧠 Middlewares personalizados (orden conservado)
+app.add_middleware(AccessLogMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(AuthMiddleware)
 
 # 🖼️ Iconos/fav
 @app.get("/favicon.ico")
@@ -180,7 +174,7 @@ async def manifest(_: Request):
 async def chat_embed(request: Request):
     return templates.TemplateResponse("chat-embed.html", {"request": request})
 
-# ✅ Redirects 301 de rutas legacy → **esta** canónica
+# ✅ Redirects 301 de rutas legacy → canónica
 @app.get("/widget.html", include_in_schema=False)
 async def legacy_widget_alias():
     return RedirectResponse(url="/chat-embed.html", status_code=301)
@@ -268,11 +262,12 @@ async def rate_limit_middleware(request: Request, call_next):
     path = request.url.path
     is_chat = path == "/chat" or path == "/api/chat"
     if request.method == "POST" and is_chat:
-        ip = request.client.host
+        ip = getattr(request.state, "ip", None) or (request.client.host if request.client else "unknown")
         now = time()
         window = settings.rate_limit_window_sec
         max_req = settings.rate_limit_max_requests
 
+        # Redis
         if settings.rate_limit_backend == "redis" and redis_client:
             key = f"rl:{ip}"
             try:
@@ -286,6 +281,7 @@ async def rate_limit_middleware(request: Request, call_next):
                 logger.error(f"RateLimit Redis error: {e}. Fallback a 'memory'.")
                 settings.rate_limit_backend = "memory"
 
+        # Memory
         if settings.rate_limit_backend == "memory":
             dq = _RATE_BUCKETS[ip]
             while dq and (now - dq[0]) > window:
