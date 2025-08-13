@@ -16,6 +16,7 @@ from rasa_sdk.events import SlotSet
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction  # Rasa SDK 3.x
 
+
 # =========================
 #    Config & Constantes
 # =========================
@@ -223,8 +224,21 @@ class ActionSoporteSubmit(Action):
                 timeout=10,
             )
             if 200 <= resp.status_code < 300:
-                dispatcher.utter_message(response="utter_soporte_creado")
-                return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+                # —— Extra: mostrar ticket_id si viene en la respuesta ——
+                data: Dict[str, Any] = {}
+                try:
+                    data = resp.json()
+                except Exception:
+                    pass
+                tid = (data or {}).get("ticket_id") or (data or {}).get("id")
+                if tid:
+                    dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
+                    # Si quieres reutilizar el ID más tarde, descomenta:
+                    # return [SlotSet("ticket_id", str(tid)), SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+                    return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+                else:
+                    dispatcher.utter_message(response="utter_soporte_creado")
+                    return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
             else:
                 print(f"[actions] Helpdesk respondió {resp.status_code}: {resp.text}")
                 dispatcher.utter_message(response="utter_soporte_error")
@@ -310,8 +324,7 @@ def _has_auth(tracker: Tracker) -> bool:
     if isinstance(auth, dict) and auth.get("claims"):
         return True
 
-    # (Opcional) Validación local del JWT si decidieras pasar el token crudo en metadata.
-    # DESACTIVADA por seguridad a menos que tú la habilites.
+    # (Opcional) Validación local del JWT si decidieras pasar el token crudo.
     # token = isinstance(auth, dict) and auth.get("token")
     # if token and JWT_PUBLIC_KEY:
     #     try:
