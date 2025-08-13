@@ -56,12 +56,10 @@ forms:
       - email
       - mensaje
   recovery_form:
-
     required_slots:
       - email
 
 responses:
-
   utter_saludo:
     - text: "🤖 ¡Hola! ¿En qué puedo ayudarte hoy?"
       buttons:
@@ -76,7 +74,6 @@ responses:
         - title: "🛠️ Soporte técnico"
           payload: "/soporte_tecnico"
 
-  # Ejemplo cards/carousel para tu ChatUI
   utter_cursos_carousel:
     - custom:
         cards:
@@ -133,7 +130,7 @@ responses:
 
   utter_certificados_info:
     - text: |
-        🧾 Python Básico – Nov 2024  
+        🧾 Python Básico – Nov 2024
         🧾 IA Educativa – Ene 2025
       buttons:
         - title: "🔗 Descargar todos"
@@ -143,9 +140,9 @@ responses:
 
   utter_tutor_asignado:
     - text: |
-        👨‍🏫 Tu tutor actual es:  
-        Nombre: Prof. Ana María Restrepo  
-        Email: ana.restrepo@zajuna.edu  
+        👨‍🏫 Tu tutor actual es:
+        Nombre: Prof. Ana María Restrepo
+        Email: ana.restrepo@zajuna.edu
         Horario: Lun y Mié 10:00 – 12:00
       buttons:
         - title: "📅 Ver disponibilidad"
@@ -183,50 +180,35 @@ responses:
     - text: "✅ Estás inscrito al curso. Te enviaremos confirmación por correo."
 
   utter_default:
-    - text: "❌ Lo siento, no entendí eso. ¿Podrías reformularlo por favor?"
+    - text: "❌ No entendí eso. ¿Podrías reformularlo?"
 
-  # Prompts del FORM
+  # Prompts del soporte_form
   utter_ask_nombre:
     - text: "👤 ¿Cuál es tu nombre completo?"
   utter_ask_email:
     - text: "📧 ¿Cuál es tu correo de contacto?"
-  utter_ask_mensaje:
-    - text: "📝 Cuéntame brevemente el problema o solicitud de soporte."
-  utter_soporte_form_ok:
-    - text: "🙏 Gracias. Estoy registrando tu solicitud…"
-  utter_ask_nombre:
-    - text: "👤 ¿Cuál es tu nombre completo?"
-
-  utter_ask_email:
-    - text: "📧 ¿Cuál es tu correo de contacto?"
-
   utter_ask_mensaje:
     - text: "📝 Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
 
+  utter_soporte_form_ok:
+    - text: "🙏 Gracias. Estoy registrando tu solicitud…"
   utter_soporte_resumen:
     - text: |
         ✅ Gracias {nombre}. Voy a crear un ticket con:
         • Email: {email}
         • Mensaje: "{mensaje}"
-
   utter_soporte_creado:
     - text: "🎫 Ticket creado correctamente. Te enviaremos novedades a tu correo."
-
   utter_soporte_error:
     - text: "⚠️ Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
-
-  utter_default:
-    - text: "❌ No entendí eso. ¿Podrías reformularlo?"
 
 actions:
   - action_enviar_correo
   - action_conectar_humano
-  - action_enviar_soporte
+  - action_soporte_submit
   - validate_soporte_form
   - validate_recovery_form
-  - validate_soporte_form
-  - action_soporte_submit
-- 
+
 session_config:
   session_expiration_time: 60
   carry_over_slots_to_new_session: true

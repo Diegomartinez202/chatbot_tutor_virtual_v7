@@ -4,14 +4,14 @@
         return s[s.length - 1];
     })();
 
-    const base = script.getAttribute("data-base") || location.origin;        // backend base
+    const base = script.getAttribute("data-base") || location.origin;
     const avatar = script.getAttribute("data-avatar") || (base + "/bot-avatar.png");
-    const chatEmbed = script.getAttribute("data-embed") || (base + "/chat-embed.html"); // canónica
+    const chatEmbed = script.getAttribute("data-embed") || (base + "/chat-embed.html");
     const apiBase = script.getAttribute("data-api") || (base + "/api");
     const size = script.getAttribute("data-size") || "64";
     const userId = window.ZAJUNA_USER?.id || localStorage.getItem("user_id") || "anonimo";
 
-    // botón flotante
+    // Botón flotante
     const btn = document.createElement("button");
     btn.setAttribute("aria-label", "Abrir chat");
     btn.style.cssText = `
@@ -24,7 +24,7 @@
     img.style.cssText = "width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;";
     btn.appendChild(img);
 
-    // badge
+    // Badge
     const badge = document.createElement("span");
     Object.assign(badge.style, {
         position: "absolute", top: "-2px", right: "-2px",
@@ -34,7 +34,7 @@
     });
     btn.appendChild(badge);
 
-    // panel
+    // Panel
     const panel = document.createElement("div");
     panel.style.cssText = `
     position:fixed; right:24px; bottom:${parseInt(size, 10) + 20}px;
@@ -56,7 +56,7 @@
     iframe.allow = "clipboard-write";
     panel.appendChild(iframe);
 
-    // toggle
+    // Toggle
     btn.addEventListener("click", () => {
         const visible = panel.style.display === "block";
         panel.style.display = visible ? "none" : "block";
@@ -66,7 +66,7 @@
         }
     });
 
-    // cerrar haciendo click fuera (opcional)
+    // Cerrar click fuera
     document.addEventListener("click", (e) => {
         if (!panel.contains(e.target) && !btn.contains(e.target)) {
             panel.style.display = "none";
@@ -77,14 +77,14 @@
     document.body.appendChild(btn);
     document.body.appendChild(panel);
 
-    // auto‑abrir con hash
+    // Auto abrir con hash
     if (location.hash === "#abrir-bot") {
         panel.style.display = "block";
         marcarLeidos().catch(() => { });
         badge.style.display = "none";
     }
 
-    // polling de no‑leídos (si tu backend lo expone)
+    // Polling no leídos (opcional si tu backend lo expone)
     async function updateBadge() {
         try {
             const r = await fetch(`${apiBase}/logs/unread_count?user_id=${encodeURIComponent(userId)}`);

@@ -35,10 +35,8 @@
     <script>
         (function () {
             const qs = new URLSearchParams(location.search);
-            // canónica servida por FastAPI
-            const embed = (location.origin + "/chat-embed.html");
-            // preservamos parámetros y forzamos embed=1
-            if (!qs.has("embed")) qs.set("embed", "1");
+            const embed = (location.origin + "/chat-embed.html"); // canónica
+            if (!qs.has("embed")) qs.set("embed", "1");           // forzar embed=1
             const url = embed + "?" + qs.toString();
 
             const ifr = document.getElementById("chat");

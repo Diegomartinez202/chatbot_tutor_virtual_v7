@@ -1,41 +1,28 @@
-/* public/chat-widget.js
-   Widget flotante para abrir un iframe del chat.
-   - Modo 1 (declarativo):
-       <script src="/chat-widget.js" data-chat-url="/chat-embed.html?embed=1" ...></script>
-   - Modo 2 (programático):
-       window.ChatWidget.mount({ iframeSrc: "/chat-embed.html?embed=1", ... })
-   Mantiene compatibilidad con tu versión previa (data-attrs, badge auto, accesibilidad, persistencia de preferencias).
-*/
+/* public/chat-widget.js — launcher moderno (recomendado) */
 (function () {
     const LS_KEY = "ctv_widget_settings";
-    const ONE = 1; // para z-index offsets claros
+    const ONE = 1;
 
     const DEFAULTS = {
-        // Lanzador
         iconUrl: "/bot-avatar.png",
         title: "Abrir chat",
-        buttonPosition: "bottom-right", // "bottom-right" | "bottom-left"
+        buttonPosition: "bottom-right",
         size: 64,
         offset: 24,
         zIndex: 2147483600,
-        // Panel
-        iframeSrc: "/chat-embed.html?embed=1", // ruta canónica servida por FastAPI
+        iframeSrc: "/chat-embed.html?embed=1",
         panelWidth: "380px",
         panelHeight: "560px",
         overlay: true,
         escClose: true,
         iframeTitle: "Chat",
-        // Seguridad iframe
         allow: "clipboard-write",
         sandbox: "allow-scripts allow-forms allow-same-origin allow-popups",
-        allowedOrigins: [], // p.ej. ["https://tu-sitio-externo.com"]
-        // Badge: "", "auto" o "N" (número)
-        badge: "",
-        // Auto-inicialización si el script tiene data-attrs
+        allowedOrigins: [], // p.ej. ["https://tu-dominio.com"]
+        badge: "",          // "", "auto" o "N"
         autoinit: true,
     };
 
-    // ========= Utils =========
     const toBool = (val, def) => {
         if (val === undefined || val === null || val === "") return !!def;
         const s = String(val).toLowerCase();
@@ -43,16 +30,9 @@
         if (["false", "0", "no"].includes(s)) return false;
         return !!def;
     };
-    const clampInt = (v, fallback) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : fallback;
-    };
-    const str = (v, fallback) => (v == null || v === "" ? fallback : String(v));
-    const arr = (v) =>
-        String(v || "")
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
+    const clampInt = (v, fb) => Number.isFinite(Number(v)) ? Number(v) : fb;
+    const str = (v, fb) => (v == null || v === "" ? fb : String(v));
+    const arr = (v) => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
 
     function readAttrsFromScript(el) {
         return {
@@ -84,11 +64,7 @@
         } catch { }
         return state;
     }
-    function saveSettings(s) {
-        try {
-            localStorage.setItem(LS_KEY, JSON.stringify(s));
-        } catch { }
-    }
+    const saveSettings = (s) => { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { } };
 
     function applyPanelSkin({ panel, header, overlay, state }) {
         if (state.theme === "dark") {
@@ -107,12 +83,10 @@
         panel.style.borderWidth = state.contrast ? "2px" : "1px";
     }
 
-    // ========= Core builder =========
     function buildInstance(cfg) {
-        // Estado accesibilidad/idioma
         const state = getSavedSettings();
 
-        // Lanzador
+        // Button
         const btn = document.createElement("button");
         btn.type = "button";
         btn.setAttribute("aria-label", cfg.title);
@@ -220,7 +194,7 @@
         applyMobile();
         mq.addEventListener?.("change", applyMobile);
 
-        // Iframe o placeholder
+        // Iframe
         let frame;
         if (cfg.iframeSrc) {
             frame = document.createElement("iframe");
@@ -232,16 +206,6 @@
             frame.sandbox = cfg.sandbox;
             frame.style.cssText = "width:100%; height:100%; border:0;";
             content.appendChild(frame);
-        } else {
-            const wrap = document.createElement("div");
-            wrap.style.cssText =
-                "display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font:14px system-ui, sans-serif;text-align:center;padding:16px;";
-            wrap.innerHTML = `
-        <div>
-          <img src="${cfg.iconUrl}" alt="Bot" style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 8px"/>
-          <div>Configura <code>data-chat-url</code> o usa <code>window.ChatWidget.mount({ iframeSrc: ... })</code>.</div>
-        </div>`;
-            content.appendChild(wrap);
         }
 
         // Abrir/cerrar
@@ -251,13 +215,19 @@
             btn.setAttribute("aria-expanded", "true");
             if (cfg.badge === "auto") setBadge(0);
             if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: "chat:settings", ...state }, "*");
+                const target = (cfg.allowedOrigins && cfg.allowedOrigins[0]) || "*";
+                frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target);
+                frame.contentWindow.postMessage({ type: "chat:visibility", open: true }, target);
             }
         };
         const close = () => {
             if (cfg.overlay) ov.style.display = "none";
             panel.style.display = "none";
             btn.setAttribute("aria-expanded", "false");
+            if (frame && frame.contentWindow) {
+                const target = (cfg.allowedOrigins && cfg.allowedOrigins[0]) || "*";
+                frame.contentWindow.postMessage({ type: "chat:visibility", open: false }, target);
+            }
         };
 
         btn.addEventListener("click", () => {
@@ -265,14 +235,10 @@
             isOpen ? close() : open();
         });
         if (cfg.overlay) {
-            ov.addEventListener("click", (e) => {
-                if (e.target === ov) close();
-            });
+            ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
         }
         if (cfg.escClose) {
-            document.addEventListener("keydown", (e) => {
-                if (e.key === "Escape") close();
-            });
+            document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
         }
 
         // Montaje
@@ -295,26 +261,18 @@
             applyPanelSkin({ panel, header, overlay: ov, state });
             saveSettings(state);
             if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: "chat:settings", ...state }, "*");
+                const target = (cfg.allowedOrigins && cfg.allowedOrigins[0]) || "*";
+                frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target);
             }
         };
         applyAndNotify();
 
-        themeToggle.addEventListener("change", () => {
-            state.theme = themeToggle.checked ? "dark" : "light";
-            applyAndNotify();
-        });
-        contrastToggle.addEventListener("change", () => {
-            state.contrast = contrastToggle.checked;
-            applyAndNotify();
-        });
-        langSelect.addEventListener("change", () => {
-            state.lang = langSelect.value || "es";
-            applyAndNotify();
-        });
+        themeToggle.addEventListener("change", () => { state.theme = themeToggle.checked ? "dark" : "light"; applyAndNotify(); });
+        contrastToggle.addEventListener("change", () => { state.contrast = contrastToggle.checked; applyAndNotify(); });
+        langSelect.addEventListener("change", () => { state.lang = langSelect.value || "es"; applyAndNotify(); });
         closeBtn.addEventListener("click", close);
 
-        // Badge "auto" (postMessage)
+        // Badge "auto" (postMessage del iframe)
         if (cfg.badge === "auto") {
             window.addEventListener("message", (ev) => {
                 try {
@@ -331,37 +289,24 @@
         if (frame) {
             frame.addEventListener("load", () => {
                 try {
-                    frame.contentWindow.postMessage({ type: "chat:settings", ...state }, "*");
+                    const target = (cfg.allowedOrigins && cfg.allowedOrigins[0]) || "*";
+                    frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target);
                 } catch { }
             });
         }
 
-        // Devuelve instancia
         return {
-            cfg,
-            btn,
-            overlay: ov,
-            panel,
-            iframe: frame,
-            open,
-            close,
-            destroy() {
-                try {
-                    btn.remove();
-                    ov.remove();
-                    panel.remove();
-                } catch { }
-            },
+            cfg, btn, overlay: ov, panel, iframe: frame,
+            open, close,
+            destroy() { try { btn.remove(); ov.remove(); panel.remove(); } catch { } }
         };
     }
 
-    // ========= API pública =========
     function unmount() {
         const inst = window.__ChatWidgetInstance;
         if (!inst) return;
         inst.destroy();
         window.__ChatWidgetInstance = null;
-        // limpiar estilos inyectados por versiones previas si existiera
         const st = document.querySelector('style[data-chat-widget]');
         if (st) st.remove();
     }
@@ -372,30 +317,20 @@
         window.__ChatWidgetInstance = inst;
         return inst;
     }
-
-    function open() {
-        window.__ChatWidgetInstance?.open?.();
-    }
-    function close() {
-        window.__ChatWidgetInstance?.close?.();
-    }
+    function open() { window.__ChatWidgetInstance?.open?.(); }
+    function close() { window.__ChatWidgetInstance?.close?.(); }
 
     window.ChatWidget = { mount, unmount, open, close };
 
-    // ========= Auto-mount (modo data-attrs) =========
+    // Auto-mount por data-attrs
     try {
         const el = document.currentScript;
         if (!el) return;
         const cfgFromAttrs = readAttrsFromScript(el);
         if (!cfgFromAttrs.autoinit) return;
-        // Si el script viene con data-* relevantes, montamos automáticamente
-        const hasAnyData =
-            el.hasAttribute("data-chat-url") ||
-            el.hasAttribute("data-avatar") ||
-            el.hasAttribute("data-title") ||
-            el.hasAttribute("data-position") ||
-            el.hasAttribute("data-panel-width") ||
-            el.hasAttribute("data-panel-height");
+        const hasAnyData = [
+            "data-chat-url", "data-avatar", "data-title", "data-position", "data-panel-width", "data-panel-height"
+        ].some(a => el.hasAttribute(a));
         if (hasAnyData) {
             mount({
                 iconUrl: cfgFromAttrs.iconUrl,

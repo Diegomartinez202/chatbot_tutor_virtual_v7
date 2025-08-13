@@ -5,20 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import IconTooltip from "@/components/ui/IconTooltip";
 
-/**
- * ChatUI para Rasa REST (vía backend /api/chat).
- * Soporta:
- *  - text, image
- *  - buttons [{title, payload}]
- *  - quick_replies [{title, payload}]
- *  - custom card(s):
- *      { type: "card", title, subtitle, image, buttons? }
- *      { cards: [ {title, subtitle, image, buttons?}, ... ] }
- *
- * UX:
- *  - Shift+Enter = nueva línea; Enter = enviar
- *  - En embed: menos padding/cromo
- */
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
 
@@ -28,13 +14,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
-    const [disabledActionGroups, setDisabledActionGroups] = useState(() => new Set()); // deshabilitar sets de botones tras click
+    const [disabledActionGroups, setDisabledActionGroups] = useState(() => new Set());
 
     const listRef = useRef(null);
+    const unreadRef = useRef(0);
 
-    const userId = useMemo(() => {
-        return user?.email || user?._id || null;
-    }, [user]);
+    const userId = useMemo(() => user?.email || user?._id || null, [user]);
 
     const scrollToBottom = useCallback(() => {
         requestAnimationFrame(() => {
@@ -44,11 +29,33 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         });
     }, []);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, sending, scrollToBottom]);
+    useEffect(() => { scrollToBottom(); }, [messages, sending, scrollToBottom]);
 
-    // Normaliza items de Rasa a mensajes del UI
+    // 🔔 avisar al host (launcher) del conteo de no leídos
+    const postBadge = useCallback((count) => {
+        try {
+            if (typeof window !== "undefined" && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: "chat:badge", count }, "*");
+            }
+        } catch { }
+    }, []);
+
+    useEffect(() => { unreadRef.current = 0; postBadge(0); }, [postBadge]);
+
+    // Resetear a 0 cuando el host abre el panel
+    useEffect(() => {
+        const onMsg = (ev) => {
+            const data = ev.data || {};
+            if (data.type === "chat:visibility" && data.open === true) {
+                unreadRef.current = 0;
+                postBadge(0);
+            }
+        };
+        window.addEventListener("message", onMsg);
+        return () => window.removeEventListener("message", onMsg);
+    }, [postBadge]);
+
+    // Normalizar Rasa → UI
     const normalizeRasaItems = (rsp) => {
         const out = [];
         (rsp || []).forEach((item, idx) => {
@@ -83,7 +90,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                 });
             }
 
-            // custom → intentamos detectar "card" / "cards" sencillas
             const c = item.custom;
             if (c && typeof c === "object") {
                 // 1 card
@@ -142,32 +148,29 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         setError("");
         setSending(true);
 
-        // Pintar el mensaje del usuario
         const userMsg = { id: `u-${Date.now()}`, role: "user", text: displayAs || text };
         setMessages((m) => [...m, userMsg]);
         setInput("");
 
         try {
             const rsp = await sendRasaMessage({
-                text, // mandamos payload como texto si viene (p.ej. "/intent{...}" o "/affirm")
+                text,
                 sender: userId || undefined,
-                metadata: {
-                    url: typeof location !== "undefined" ? location.href : undefined,
-                    // podrías incluir idioma/tenant/etc.
-                },
+                metadata: { url: typeof location !== "undefined" ? location.href : undefined },
             });
             const botMsgs = normalizeRasaItems(rsp);
             setMessages((m) => [...m, ...botMsgs]);
+
+            // 🔔 incrementar no leídos (si el panel no está “abierto” a ojos del host, lo verá en el badge)
+            const inc = botMsgs.length || 1;
+            unreadRef.current = Math.max(0, unreadRef.current + inc);
+            postBadge(unreadRef.current);
         } catch (e) {
             console.error(e);
             setError(e?.message || "Error al enviar el mensaje");
             setMessages((m) => [
                 ...m,
-                {
-                    id: `b-${Date.now()}-err`,
-                    role: "bot",
-                    text: "Ocurrió un error al contactar al asistente. Intenta nuevamente.",
-                },
+                { id: `b-${Date.now()}-err`, role: "bot", text: "Ocurrió un error al contactar al asistente. Intenta nuevamente." },
             ]);
         } finally {
             setSending(false);
@@ -181,38 +184,25 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     };
 
     const onKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
     };
 
     const handleActionClick = async (groupId, { title, payload, url }) => {
-        // Si hay URL, abrimos en nueva pestaña, y si también hay payload, lo enviamos
         if (url) window.open(url, "_blank", "noopener,noreferrer");
         if (!payload) return;
-
-        // Deshabilitamos el grupo (no clickable de nuevo)
         setDisabledActionGroups((prev) => new Set(prev).add(groupId));
-
         await sendToRasa({ text: payload, displayAs: title });
     };
 
     return (
         <div className={embed ? "h-full flex flex-col" : "h-full flex flex-col bg-white"}>
             {/* Mensajes */}
-            <div
-                ref={listRef}
-                className={"flex-1 overflow-auto px-3 " + (embed ? "py-2" : "py-4 bg-white")}
-            >
+            <div ref={listRef} className={"flex-1 overflow-auto px-3 " + (embed ? "py-2" : "py-4 bg-white")}>
                 <div className="max-w-3xl mx-auto space-y-3">
                     {messages.map((m) => {
                         const isUser = m.role === "user";
-                        const bubbleCls = isUser
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-100 text-gray-800";
-                        const commonCls =
-                            "rounded-2xl px-3 py-2 max-w-[75%] text-sm";
+                        const bubbleCls = isUser ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-800";
+                        const commonCls = "rounded-2xl px-3 py-2 max-w-[75%] text-sm";
 
                         // Card
                         if (m.card) {
@@ -222,20 +212,11 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                                 <div key={m.id} className="flex justify-start">
                                     <div className="rounded-xl border bg-white text-gray-800 max-w-[75%] overflow-hidden">
                                         {m.card.image ? (
-                                            <img
-                                                src={m.card.image}
-                                                alt={m.card.title || "card"}
-                                                className="w-full h-40 object-cover"
-                                                loading="lazy"
-                                            />
+                                            <img src={m.card.image} alt={m.card.title || "card"} className="w-full h-40 object-cover" loading="lazy" />
                                         ) : null}
                                         <div className="p-3">
                                             <div className="font-semibold">{m.card.title}</div>
-                                            {m.card.subtitle ? (
-                                                <div className="text-xs text-gray-500 mt-0.5">
-                                                    {m.card.subtitle}
-                                                </div>
-                                            ) : null}
+                                            {m.card.subtitle ? <div className="text-xs text-gray-500 mt-0.5">{m.card.subtitle}</div> : null}
                                             {!!(m.card.buttons || []).length && (
                                                 <div className="mt-3 flex flex-wrap gap-2">
                                                     {m.card.buttons.map((b) => (
@@ -331,14 +312,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                                     ) : m.image ? (
                                         <div className="flex items-center gap-2">
                                             <ImgIcon className="w-4 h-4 opacity-70" />
-                                            <a
-                                                href={m.image}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="underline"
-                                            >
-                                                Ver imagen
-                                            </a>
+                                            <a href={m.image} target="_blank" rel="noreferrer" className="underline">Ver imagen</a>
                                         </div>
                                     ) : null}
                                 </div>
@@ -379,7 +353,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                         onKeyDown={onKeyDown}
                         disabled={sending}
                     />
-                    <IconTooltip label="Enviar (Enter)" side="top">
+                    <IconTooltip content="Enviar (Enter)">
                         <button
                             type="button"
                             onClick={handleSend}

@@ -49,13 +49,14 @@
     <script>
         (function () {
             const qs = new URLSearchParams(location.search);
-            const src = qs.get("src") || "/static/widgets/widget.html";
+            // ✅ Default ahora es React interno en modo embed:
+            const src = qs.get("src") || "/chat?embed=1";
             const w = qs.get("w") || "380px";
             const h = qs.get("h") || "560px";
             document.querySelector(".wrap").style.setProperty("--w", w);
             document.querySelector(".wrap").style.setProperty("--h", h);
 
-            // reenviar params útiles
+            // Reenviar params útiles (si existen)
             const forwardKeys = ["api", "user_id", "avatar"];
             const fwd = new URLSearchParams();
             forwardKeys.forEach(k => { if (qs.get(k)) fwd.set(k, qs.get(k)); });

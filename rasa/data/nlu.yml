@@ -1,5 +1,4 @@
 version: "3.1"
-
 nlu:
 - intent: saludo
   examples: |
@@ -128,5 +127,3 @@ nlu:
     - mi correo es juan.perez@ejemplo.com
     - puedes escribir a maria_123@zajuna.edu
     - usa este email: user+test@domain.io
-  entities:
-    - email

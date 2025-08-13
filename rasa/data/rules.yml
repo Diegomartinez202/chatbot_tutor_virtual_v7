@@ -7,48 +7,49 @@ rules:
     - intent: saludo
     - action: utter_saludo
 
-# Iniciar formulario de soporte por cualquier problema técnico
-- rule: Iniciar formulario de soporte (soporte_tecnico)
+# Iniciar soporte_form por cualquier problema técnico
+- rule: Iniciar soporte (soporte_tecnico)
   steps:
     - intent: soporte_tecnico
     - action: soporte_form
     - active_loop: soporte_form
 
-- rule: Iniciar formulario de soporte (otros_problemas)
+- rule: Iniciar soporte (otro_problema_tecnico)
   steps:
     - intent: otro_problema_tecnico
     - action: soporte_form
     - active_loop: soporte_form
 
-- rule: Iniciar formulario de soporte (no_ingreso)
+- rule: Iniciar soporte (no_ingreso)
   steps:
     - intent: problema_no_ingreso
     - action: soporte_form
     - active_loop: soporte_form
 
-- rule: Iniciar formulario de soporte (pantalla_blanca)
+- rule: Iniciar soporte (pantalla_blanca)
   steps:
     - intent: pantalla_blanca
     - action: soporte_form
     - active_loop: soporte_form
 
-- rule: Iniciar formulario de soporte (error_actividad)
+- rule: Iniciar soporte (error_actividad)
   steps:
     - intent: error_actividad
     - action: soporte_form
     - active_loop: soporte_form
 
-# Submit del form de soporte
-- rule: Enviar soporte tras completar form
+# Submit del soporte_form
+- rule: Submit soporte_form
   condition:
     - active_loop: soporte_form
   steps:
     - action: soporte_form
     - active_loop: null
-    - action: utter_soporte_form_ok
-    - action: action_enviar_soporte
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
 
-# Flujo de recuperación de contraseña (form sólo email)
+# Flujo de recuperación de contraseña (form solo email)
 - rule: Iniciar recovery_form
   steps:
     - intent: recuperar_contrasena
@@ -64,28 +65,8 @@ rules:
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
-# Escalar a humano
-- rule: Escalar a humano
+# Escalar a humano (pregunta)
+- rule: Escalar a humano (pregunta)
   steps:
     - intent: escalar_humano
     - action: utter_escalar_humano
- - rule: Iniciar formulario de soporte (intent principal)
-    steps:
-      - intent: soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Iniciar formulario de soporte (otros problemas técnicos)
-    steps:
-      - intent: otro_problema_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Submit soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: soporte_form
-      - active_loop: null
-      - action: utter_soporte_resumen
-      - action: action_soporte_submit

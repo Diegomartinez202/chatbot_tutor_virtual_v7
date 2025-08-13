@@ -1,67 +1,137 @@
 version: "3.1"
 
 stories:
-- story: Flujo de saludo y exploración
+# 1) Saludo y exploración
+- story: Saludo → Recomendados
   steps:
-  - intent: saludo
-  - action: utter_saludo
-  - intent: explorar_temas
-  - action: utter_cursos_recomendados
+    - intent: saludo
+    - action: utter_saludo
+    - intent: explorar_temas
+    - action: utter_cursos_recomendados
 
-- story: Flujo de recuperación de contraseña
-  steps:
-  - intent: ingreso_zajuna
-  - action: utter_preguntar_problema_acceso
-  - intent: recuperar_contrasena
-  - action: utter_pedir_correo
-  - intent: enviar_correo
-  - action: action_enviar_correo
-  - action: utter_confirmar_recuperacion
-
-- story: Flujo proceso académico
-  steps:
-  - intent: proceso_academico
-  - action: utter_menu_proceso_academico
-  - intent: tutor_asignado
-  - action: utter_tutor_asignado
-  - intent: ver_certificados
-  - action: utter_certificados_info
-  - intent: horarios_calendario
-  - action: utter_menu_proceso_academico
-
-- story: Flujo soporte técnico
-  steps:
-  - intent: soporte_tecnico
-  - action: utter_soporte_tecnico
-  - intent: problema_no_ingreso
-  - action: utter_soporte_tecnico
-  - intent: error_actividad
-  - action: utter_soporte_tecnico
-
-- story: Escalar a humano
-  steps:
-  - intent: escalar_humano
-  - action: utter_escalar_humano
-  - intent: confirmacion_escalar_humano
-  - action: action_conectar_humano
-  - action: utter_confirmar_escalado
-  
-  stories:
 - story: Saludo → Carrusel cursos
   steps:
-  - intent: saludo
-  - action: utter_saludo
-  - intent: explorar_temas
-  - action: utter_cursos_carousel
+    - intent: saludo
+    - action: utter_saludo
+    - intent: explorar_temas
+    - action: utter_cursos_carousel
 
-- story: Explorar temas directo → Carrusel
+- story: Explorar directo → Carrusel
   steps:
-  - intent: explorar_temas
-  - action: utter_cursos_carousel
+    - intent: explorar_temas
+    - action: utter_cursos_carousel
 
-# (opcional) botón “Mis cursos y contenidos” del menú
-- story: Mis cursos → Carrusel
+- story: Mis cursos → Recomendados + Carrusel
   steps:
-  - intent: explorar_temas
-  - action: utter_cursos_recomendados
-  - action: utter_cursos_carousel
+    - intent: explorar_temas
+    - action: utter_cursos_recomendados
+    - action: utter_cursos_carousel
+
+# 2) Recuperación de contraseña con form (solo email)
+- story: Recuperar contraseña desde ingreso
+  steps:
+    - intent: ingreso_zajuna
+    - action: utter_preguntar_problema_acceso
+    - intent: recuperar_contrasena
+    - action: recovery_form
+    - active_loop: recovery_form
+    - action: recovery_form
+    - active_loop: null
+    - action: action_enviar_correo
+    - action: utter_confirmar_recuperacion
+
+# 3) Proceso académico (menú y subflujos)
+- story: Proceso académico completo
+  steps:
+    - intent: proceso_academico
+    - action: utter_menu_proceso_academico
+    - intent: tutor_asignado
+    - action: utter_tutor_asignado
+    - intent: ver_certificados
+    - action: utter_certificados_info
+    - intent: horarios_calendario
+    - action: utter_menu_proceso_academico
+
+# 4) Escalado a humano (confirmar / negar)
+- story: Escalar a humano (confirmado)
+  steps:
+    - intent: escalar_humano
+    - action: utter_escalar_humano
+    - intent: confirmacion_escalar_humano
+    - action: action_conectar_humano
+    - action: utter_confirmar_escalado
+
+- story: Escalar a humano (negado)
+  steps:
+    - intent: escalar_humano
+    - action: utter_escalar_humano
+    - intent: negar_escalar
+    - action: utter_gracias_continuar
+
+# 5) Soporte técnico: iniciar soporte_form desde diferentes intents
+#    (Si ya tienes reglas para esto, estas historias refuerzan el comportamiento en entrenamiento)
+- story: Soporte técnico (intent principal)
+  steps:
+    - intent: soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
+
+- story: Soporte técnico (no ingreso)
+  steps:
+    - intent: problema_no_ingreso
+    - action: soporte_form
+    - active_loop: soporte_form
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
+
+- story: Soporte técnico (pantalla blanca)
+  steps:
+    - intent: pantalla_blanca
+    - action: soporte_form
+    - active_loop: soporte_form
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
+
+- story: Soporte técnico (error actividad)
+  steps:
+    - intent: error_actividad
+    - action: soporte_form
+    - active_loop: soporte_form
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
+
+- story: Soporte técnico (otro problema)
+  steps:
+    - intent: otro_problema_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
+
+# 6) Cancelación del soporte_form por el usuario (deny/stop)
+- story: Cancelar soporte_form
+  steps:
+    - intent: soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+    - intent: deny
+    - action: action_deactivate_loop
+    - active_loop: null
+    - action: utter_gracias_continuar
