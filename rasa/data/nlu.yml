@@ -1,129 +1,286 @@
 version: "3.1"
+
 nlu:
+# ————————— SALUDO
 - intent: saludo
   examples: |
     - hola
     - buenas
     - hey
-    - qu� m�s
-    - buen d�a
+    - qué más
+    - buen día
+    - hola chatbot
+    - hola, ¿me ayudas?
+    - holi
+    - buenos días
+    - buenas tardes
 
+# ————————— EXPLORAR TEMAS / CATÁLOGO
 - intent: explorar_temas
   examples: |
     - quiero ver cursos
-    - qu� temas puedo aprender
+    - qué temas puedo aprender
     - explorar contenidos
+    - muéstrame los cursos
+    - qué programas tienen
+    - catálogo de cursos
+    - ver oferta académica
+    - cursos disponibles
 
+# ————————— INGRESO / LOGIN
 - intent: ingreso_zajuna
   examples: |
     - quiero ingresar a zajuna
-    - c�mo inicio sesi�n
+    - cómo inicio sesión
     - tengo problemas para entrar
+    - abrir login
+    - dónde me logueo
+    - iniciar sesión en la plataforma
+    - no encuentro el login
+    - entrar a mi cuenta
 
+# ————————— RECUPERAR CONTRASEÑA
 - intent: recuperar_contrasena
   examples: |
-    - s�, quiero recuperar mi contrase�a
-    - olvid� mi clave
-    - recuperar la contrase�a
+    - sí, quiero recuperar mi contraseña
+    - olvidé mi clave
+    - recuperar la contraseña
+    - restablecer contraseña
+    - enviar enlace de recuperación
+    - no recuerdo mi contraseña
+    - cómo recupero mi password
+    - necesito cambiar mi clave
 
+# ————————— OTRO PROBLEMA DE ACCESO
 - intent: otro_problema_acceso
   examples: |
-    - no es por la contrase�a
+    - no es por la contraseña
     - otro problema de acceso
     - no puedo entrar pero no es por clave
+    - el sistema no me deja pasar
+    - tengo otro inconveniente para entrar
+    - error distinto al de contraseña
 
+# ————————— PROCESO ACADÉMICO / ADMIN
 - intent: proceso_academico
   examples: |
-    - quiero ver mi proceso acad�mico
+    - quiero ver mi proceso académico
     - temas administrativos
     - proceso estudiantil
+    - información académica
+    - trámites académicos
+    - ayuda con el proceso académico
 
+# ————————— CERTIFICADOS (PRIVADO → REQUIERE AUTH)
 - intent: ver_certificados
   examples: |
     - quiero ver mis certificados
     - certificados que tengo
     - ver diplomas
+    - ver mis constancias
+    - descargar certificados
+    - certificados disponibles
+    - qué certificados tengo
+    - ver mis diplomas emitidos
+    - dónde descargo mis certificados
+    - lista de certificados
+    - necesito mi constancia
+    - quiero mis certificados en PDF
 
+# ————————— TUTOR / HORARIOS
 - intent: tutor_asignado
   examples: |
-    - qui�n es mi tutor
+    - quién es mi tutor
     - ver mi tutor
     - profesor asignado
+    - cuál es mi tutor actual
+    - necesito el contacto de mi tutor
+    - datos del tutor
 
 - intent: horarios_calendario
   examples: |
     - ver horario
     - calendario de clases
-    - fechas acad�micas
+    - fechas académicas
+    - cuándo son mis clases
+    - calendario del curso
+    - plan académico
 
+# ————————— SOPORTE TÉCNICO / INCIDENTES
 - intent: soporte_tecnico
   examples: |
-    - necesito soporte t�cnico
+    - necesito soporte técnico
     - ayuda con la plataforma
-    - problemas t�cnicos
+    - problemas técnicos
+    - soporte por favor
+    - tengo un problema con el campus
+    - asistencia técnica
+    - me puedes ayudar con un error
+    - abrir ticket de soporte
+    - comunicarme con soporte
+    - soporte
 
 - intent: problema_no_ingreso
   examples: |
     - no puedo ingresar
     - la plataforma no me deja entrar
+    - no logro iniciar sesión
+    - no puedo acceder
+    - no me deja entrar al sistema
+    - al entrar me da error
 
 - intent: pantalla_blanca
   examples: |
     - pantalla en blanco
     - no se carga nada
     - veo todo blanco
+    - la página queda en blanco
+    - el curso no carga y queda en blanco
+    - white screen
 
 - intent: error_actividad
   examples: |
     - error al abrir una actividad
     - me sale error al acceder a contenido
+    - no puedo abrir la actividad
+    - actividad no abre
+    - error en el cuestionario
+    - se bloquea al abrir la actividad
 
 - intent: otro_problema_tecnico
   examples: |
-    - otro tipo de error t�cnico
-    - diferente problema t�cnico
+    - otro tipo de error técnico
+    - diferente problema técnico
+    - es otro fallo
+    - tengo un problema distinto
+    - error raro en el sistema
+    - no sé qué error es
 
+# ————————— ESCALAR A HUMANO
 - intent: escalar_humano
   examples: |
     - quiero hablar con alguien
     - pasar con un agente humano
+    - escalar a humano
+    - hablar con asesor
+    - necesito un humano
+    - atención humana por favor
 
 - intent: confirmacion_escalar_humano
   examples: |
-    - s�, quiero hablar con humano
-    - s� por favor
+    - sí, quiero hablar con humano
+    - sí por favor
+    - de acuerdo
+    - confirmo
+    - adelante
 
 - intent: negar_escalar
   examples: |
     - no gracias, sigo con el bot
     - mejor no
+    - prefiero continuar aquí
+    - no necesito humano
+    - sigamos con el chat
 
+# ————————— ESTADO ESTUDIANTE (PRIVADO → REQUIERE AUTH)
 - intent: estado_estudiante
   examples: |
     - estoy activo este semestre
-    - cu�l es mi estado acad�mico
+    - cuál es mi estado académico
+    - mi matrícula está activa
+    - quiero saber si estoy inscrito
+    - estado de estudiante
+    - mi estado en la institución
+    - estoy habilitado para cursar
+    - aparezco activo
+    - verificar estado académico
+    - sigo activo este periodo
+    - mi estatus académico
+    - estado en el periodo actual
 
+# ————————— CAMBIO DE IDIOMA
 - intent: cambiar_idioma_ingles
   examples: |
-    - quiero usar el chat en ingl�s
+    - quiero usar el chat en inglés
     - change to english
+    - switch to english
+    - responde en inglés
+    - cambiar idioma a inglés
+    - I prefer English
 
 - intent: cambiar_idioma_espanol
   examples: |
-    - volver a espa�ol
-    - regresar a idioma espa�ol
+    - volver a español
+    - regresar a idioma español
+    - hablar en español
+    - ponlo en español
+    - cambia al español
+    - quiero español
 
+# ————————— INSCRIPCIONES
 - intent: inscribirme
   examples: |
     - quiero inscribirme a ese curso
     - me interesa ese curso
+    - inscribirme ahora
+    - cómo me inscribo
+    - registrarme en el curso
+    - quiero matricularme
 
+# ————————— LOGIN EXPLÍCITO (TRACKING DEL BOTÓN “INICIAR SESIÓN”)
+- intent: auth_login
+  examples: |
+    - iniciar sesión
+    - abrir inicio de sesión
+    - ir al login
+    - quiero loguearme
+    - acceder a mi cuenta
+    - entrar con mi usuario
+
+# ————————— AFFIRM / DENY / FALLBACK
+- intent: affirm
+  examples: |
+    - sí
+    - claro
+    - ok
+    - correcto
+    - de acuerdo
+    - sí por favor
+    - afirmativo
+    - va
+
+- intent: deny
+  examples: |
+    - no
+    - negativo
+    - no gracias
+    - prefiero que no
+    - no quiero
+    - mejor no
+    - no por ahora
+    - nah
+
+# Nota: Rasa maneja fallback con políticas; no es obligatorio dar ejemplos.
+- intent: fallback
+  examples: |
+    - no entiendo
+    - ?
+    - qué
+    - no sé
+    - ayuda
+
+# ————————— EMAIL (REGEX + FRASES CON ENTIDAD)
 - regex: email
   examples: |
     - [A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}
 
 - intent: enviar_correo
   examples: |
-    - mi correo es juan.perez@ejemplo.com
-    - puedes escribir a maria_123@zajuna.edu
-    - usa este email: user+test@domain.io
+    - mi correo es [juan.perez@ejemplo.com](email)
+    - puedes escribir a [maria_123@zajuna.edu](email)
+    - usa este email: [user+test@domain.io](email)
+    - te dejo mi correo [demo@example.com](email)
+    - contacta a [alumno99@mail.com](email)
+    - mi email: [persona.apellido@dominio.edu](email)
+    - envía el enlace a [soporte@empresa.co](email)
+    - mi correo de contacto es [daniel.martinez010201@gmail.com](email)

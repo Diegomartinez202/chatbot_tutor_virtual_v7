@@ -1,13 +1,57 @@
 version: "3.1"
+
 rules:
 
-# Saludo directo
+# ——— Saludo ———
 - rule: Saludo
   steps:
     - intent: saludo
     - action: utter_saludo
 
-# Iniciar soporte_form por cualquier problema técnico
+# ——— Explorar temas → carrusel + recomendados ———
+- rule: Explorar temas
+  steps:
+    - intent: explorar_temas
+    - action: utter_cursos_carousel
+    - action: utter_cursos_recomendados
+
+# ——— Ingreso Zajuna → decidir recuperación u otro problema ———
+- rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+  steps:
+    - intent: ingreso_zajuna
+    - action: utter_preguntar_problema_acceso
+
+- rule: Otro problema de acceso → iniciar soporte
+  steps:
+    - intent: otro_problema_acceso
+    - action: utter_soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
+
+# ——— Proceso académico → menú ———
+- rule: Menú proceso académico
+  steps:
+    - intent: proceso_academico
+    - action: utter_menu_proceso_academico
+
+# ——— Intents informativos públicos (sin auth) ———
+- rule: Tutor asignado (público)
+  steps:
+    - intent: tutor_asignado
+    - action: utter_tutor_asignado
+
+# ——— Intents privados → verificación de auth centralizada ———
+- rule: Estado estudiante (verifica auth)
+  steps:
+    - intent: estado_estudiante
+    - action: action_check_auth
+
+- rule: Ver certificados (verifica auth)
+  steps:
+    - intent: ver_certificados
+    - action: action_check_auth
+
+# ——— Soporte técnico: iniciar form por varios intents ———
 - rule: Iniciar soporte (soporte_tecnico)
   steps:
     - intent: soporte_tecnico
@@ -38,7 +82,8 @@ rules:
     - action: soporte_form
     - active_loop: soporte_form
 
-# Submit del soporte_form
+# ——— Submit del soporte_form ———
+# (No duplicamos utter_soporte_creado aquí; lo emite action_soporte_submit)
 - rule: Submit soporte_form
   condition:
     - active_loop: soporte_form
@@ -47,9 +92,8 @@ rules:
     - active_loop: null
     - action: utter_soporte_resumen
     - action: action_soporte_submit
-    - action: utter_soporte_creado
 
-# Flujo de recuperación de contraseña (form solo email)
+# ——— Flujo de recuperación de contraseña (form solo email) ———
 - rule: Iniciar recovery_form
   steps:
     - intent: recuperar_contrasena
@@ -65,8 +109,48 @@ rules:
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
-# Escalar a humano (pregunta)
+# ——— Escalar a humano ———
 - rule: Escalar a humano (pregunta)
   steps:
     - intent: escalar_humano
     - action: utter_escalar_humano
+
+- rule: Confirmar escalado a humano
+  steps:
+    - intent: confirmacion_escalar_humano
+    - action: utter_confirmar_escalado
+    - action: action_conectar_humano
+
+- rule: Negar escalado a humano
+  steps:
+    - intent: negar_escalar
+    - action: utter_gracias_continuar
+
+# ——— Cambio de idioma ———
+- rule: Cambiar a inglés
+  steps:
+    - intent: cambiar_idioma_ingles
+    - action: utter_cambio_idioma_ingles
+
+- rule: Cambiar a español
+  steps:
+    - intent: cambiar_idioma_espanol
+    - action: utter_cambio_idioma_espanol
+
+# ——— Inscripción ———
+- rule: Inscribirme
+  steps:
+    - intent: inscribirme
+    - action: utter_confirmacion_inscripcion
+
+# ——— Enviar correo directo (si lo disparas como intent) ———
+- rule: Enviar correo directo
+  steps:
+    - intent: enviar_correo
+    - action: action_enviar_correo
+
+# ——— Fallback ———
+- rule: Fallback
+  steps:
+    - intent: fallback
+    - action: utter_default

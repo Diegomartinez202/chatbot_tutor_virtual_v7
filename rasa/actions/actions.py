@@ -1,19 +1,20 @@
 # rasa/actions/actions.py
 from __future__ import annotations
 
-from typing import Any, Text, Dict, List, Optional
 import os
 import re
-import json
 import time
 import smtplib
+from typing import Any, Dict, List, Text
+
 import requests
 from email.mime.text import MIMEText
 
-from rasa_sdk import Action, Tracker, FormValidationAction
+from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
 from rasa_sdk.types import DomainDict
+from rasa_sdk.forms import FormValidationAction  # Rasa SDK 3.x
 
 # =========================
 #    Config & Constantes
@@ -44,7 +45,6 @@ def send_email(subject: str, body: str, to_addr: str) -> bool:
     No lanza excepciones al flujo del bot.
     """
     if not (SMTP_SERVER and SMTP_USER and SMTP_PASS and to_addr):
-        # Config incompleta → no enviar, pero no romper
         print("[actions] SMTP no configurado; omitiendo envío.")
         return False
     try:
@@ -138,9 +138,7 @@ class ValidateRecoveryForm(FormValidationAction):
         return {"email": v}
 
 
-# ==============
-#    Acciones
-# ==============
+# ==============   Acciones   ==============
 class ActionEnviarCorreo(Action):
     """Envía un email de recuperación (opcionalmente por SMTP)"""
 
@@ -158,8 +156,7 @@ class ActionEnviarCorreo(Action):
             dispatcher.utter_message(text="⚠️ No detecté tu correo. Por favor, escríbelo (ej: usuario@ejemplo.com).")
             return []
 
-        # Link de ejemplo; reemplaza con tu flujo real si aplica
-        reset_link = f"https://zajuna.com/reset?email={email}"
+        reset_link = f"https://zajuna.edu/reset?email={email}"
         body = (
             "Hola,\n\nHas solicitado recuperar tu contraseña.\n"
             f"Usa el siguiente enlace para continuar: {reset_link}\n\n"
@@ -169,7 +166,6 @@ class ActionEnviarCorreo(Action):
         if sent:
             dispatcher.utter_message(text="📬 Te envié un enlace de recuperación a tu correo.")
         else:
-            # No romper si SMTP no está configurado; deja mensaje neutral
             dispatcher.utter_message(text="ℹ️ Tu solicitud fue registrada. Revisa tu correo más tarde.")
         return []
 
@@ -177,7 +173,7 @@ class ActionEnviarCorreo(Action):
 class ActionSoporteSubmit(Action):
     """
     Envía la solicitud del soporte_form al webhook del Helpdesk.
-    Espera variables de entorno:
+    Variables:
       - HELPDESK_WEBHOOK (URL)
       - HELPDESK_TOKEN   (Bearer opcional)
     """
@@ -227,9 +223,7 @@ class ActionSoporteSubmit(Action):
                 timeout=10,
             )
             if 200 <= resp.status_code < 300:
-                # Mensajes definidos en domain.yml
                 dispatcher.utter_message(response="utter_soporte_creado")
-                # Limpiar slots al final del form
                 return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
             else:
                 print(f"[actions] Helpdesk respondió {resp.status_code}: {resp.text}")
@@ -242,10 +236,7 @@ class ActionSoporteSubmit(Action):
 
 
 class ActionConectarHumano(Action):
-    """
-    Crea ticket de 'escalado a humano' por el mismo webhook genérico.
-    Reutiliza HELPDESK_WEBHOOK y HELPDESK_TOKEN.
-    """
+    """Crea ticket de 'escalado a humano' por el mismo webhook genérico."""
 
     def name(self) -> Text:
         return "action_conectar_humano"
@@ -296,4 +287,65 @@ class ActionConectarHumano(Action):
         except Exception as e:
             print(f"[actions] Excepción en escalado: {e}")
             dispatcher.utter_message(text="⚠️ No pude contactar a la mesa de ayuda. Intentaremos de nuevo en breve.")
+        return []
+
+
+# =========================
+#        Auth gating
+# =========================
+JWT_PUBLIC_KEY = os.getenv("JWT_PUBLIC_KEY", "")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
+
+
+def _has_auth(tracker: Tracker) -> bool:
+    """Devuelve True si la UI/proxy indicó que hay auth válida."""
+    meta = (tracker.latest_message or {}).get("metadata") or {}
+    auth = meta.get("auth") if isinstance(meta, dict) else {}
+
+    # Caso simple enviado por la UI: metadata.auth.hasToken = true|false
+    if isinstance(auth, dict) and auth.get("hasToken"):
+        return True
+
+    # Si tu proxy añade claims tras validar JWT en FastAPI
+    if isinstance(auth, dict) and auth.get("claims"):
+        return True
+
+    # (Opcional) Validación local del JWT si decidieras pasar el token crudo en metadata.
+    # DESACTIVADA por seguridad a menos que tú la habilites.
+    # token = isinstance(auth, dict) and auth.get("token")
+    # if token and JWT_PUBLIC_KEY:
+    #     try:
+    #         import jwt  # pyjwt
+    #         jwt.decode(token, JWT_PUBLIC_KEY, algorithms=[JWT_ALGORITHM], options={"verify_aud": False})
+    #         return True
+    #     except Exception:
+    #         return False
+
+    return False
+
+
+class ActionCheckAuth(Action):
+    def name(self) -> Text:
+        return "action_check_auth"
+
+    async def run(
+        self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict
+    ) -> List[Dict[Text, Any]]:
+        intent = ((tracker.latest_message or {}).get("intent") or {}).get("name") or ""
+        authed = _has_auth(tracker)
+
+        if intent in ("estado_estudiante", "ver_certificados"):
+            if not authed:
+                # ChatUI reconocerá custom.type=auth_needed y mostrará botón "Iniciar sesión"
+                dispatcher.utter_message(response="utter_need_auth")
+                return []
+
+            # Con auth válida: responde (o delega a otra action que consulte tu API)
+            if intent == "estado_estudiante":
+                dispatcher.utter_message(response="utter_estado_estudiante")
+            elif intent == "ver_certificados":
+                dispatcher.utter_message(response="utter_certificados_info")
+            return []
+
+        # Otros intents: no interviene
         return []

@@ -23,6 +23,7 @@ intents:
   - cambiar_idioma_espanol
   - inscribirme
   - enviar_correo
+  - auth_login          # solo para analítica del botón "Iniciar sesión"
   - affirm
   - deny
   - fallback
@@ -192,15 +193,28 @@ responses:
 
   utter_soporte_form_ok:
     - text: "🙏 Gracias. Estoy registrando tu solicitud…"
+
   utter_soporte_resumen:
     - text: |
         ✅ Gracias {nombre}. Voy a crear un ticket con:
         • Email: {email}
         • Mensaje: "{mensaje}"
+
   utter_soporte_creado:
     - text: "🎫 Ticket creado correctamente. Te enviaremos novedades a tu correo."
+
   utter_soporte_error:
     - text: "⚠️ Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
+
+  # 🔐 Mensaje estándar cuando falta autenticación
+  utter_need_auth:
+    - text: "Necesitas iniciar sesión para ver esta información."
+      buttons:
+        - title: "Iniciar sesión"
+          payload: "/auth_login"
+      custom:
+        type: "auth_needed"
+        message: "Necesitas iniciar sesión para continuar."
 
 actions:
   - action_enviar_correo
@@ -208,6 +222,7 @@ actions:
   - action_soporte_submit
   - validate_soporte_form
   - validate_recovery_form
+  - action_check_auth
 
 session_config:
   session_expiration_time: 60

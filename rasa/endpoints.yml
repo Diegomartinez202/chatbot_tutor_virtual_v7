@@ -1,5 +1,5 @@
 version: "3.1"
 
 action_endpoint:
-  # Usa variable de entorno ACTIONS_URL si existe; de lo contrario, toma el valor por defecto (local).
+  # Usa variable de entorno ACTIONS_URL si existe; de lo contrario, local.
   url: "${ACTIONS_URL:http://localhost:5055/webhook}"
