@@ -1,11 +1,13 @@
 // src/pages/UsersPage.jsx
 import { useEffect, useState } from "react";
-import { getUsers, createUser, updateUser, deleteUser } from "@/services/api"; // ✅ alias
-import Header from "@/components/Header";                                       // ✅ alias
-import UsersTable from "@/components/UsersTable";                               // ✅ alias
-import ExportUsersButton from "@/components/ExportUsersButton";                 // ✅ alias
-import AssignRoles from "@/components/AssignRoles";                             // ✅ alias
+import { getUsers, createUser, updateUser, deleteUser } from "@/services/api";
+import UsersTable from "@/components/UsersTable";
+import ExportUsersButton from "@/components/ExportUsersButton";
+import AssignRoles from "@/components/AssignRoles";
 import { toast } from "react-hot-toast";
+import { Users as UsersIcon, Plus, Save } from "lucide-react";
+import IconTooltip from "@/components/ui/IconTooltip";
+import Badge from "@/components/Badge";
 
 const UsersPage = () => {
     const [users, setUsers] = useState([]);
@@ -16,9 +18,10 @@ const UsersPage = () => {
     const fetchUsers = async () => {
         try {
             const data = await getUsers();
-            setUsers(data);
+            setUsers(Array.isArray(data) ? data : []);
         } catch (err) {
             toast.error("Error al cargar usuarios");
+            setUsers([]);
         }
     };
 
@@ -75,28 +78,71 @@ const UsersPage = () => {
 
     return (
         <div className="p-6 max-w-6xl mx-auto">
-            <Header title="👥 Gestión de Usuarios" />
-
-            {/* Crear nuevo usuario */}
-            <div className="mb-6 p-4 border rounded bg-green-100">
-                <h3 className="font-semibold mb-2">➕ Crear Nuevo Usuario</h3>
-                <input className="border px-2 py-1 mr-2" placeholder="Nombre" value={newUser.nombre}
-                    onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })} />
-                <input className="border px-2 py-1 mr-2" placeholder="Email" value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
-                <input className="border px-2 py-1 mr-2" placeholder="Contraseña" type="password"
-                    value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
-                <select className="border px-2 py-1 mr-2" value={newUser.rol}
-                    onChange={(e) => setNewUser({ ...newUser, rol: e.target.value })}>
-                    <option value="admin">Admin</option>
-                    <option value="soporte">Soporte</option>
-                    <option value="usuario">Usuario</option>
-                </select>
-                <button onClick={handleCreate} className="bg-green-600 text-white px-3 py-1 rounded">Crear</button>
+            {/* Encabezado sin emojis, con lucide + tooltip */}
+            <div className="flex items-center gap-2 mb-6">
+                <IconTooltip label="Gestión de Usuarios" side="top">
+                    <UsersIcon className="w-6 h-6 text-gray-700" aria-hidden="true" />
+                </IconTooltip>
+                <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
             </div>
 
+            {/* Crear nuevo usuario (reemplazo de emojis por iconos) */}
+            <div className="mb-6 p-4 border rounded bg-green-50">
+                <div className="flex items-center gap-2 mb-2">
+                    <IconTooltip label="Crear nuevo usuario" side="top">
+                        <Plus className="w-4 h-4 text-green-700" />
+                    </IconTooltip>
+                    <h3 className="font-semibold">Crear Nuevo Usuario</h3>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <input
+                        className="border px-2 py-1 rounded"
+                        placeholder="Nombre"
+                        value={newUser.nombre}
+                        onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
+                    />
+                    <input
+                        className="border px-2 py-1 rounded"
+                        placeholder="Email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    />
+                    <input
+                        className="border px-2 py-1 rounded"
+                        placeholder="Contraseña"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    />
+                    <select
+                        className="border px-2 py-1 rounded"
+                        value={newUser.rol}
+                        onChange={(e) => setNewUser({ ...newUser, rol: e.target.value })}
+                    >
+                        <option value="admin">Admin</option>
+                        <option value="soporte">Soporte</option>
+                        <option value="usuario">Usuario</option>
+                    </select>
+
+                    <IconTooltip label="Crear usuario" side="top">
+                        <button
+                            onClick={handleCreate}
+                            className="bg-green-600 text-white px-3 py-1 rounded inline-flex items-center gap-2"
+                            type="button"
+                        >
+                            <Save className="w-4 h-4" />
+                            Crear
+                        </button>
+                    </IconTooltip>
+                </div>
+            </div>
+
+            {/* Exportar CSV */}
             <ExportUsersButton users={users} />
 
+            {/* Tabla con paginación y edición inline */}
             <UsersTable
                 users={users}
                 editingUserId={editingUserId}
@@ -106,8 +152,10 @@ const UsersPage = () => {
                 onCancel={handleCancel}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
+                Badge={Badge}
             />
 
+            {/* Gestión de roles adicional */}
             <div className="mt-10">
                 <AssignRoles />
             </div>

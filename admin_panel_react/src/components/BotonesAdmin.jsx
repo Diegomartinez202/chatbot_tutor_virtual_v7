@@ -4,9 +4,11 @@ import { useAdminActions } from "@/services/useAdminActions";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-import { BrainCog, Upload, RefreshCw, Download, CheckCircle, XCircle } from "lucide-react";
+import { BrainCog, Upload, RefreshCw, Download, CheckCircle, XCircle, Bot, Search, ListChecks, MessagesSquare } from "lucide-react";
 import FiltrosFecha from "./FiltrosFecha";
-import IconTooltip from "@/components/ui/IconTooltip"; // ✅ wrapper de tooltips
+import IconTooltip from "@/components/ui/IconTooltip";
+import { Link } from "react-router-dom";
+import TrainBotButton from "@/components/TrainBotButton";
 
 function BotonesAdmin() {
     const { trainMutation, uploadMutation, restartMutation, exportMutation } = useAdminActions();
@@ -74,6 +76,7 @@ function BotonesAdmin() {
             <FiltrosFecha desde={desde} hasta={hasta} setDesde={setDesde} setHasta={setHasta} />
 
             <div className="flex flex-wrap gap-4">
+                {/* Entrenar (con hook) */}
                 <IconTooltip label="Reentrenar modelo con nuevos intents" side="top">
                     <Button
                         onClick={handleTrain}
@@ -85,6 +88,13 @@ function BotonesAdmin() {
                         <BrainCog className="w-5 h-5" />
                         {trainMutation.isLoading ? "Entrenando..." : "Entrenar Bot"}
                     </Button>
+                </IconTooltip>
+
+                {/* Entrenar alternativo con componente (por si prefieres botón standalone) */}
+                <IconTooltip label="Reentrenar (alternativo)" side="top">
+                    <span>
+                        <TrainBotButton />
+                    </span>
                 </IconTooltip>
 
                 <IconTooltip label="Cargar intents desde archivo o panel" side="top">
@@ -124,6 +134,53 @@ function BotonesAdmin() {
                         <Download className="w-5 h-5" />
                         {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
                     </Button>
+                </IconTooltip>
+
+                {/* Navegación rápida (compat y nuevas rutas) */}
+                <IconTooltip label="Crear intent (ruta clásica /intents)" side="top">
+                    <Link to="/intents">
+                        <Button variant="outline" className="inline-flex items-center gap-2">
+                            <MessagesSquare className="w-5 h-5" />
+                            Crear Intent
+                        </Button>
+                    </Link>
+                </IconTooltip>
+
+                <IconTooltip label="Crear intent (editor avanzado /intents/new)" side="top">
+                    <Link to="/intents/new">
+                        <Button variant="outline" className="inline-flex items-center gap-2">
+                            <MessagesSquare className="w-5 h-5" />
+                            Crear (Editor)
+                        </Button>
+                    </Link>
+                </IconTooltip>
+
+                <IconTooltip label="Buscar intents con filtros" side="top">
+                    <Link to="/intents/buscar">
+                        <Button variant="outline" className="inline-flex items-center gap-2">
+                            <Search className="w-5 h-5" />
+                            Buscar Intents
+                        </Button>
+                    </Link>
+                </IconTooltip>
+
+                <IconTooltip label="Listado de intents" side="top">
+                    <Link to="/intents/list">
+                        <Button variant="outline" className="inline-flex items-center gap-2">
+                            <ListChecks className="w-5 h-5" />
+                            Lista de Intents
+                        </Button>
+                    </Link>
+                </IconTooltip>
+
+                {/* Alias /chat para compatibilidad */}
+                <IconTooltip label="Abrir chat (alias /chat)" side="top">
+                    <Link to="/chat">
+                        <Button variant="outline" className="inline-flex items-center gap-2">
+                            <Bot className="w-5 h-5" />
+                            Ir al Chat
+                        </Button>
+                    </Link>
                 </IconTooltip>
             </div>
         </>

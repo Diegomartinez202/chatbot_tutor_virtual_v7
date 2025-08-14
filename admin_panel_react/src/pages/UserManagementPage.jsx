@@ -1,43 +1,26 @@
-// src/pages/UserManagementPage.jsx
-import { useEffect, useState } from "react";
-import { getUsers, updateUser, deleteUser, exportUsersCSV } from "@/services/api";
-import UsersTable from "@/components/UsersTable";
-import toast from "react-hot-toast";
-import { useAuth } from "@/context/AuthContext";
-import { Search, FileDown, Loader2, Users, Lock } from "lucide-react";
-import Badge from "@/components/Badge";
-import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
+// src/pages/UserManagement.jsx
+import React, { useEffect, useState } from "react";
+import { Users as UsersIcon, Trash2, AlertCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
-const UserManagementPage = () => {
-    const { user } = useAuth();
+import { getUsers, createUser, deleteUser } from "@/services/api";
+import IconTooltip from "@/components/ui/IconTooltip";
+import RefreshButton from "@/components/RefreshButton";
+import UserModal from "@/components/UserModal";
+import Badge from "@/components/Badge";
+
+export default function UserManagement() {
     const [users, setUsers] = useState([]);
-    const [editingUserId, setEditingUserId] = useState(null);
-    const [formData, setFormData] = useState({ nombre: "", email: "", rol: "usuario" });
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterRol, setFilterRol] = useState("");
     const [loading, setLoading] = useState(false);
 
-    if (user?.rol !== "admin") {
-        return (
-            <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5" /> Gestión de Usuarios
-                </h1>
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Solo los administradores pueden acceder a esta sección.
-                </div>
-            </div>
-        );
-    }
-
-    const fetchUsers = async () => {
+    const loadUsers = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             const data = await getUsers();
             setUsers(Array.isArray(data) ? data : []);
-        } catch (err) {
-            toast.error("Error al obtener usuarios");
+        } catch (e) {
+            console.error(e);
+            toast.error("No se pudieron cargar los usuarios");
             setUsers([]);
         } finally {
             setLoading(false);
@@ -45,118 +28,133 @@ const UserManagementPage = () => {
     };
 
     useEffect(() => {
-        fetchUsers();
+        loadUsers();
     }, []);
 
-    const handleEdit = (u) => {
-        setEditingUserId(u._id);
-        setFormData({ nombre: u.nombre, email: u.email, rol: u.rol });
-    };
-
-    const handleCancel = () => {
-        setEditingUserId(null);
-        setFormData({ nombre: "", email: "", rol: "usuario" });
-    };
-
-    const handleUpdate = async () => {
+    const handleCreate = async (payload) => {
         try {
-            await updateUser(editingUserId, formData);
-            toast.success("Usuario actualizado");
-            handleCancel();
-            fetchUsers();
-        } catch (err) {
-            toast.error("Error al actualizar usuario");
+            await createUser(payload);
+            toast.success("Usuario creado correctamente");
+            await loadUsers();
+        } catch (e) {
+            console.error(e);
+            const msg =
+                e?.response?.data?.detail ||
+                e?.response?.data?.message ||
+                "No se pudo crear el usuario";
+            toast.error(msg);
+            throw e; // permite que el modal decida si cierra o no
         }
     };
 
-    const handleDelete = async (userId) => {
-        if (!window.confirm("¿Estás seguro de eliminar este usuario?")) return;
+    const handleDelete = async (user) => {
+        const id = user?._id || user?.id;
+        if (!id) return toast.error("No se encontró el ID del usuario");
+        if (!confirm(`¿Eliminar al usuario "${user?.email || user?.nombre || id}"?`)) return;
+
         try {
-            await deleteUser(userId);
+            await deleteUser(id);
             toast.success("Usuario eliminado");
-            fetchUsers();
-        } catch (err) {
-            toast.error("Error al eliminar usuario");
+            setUsers((prev) => prev.filter((u) => (u._id || u.id) !== id));
+        } catch (e) {
+            console.error(e);
+            toast.error("No se pudo eliminar el usuario");
         }
     };
-
-    const filteredUsers = users.filter((u) => {
-        const term = (searchTerm || "").toLowerCase();
-        const name = (u.nombre || "").toLowerCase();
-        const email = (u.email || "").toLowerCase();
-        const roleMatch = filterRol === "" || u.rol === filterRol;
-        return (name.includes(term) || email.includes(term)) && roleMatch;
-    });
 
     return (
-        <div className="p-6 max-w-5xl mx-auto space-y-4">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="w-5 h-5" /> Gestión de Usuarios
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w-full max-w-md">{/* ← corregido w/full a w-full */}
-                    <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre o email"
-                        className="pl-10 pr-3 py-2 border w-full rounded"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+        <div className="p-6 space-y-4">
+            {/* Encabezado */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <IconTooltip label="Gestión de usuarios del sistema" side="top">
+                        <UsersIcon className="w-6 h-6 text-gray-700" aria-hidden="true" />
+                    </IconTooltip>
+                    <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
                 </div>
 
-                <select
-                    className="border px-3 py-2 rounded"
-                    value={filterRol}
-                    onChange={(e) => setFilterRol(e.target.value)}
-                >
-                    <option value="">Todos los roles</option>
-                    <option value="admin">Admin</option>
-                    <option value="soporte">Soporte</option>
-                    <option value="usuario">Usuario</option>
-                </select>
-
-                {/* ✅ Tooltip con wrapper reutilizable */}
-                <IconTooltip label="Exporta el listado actual de usuarios a CSV" side="top">
-                    <button
-                        onClick={async () => {
-                            try {
-                                await exportUsersCSV();
-                                toast.success("CSV exportado");
-                            } catch (err) {
-                                toast.error("Error al exportar usuarios");
-                            }
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2"
-                        type="button"
-                    >
-                        <FileDown className="w-4 h-4" />
-                        Exportar usuarios
-                    </button>
-                </IconTooltip>
+                <div className="flex items-center gap-2">
+                    <RefreshButton
+                        onClick={loadUsers}
+                        loading={loading}
+                        label="Recargar"
+                        tooltipLabel="Recargar lista de usuarios"
+                        variant="outline"
+                    />
+                    <UserModal onSubmit={handleCreate} />
+                </div>
             </div>
 
-            {loading ? (
-                <div className="text-center text-gray-500 flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
-                    Cargando usuarios...
-                </div>
-            ) : (
-                <UsersTable
-                    users={filteredUsers}
-                    editingUserId={editingUserId}
-                    formData={formData}
-                    setFormData={setFormData}
-                    onEdit={handleEdit}
-                    onCancel={handleCancel}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                    Badge={Badge}
-                />
-            )}
+            {/* Tabla */}
+            <div className="rounded-md border bg-white overflow-x-auto">
+                <table className="min-w-full text-sm">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="px-4 py-2 text-left">Nombre</th>
+                            <th className="px-4 py-2 text-left">Email</th>
+                            <th className="px-4 py-2 text-left">Rol</th>
+                            <th className="px-4 py-2 text-left w-28">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody className="divide-y">
+                        {loading && (
+                            <tr>
+                                <td colSpan={4} className="px-4 py-6 text-gray-600">
+                                    Cargando…
+                                </td>
+                            </tr>
+                        )}
+
+                        {!loading && users.length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="px-4 py-6 text-gray-500">
+                                    No hay usuarios registrados.
+                                </td>
+                            </tr>
+                        )}
+
+                        {!loading &&
+                            users.map((u) => {
+                                const key = u._id || u.id;
+                                const nombre = u.nombre || u.name || "—";
+                                const email = u.email || "—";
+                                const rol = (u.rol || u.role || "usuario").toLowerCase();
+
+                                return (
+                                    <tr key={key} className="hover:bg-gray-50">
+                                        <td className="px-4 py-2">{nombre}</td>
+                                        <td className="px-4 py-2">{email}</td>
+                                        <td className="px-4 py-2">
+                                            {/* Badge estático para rol (NO el badge de chat) */}
+                                            <Badge type="role" value={rol} />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <IconTooltip label="Eliminar usuario" side="top">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(u)}
+                                                        className="p-1.5 rounded hover:bg-red-50 text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-300"
+                                                        aria-label={`Eliminar ${email}`}
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </IconTooltip>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mensaje de ayuda */}
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+                <AlertCircle className="w-4 h-4" />
+                Consejo: Puedes añadir edición inline o por modal más adelante (actualización de rol/contraseña).
+            </div>
         </div>
     );
-};
-
-export default UserManagementPage;
+}

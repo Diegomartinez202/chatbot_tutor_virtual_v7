@@ -21,174 +21,234 @@ import DiagnosticoPage from "@/pages/TestPage";
 
 import ChatPage from "@/pages/ChatPage"; // Página contenedora de ChatUI
 
+// ✅ Páginas nuevas de intents (activadas)
+import IntentEdit from "@/pages/IntentEdit";
+import IntentDetail from "@/pages/IntentDetail";
+
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
-
+import ListIntents from "@/pages/ListIntents";
 const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* 🌐 Rutas públicas */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
+    return (
+        <Routes>
+            {/* 🌐 Rutas públicas */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* ✅ Rutas de chat públicas (compat y embebido) */}
-      {/* Alias clásico: accesible directo desde el portal */}
-      <Route path="/chat" element={<ChatPage />} />
+            {/* ✅ Rutas de chat públicas (compat y embebido) */}
+            {/* Alias clásico */}
+            <Route path="/chat" element={<ChatPage />} />
+            {/* Embebido SPA directa (iframe moderno) */}
+            <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
+            {/* Alias histórico */}
+            <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+            {/* Compat extra: /chat-embed.html?embed=1 → redirige */}
+            <Route path="/chat-embed.html" element={<Navigate to="/chat-embed" replace />} />
 
-      {/* Embebido “SPA directa” (ideal para iframe moderno) */}
-      <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
+            {/* 🔐 Rutas protegidas con roles */}
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <Dashboard />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
 
-      {/* Alias histórico usado por algunos lanzadores */}
-      <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+            <Route
+                path="/logs"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <LogsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
 
-      {/* Compatibilidad extra: si algún launcher pide /chat-embed.html?embed=1 */}
-      <Route path="/chat-embed.html" element={<Navigate to="/chat-embed" replace />} />
+            <Route
+                path="/intents"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <CrearIntentPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
 
-      {/* 🔐 Rutas protegidas con roles */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <Dashboard />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/logs"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <LogsPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intents"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin"]}>
-              <CrearIntentPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intents/buscar"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <BuscarIntentPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intents/list"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <ListIntents />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intents-page"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <IntentsPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/user-management"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin"]}>
-              <UserManagement />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/test"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <TestPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intentos-fallidos"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <IntentosFallidosPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stadisticas-logs"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <ExportarLogsPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/exportaciones"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <ExportacionesPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/entrenar-bot"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <TrainBotPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/diagnostico"
-        element={
-          <ProtectedRoute>
-            <RequireRole allowedRoles={["admin", "soporte"]}>
-              <DiagnosticoPage />
-            </RequireRole>
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/intents/buscar"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <BuscarIntentPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
 
-          {/* Catch-all protegido */}
-          <Route
-              path="*"
-              element={
-                  <ProtectedRoute>
-                      <RequireRole allowedRoles={["admin", "soporte"]}>
-                          <LoginPage />
-                      </RequireRole>
-                  </ProtectedRoute>
-              }
-          />
-      </Routes>
-  );
+            <Route
+                path="/intents/list"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ListIntents />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/intents-page"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <IntentsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* 🆕 Intents: crear / editar / detalle */}
+            <Route
+                path="/intents/new"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <IntentEdit />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/intents/:id/edit"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <IntentEdit />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/intents/:id"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <IntentDetail />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/user-management"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin"]}>
+                            <UserManagement />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/test"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <TestPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/intentos-fallidos"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <IntentosFallidosPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* ✅ Estadísticas correctas */}
+            <Route
+                path="/stadisticas-logs"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <StadisticasLogsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* (Opcional) Exportar logs explícito */}
+            <Route
+                path="/exportar-logs"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ExportarLogsPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/exportaciones"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <ExportacionesPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/entrenar-bot"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <TrainBotPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/diagnostico"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <DiagnosticoPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Catch-all protegido */}
+            <Route
+                path="*"
+                element={
+                    <ProtectedRoute>
+                        <RequireRole allowedRoles={["admin", "soporte"]}>
+                            <LoginPage />
+                        </RequireRole>
+                    </ProtectedRoute>
+                }
+            />
+        </Routes>
+    );
 };
 
 export default AppRoutes;

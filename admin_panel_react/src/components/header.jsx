@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
@@ -14,17 +13,12 @@ import {
     FlaskConical,
     Users as UsersIcon,
     Cog,
+    Bell,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
 import IconTooltip from "@/components/ui/IconTooltip";
-
-// 🔒 Orígenes permitidos para mensajes del iframe (mismo valor que usa ChatUI/launcher)
-const ALLOWED_ORIGINS = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-const originOK = (origin) => !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin);
+import Badge from "@/components/Badge"; // ✅ Unificado (modo chat)
 
 const Header = () => {
     const { user, logout: doLogout } = useAuth();
@@ -35,23 +29,6 @@ const Header = () => {
 
     const [openSettings, setOpenSettings] = React.useState(false);
 
-    // ✅ Badge interno opcional en la SPA (no reemplaza el del launcher; lo refleja)
-    const [chatBadge, setChatBadge] = React.useState(0);
-    React.useEffect(() => {
-        const onMsg = (ev) => {
-            const data = ev.data || {};
-            if (!originOK(ev.origin)) return;
-            if (data.type === "chat:badge" && typeof data.count === "number") {
-                setChatBadge(data.count);
-            }
-            if (data.type === "chat:visibility" && data.open === true) {
-                setChatBadge(0);
-            }
-        };
-        window.addEventListener("message", onMsg);
-        return () => window.removeEventListener("message", onMsg);
-    }, []);
-
     // Abrir el widget de chat si está presente; si no, navegar a /chat (alias histórico)
     const openChat = (e) => {
         try {
@@ -59,7 +36,6 @@ const Header = () => {
                 e?.preventDefault?.();
                 window.ChatWidget.open();
             } else {
-                // fallback a ruta interna si la app la expone
                 navigate("/chat");
             }
         } catch {
@@ -90,6 +66,12 @@ const Header = () => {
                     <div className="flex items-center gap-2 mb-4">
                         <UserCircle className="w-5 h-5" />
                         <h2 className="text-lg font-bold">Bienvenido</h2>
+
+                        {/* 🔔 Badge global (opcional) al lado del título */}
+                        <div className="ml-auto flex items-center gap-2">
+                            <Bell className="w-5 h-5" />
+                            <Badge mode="chat" size="xs" /> {/* ✅ escucha postMessage automáticamente */}
+                        </div>
                     </div>
 
                     {/* 📧 Info de usuario */}
@@ -124,15 +106,9 @@ const Header = () => {
                                         >
                                             <Icon size={18} />
                                             <span className="truncate">{label}</span>
-                                            {/* 🔔 Badge opcional dentro del menú (solo para Chat) */}
-                                            {isChat && chatBadge > 0 && (
-                                                <span
-                                                    aria-label={`${chatBadge} mensajes sin leer`}
-                                                    className="ml-auto inline-flex min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] items-center justify-center"
-                                                >
-                                                    {chatBadge}
-                                                </span>
-                                            )}
+
+                                            {/* 🔔 Badge en el item "Chat" del menú (opcional) */}
+                                            {isChat && <Badge mode="chat" size="xs" className="ml-auto" />}
                                         </NavLink>
                                     </Tooltip.Trigger>
                                     <Tooltip.Portal>

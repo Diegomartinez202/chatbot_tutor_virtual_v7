@@ -36,12 +36,15 @@ function downloadBlob(blob, filename, addBom = false) {
 /* =========================
    📁 INTENTS
    ========================= */
+
+// Lista de intents
 export const fetchIntents = () =>
     axiosClient.get("/admin/intents").then((r) => r.data);
 
 // Alias retro
 export const getIntents = fetchIntents;
 
+// Filtro simple por querystring
 export const fetchIntentsByFilters = ({ intent, example, response }) => {
     const query = new URLSearchParams();
     if (intent) query.append("intent", intent);
@@ -50,10 +53,27 @@ export const fetchIntentsByFilters = ({ intent, example, response }) => {
     return axiosClient.get(`/admin/intents?${query.toString()}`).then((r) => r.data);
 };
 
-export const addIntent = (intentData) => axiosClient.post("/admin/intents", intentData);
-export const removeIntent = (intentName) =>
+// ✅ NUEVO: obtener un intent por id/nombre
+export const getIntentById = (intentName) =>
+    axiosClient.get(`/admin/intents/${encodeURIComponent(intentName)}`).then((r) => r.data);
+
+// ✅ NUEVO: crear/actualizar/eliminar con nombres consistentes
+export const createIntent = (intentData) =>
+    axiosClient.post("/admin/intents", intentData);
+
+export const updateIntent = (intentName, intentData) =>
+    axiosClient.put(`/admin/intents/${encodeURIComponent(intentName)}`, intentData);
+
+export const deleteIntent = (intentName) =>
     axiosClient.delete(`/admin/intents/${encodeURIComponent(intentName)}`);
-export const uploadIntentJSON = (data) => axiosClient.post("/admin/intents/upload-json", data);
+
+// Compat (alias legacy)
+export const addIntent = createIntent;
+export const removeIntent = deleteIntent;
+
+// Upload JSON/CSV y export
+export const uploadIntentJSON = (data) =>
+    axiosClient.post("/admin/intents/upload-json", data);
 
 export const uploadIntentsCSV = (file) => {
     const formData = new FormData();
@@ -84,9 +104,14 @@ export const fetchUsers = () =>
 // Alias retro
 export const getUsers = fetchUsers;
 
-export const deleteUser = (userId) => axiosClient.delete(`/admin/users/${userId}`);
-export const updateUser = (userId, userData) => axiosClient.put(`/admin/users/${userId}`, userData);
-export const createUser = (userData) => axiosClient.post("/admin/users", userData);
+export const deleteUser = (userId) =>
+    axiosClient.delete(`/admin/users/${userId}`);
+
+export const updateUser = (userId, userData) =>
+    axiosClient.put(`/admin/users/${userId}`, userData);
+
+export const createUser = (userData) =>
+    axiosClient.post("/admin/users", userData);
 
 export const exportUsersCSV = async () => {
     const res = await axiosClient.get("/admin/users/export", { responseType: "blob" });
@@ -199,6 +224,7 @@ export const restartServer = () => axiosClient.post("/admin/restart");
 
 // Default export opcional
 export { default as axios } from "@/services/axiosClient";
+
 /* =========================
    ❌ INTENTOS FALLIDOS
    ========================= */
@@ -211,7 +237,7 @@ export const getTopFailedIntents = ({ desde, hasta, limit } = {}) =>
         })
         .then((r) => r.data);
 
-// Logs de fallos (opcional para tabla): lista paginada
+// Logs de fallos (lista paginada)
 export const getFailedLogs = ({
     desde,
     hasta,
@@ -245,3 +271,76 @@ export const exportFailedIntentsCSV = async ({
     const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, filename, /* addBom */ true);
 };
+// Búsqueda/paginación server-side de intents
+// Dev esperado del backend:
+// { items: [{intent, examples, responses, ...}], total: 123, page: 1, page_size: 20 }
+export async function fetchIntentsPaged({
+    intent,
+    example,
+    response,
+    q,            // búsqueda libre opcional
+    page = 1,
+    page_size = 10,
+    sort_by,
+    sort_dir,     // "asc" | "desc"
+} = {}) {
+    const params = new URLSearchParams();
+    if (intent) params.append("intent", intent);
+    if (example) params.append("example", example);
+    if (response) params.append("response", response);
+    if (q) params.append("q", q);
+    if (page) params.append("page", String(page));
+    if (page_size) params.append("page_size", String(page_size));
+    if (sort_by) params.append("sort_by", sort_by);
+    if (sort_dir) params.append("sort_dir", sort_dir);
+
+    // Si tu backend usa otra ruta (p.ej. /admin/intents/search), cámbiala aquí:
+    const res = await axiosClient.get(`/admin/intents?${params.toString()}`);
+
+    // Normalizamos por si el backend aún devuelve un array “plano”
+    const data = res.data;
+    if (Array.isArray(data)) {
+        return {
+            items: data,
+            total: data.length,
+            page: Number(page) || 1,
+            page_size: Number(page_size) || data.length || 10,
+        };
+    }
+    return {
+        items: data?.items ?? [],
+        total: data?.total ?? 0,
+        page: data?.page ?? Number(page) ?? 1,
+        page_size: data?.page_size ?? Number(page_size) ?? 10,
+    };
+}
+// Lista paginada con filtros y ordenamiento
+export async function fetchIntentsPaged({
+    page = 1,
+    page_size = 10,
+    q,
+    intent,
+    example,
+    response,
+    sort_by,   // "intent" | "example" | "response"
+    sort_dir,  // "asc" | "desc"
+} = {}) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("page_size", String(page_size));
+    if (q) params.set("q", q);
+    if (intent) params.set("intent", intent);
+    if (example) params.set("example", example);
+    if (response) params.set("response", response);
+    if (sort_by) params.set("sort_by", sort_by);
+    if (sort_dir) params.set("sort_dir", sort_dir);
+
+    const { data } = await axiosClient.get(`/admin/intents/paged?${params.toString()}`);
+    // Normaliza respuesta esperada: { items, total, page, page_size }
+    return {
+        items: data?.items ?? [],
+        total: Number(data?.total ?? 0),
+        page: Number(data?.page ?? page),
+        page_size: Number(data?.page_size ?? page_size),
+    };
+}

@@ -166,7 +166,7 @@ export default function Badge(props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allowed.join("|"), resetOnOpen]);
 
-    // Si no hay contador, no mostramos nada (mismo comportamiento que el snippet original)
+    // Si no hay contador, no mostramos nada
     if (!count) return null;
 
     return (

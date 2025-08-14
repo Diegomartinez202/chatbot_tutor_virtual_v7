@@ -1,8 +1,9 @@
+// src/components/UsersTable.jsx
 import { useState, useMemo } from "react";
 import UserRow from "@/components/UserRow";
 import EditUserRow from "@/components/EditUserRow";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
+import IconTooltip from "@/components/ui/IconTooltip";
 
 const UsersTable = ({
     users = [],
@@ -59,16 +60,16 @@ const UsersTable = ({
                                 />
                             ) : (
                                 <UserRow
-                                    key={u._id}
+                                    key={u._id || u.id}
                                     user={u}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
                                     renderRol={() =>
                                         BadgeComponent ? (
-                                            <BadgeComponent variant={u.rol}>{u.rol}</BadgeComponent>
+                                            <BadgeComponent type="role" value={(u.rol || "usuario").toLowerCase()} />
                                         ) : (
                                             <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-800">
-                                                {u.rol}
+                                                {u.rol || "usuario"}
                                             </span>
                                         )
                                     }
