@@ -29,6 +29,11 @@
     const str = (v, fb) => (v == null || v === "" ? fb : String(v));
     const arr = (v) => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
 
+    // 🔧 Helper de normalización de orígenes (para comparar de forma segura)
+    function normalizeOrigin(o) {
+        return String(o || "").trim().replace(/\/+$/, "");
+    }
+
     function readAttrsFromScript(el) {
         return {
             iconUrl: str(el.getAttribute("data-avatar"), DEFAULTS.iconUrl),
@@ -174,7 +179,30 @@
             content.appendChild(frame);
         }
 
-        const target = (cfg.allowedOrigins && cfg.allowedOrigins[0]) || "*";
+        // 🔐 Seguridad postMessage: targetOrigin y validación estricta
+        // Definimos valores por defecto seguros en caso de que no exista iframe
+        let target = "*";
+        let originAllowedStrict = () => false;
+
+        if (frame) {
+            // 🚩 Determinar el origin REAL del iframe (si src es relativo, se resuelve con location.href)
+            const frameURL = new URL(frame.src, window.location.href);
+            const frameOrigin = normalizeOrigin(frameURL.origin);
+
+            // Si allowedOrigins no está definido, por defecto acepta SOLO el origin del iframe
+            const allowedSet = new Set(
+                (cfg.allowedOrigins && cfg.allowedOrigins.length ? cfg.allowedOrigins : [frameOrigin])
+                    .map(normalizeOrigin)
+            );
+
+            // Función segura: origen permitido Y fuente correcta (nuestro iframe)
+            originAllowedStrict = (origin, source) =>
+                source === frame.contentWindow && allowedSet.has(normalizeOrigin(origin));
+
+            // ✅ siempre el origin del iframe
+            target = frameOrigin;
+        }
+
         const open = () => {
             if (cfg.overlay) ov.style.display = "block";
             panel.style.display = "block";
@@ -222,12 +250,9 @@
         closeBtn.addEventListener("click", close);
         applyAndNotify();
 
-        // 🔐 Handshake AUTH y badge auto
-        function originAllowed(origin) {
-            return !cfg.allowedOrigins.length || cfg.allowedOrigins.includes(origin);
-        }
+        // 🔐 Handshake AUTH y badge auto (validación estricta por origin + source del iframe)
         window.addEventListener("message", (ev) => {
-            if (!originAllowed(ev.origin)) return;
+            if (!originAllowedStrict(ev.origin, ev.source)) return;
             const data = ev.data || {};
 
             // badge auto
@@ -257,11 +282,32 @@
             try { frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target); } catch { }
         });
 
-        return { cfg, btn, overlay: ov, panel, iframe: frame, open, close, destroy() { try { btn.remove(); ov.remove(); panel.remove(); } catch { } } };
+        return {
+            cfg,
+            btn,
+            overlay: ov,
+            panel,
+            iframe: frame,
+            open,
+            close,
+            destroy() { try { btn.remove(); ov.remove(); panel.remove(); } catch { } }
+        };
     }
 
-    function unmount() { const inst = window.__ChatWidgetInstance; if (!inst) return; inst.destroy(); window.__ChatWidgetInstance = null; const st = document.querySelector('style[data-chat-widget]'); if (st) st.remove(); }
-    function mount(options = {}) { unmount(); const inst = buildInstance({ ...DEFAULTS, ...options }); window.__ChatWidgetInstance = inst; return inst; }
+    function unmount() {
+        const inst = window.__ChatWidgetInstance;
+        if (!inst) return;
+        inst.destroy();
+        window.__ChatWidgetInstance = null;
+        const st = document.querySelector('style[data-chat-widget]');
+        if (st) st.remove();
+    }
+    function mount(options = {}) {
+        unmount();
+        const inst = buildInstance({ ...DEFAULTS, ...options });
+        window.__ChatWidgetInstance = inst;
+        return inst;
+    }
     function open() { window.__ChatWidgetInstance?.open?.(); }
     function close() { window.__ChatWidgetInstance?.close?.(); }
     window.ChatWidget = { mount, unmount, open, close };
@@ -271,7 +317,10 @@
         if (!el) return;
         const cfg = readAttrsFromScript(el);
         if (!cfg.autoinit) return;
-        const hasData = ["data-chat-url", "data-avatar", "data-title", "data-position", "data-panel-width", "data-panel-height", "data-login-url", "data-allowed-origins"].some(a => el.hasAttribute(a));
+        const hasData = [
+            "data-chat-url", "data-avatar", "data-title", "data-position",
+            "data-panel-width", "data-panel-height", "data-login-url", "data-allowed-origins"
+        ].some(a => el.hasAttribute(a));
         if (hasData) mount({
             iconUrl: cfg.iconUrl, title: cfg.title, buttonPosition: cfg.buttonPosition, size: cfg.size, offset: cfg.offset,
             zIndex: cfg.zIndex, iframeSrc: cfg.iframeSrc, panelWidth: cfg.panelWidth, panelHeight: cfg.panelHeight,

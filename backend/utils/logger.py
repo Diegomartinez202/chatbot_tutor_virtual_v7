@@ -1,19 +1,11 @@
 # backend/logger.py
+"""
+Compatibilidad: Este módulo permite que el código existente que importe `logger`
+desde `backend/logger.py` siga funcionando, pero internamente se apoya
+en el sistema unificado de logging definido en `backend/utils/logging.py`.
+"""
 
-import logging
-import os
-from backend.config.settings import settings  # ✅ Usar el import correcto
+from backend.utils.logging import get_logger
 
-# Crear carpeta de logs si no existe
-os.makedirs(settings.LOG_DIR, exist_ok=True)
-
-# Configurar logger
-logger = logging.getLogger("chatbot_logger")
-logger.setLevel(logging.INFO)
-
-# Archivo de log principal
-log_path = os.path.join(settings.LOG_DIR, "system.log")
-handler = logging.FileHandler(log_path)
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+# Logger principal para compatibilidad
+logger = get_logger("chatbot")

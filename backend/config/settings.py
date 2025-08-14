@@ -1,71 +1,89 @@
 # backend/config/settings.py
 from pydantic import BaseSettings, Field, EmailStr, validator
+from pydantic_settings import SettingsConfigDict
 from typing import List, Optional, Literal
 import json
-from typing import Literal, Optional
 
 class Settings(BaseSettings):
+    """
+    Configuración centralizada del proyecto.
+    Incluye soporte para JWT (HS y RS), MongoDB, Rasa, SMTP, S3,
+    CSP/embebido, rate limiting, helpdesk, etc.
+    """
+    # === Configuración general de pydantic-settings ===
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
     # 📦 MongoDB
-    mongo_uri: str = Field(..., env="MONGO_URI")
-    mongo_db_name: str = Field(..., env="MONGO_DB_NAME")
+    mongo_uri: str = Field(..., alias="MONGO_URI")
+    mongo_db_name: str = Field(..., alias="MONGO_DB_NAME")
 
     # 🔐 JWT
-    secret_key: str = Field(..., env="SECRET_KEY")
-    access_token_expire_minutes: int = Field(60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
-    jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
+    secret_key: Optional[str] = Field(default=None, alias="SECRET_KEY")  # HS*
+    jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  # RS*
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     # 🤖 Rasa Bot
-    rasa_url: str = Field(..., env="RASA_URL")
-    rasa_data_path: str = Field("rasa/data/nlu.yml", env="RASA_DATA_PATH")
-    rasa_domain_path: str = Field("rasa/domain.yml", env="RASA_DOMAIN_PATH")
-    rasa_model_path: str = Field("rasa/models", env="RASA_MODEL_PATH")
-    rasa_train_command: str = Field("rasa train", env="RASA_TRAIN_COMMAND")
+    rasa_url: str = Field(..., alias="RASA_URL")
+    rasa_data_path: str = Field(default="rasa/data/nlu.yml", alias="RASA_DATA_PATH")
+    rasa_domain_path: str = Field(default="rasa/domain.yml", alias="RASA_DOMAIN_PATH")
+    rasa_model_path: str = Field(default="rasa/models", alias="RASA_MODEL_PATH")
+    rasa_train_command: str = Field(default="rasa train", alias="RASA_TRAIN_COMMAND")
 
     # 📧 SMTP
-    smtp_server: str = Field(..., env="SMTP_SERVER")
-    smtp_port: int = Field(587, env="SMTP_PORT")
-    smtp_user: str = Field(..., env="SMTP_USER")
-    smtp_pass: str = Field(..., env="SMTP_PASS")
-    email_from: EmailStr = Field(..., env="EMAIL_FROM")
-    email_to: EmailStr = Field(..., env="EMAIL_TO")
+    smtp_server: str = Field(..., alias="SMTP_SERVER")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str = Field(..., alias="SMTP_USER")
+    smtp_pass: str = Field(..., alias="SMTP_PASS")
+    email_from: EmailStr = Field(..., alias="EMAIL_FROM")
+    email_to: EmailStr = Field(..., alias="EMAIL_TO")
 
     # 👤 Admin
-    admin_email: EmailStr = Field(..., env="ADMIN_EMAIL")
+    admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
 
     # 🧾 Logs y entorno
-    debug: bool = Field(False, env="DEBUG")
-    log_dir: str = Field("logs", env="LOG_DIR")
-    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:5173"], env="ALLOWED_ORIGINS")
+    debug: bool = Field(default=False, alias="DEBUG")
+    log_dir: str = Field(default="logs", alias="LOG_DIR")
+    allowed_origins: List[str] = Field(
+        default_factory=lambda: ["http://localhost:5173"], alias="ALLOWED_ORIGINS"
+    )
 
     # 📁 Rutas estáticas
-    static_dir: str = Field("backend/static", env="STATIC_DIR")
-    template_dir: str = Field("backend/templates", env="TEMPLATE_DIR")
-    favicon_path: str = Field("backend/static/favicon.ico", env="FAVICON_PATH")
+    static_dir: str = Field(default="backend/static", alias="STATIC_DIR")
+    template_dir: str = Field(default="backend/templates", alias="TEMPLATE_DIR")
+    favicon_path: str = Field(default="backend/static/favicon.ico", alias="FAVICON_PATH")
 
     # ☁️ S3 (opcional)
-    aws_access_key_id: Optional[str] = Field(None, env="AWS_ACCESS_KEY_ID")
-    aws_secret_access_key: Optional[str] = Field(None, env="AWS_SECRET_ACCESS_KEY")
-    aws_s3_bucket_name: Optional[str] = Field(None, env="AWS_S3_BUCKET_NAME")
-    aws_s3_region: str = Field("us-east-1", env="AWS_S3_REGION")
-    aws_s3_endpoint_url: str = Field("https://s3.amazonaws.com", env="AWS_S3_ENDPOINT_URL")
+    aws_access_key_id: Optional[str] = Field(None, alias="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: Optional[str] = Field(None, alias="AWS_SECRET_ACCESS_KEY")
+    aws_s3_bucket_name: Optional[str] = Field(None, alias="AWS_S3_BUCKET_NAME")
+    aws_s3_region: str = Field(default="us-east-1", alias="AWS_S3_REGION")
+    aws_s3_endpoint_url: str = Field(default="https://s3.amazonaws.com", alias="AWS_S3_ENDPOINT_URL")
 
     # 🌐 URL base de backend
-    base_url: str = Field("http://localhost:8000", env="BASE_URL")
+    base_url: str = Field(default="http://localhost:8000", alias="BASE_URL")
 
     # 🧩 Embebido (CSP + redirects)
-    frame_ancestors: List[str] = Field(default_factory=lambda: ["'self'"], env="FRAME_ANCESTORS")
-    embed_enabled: bool = Field(True, env="EMBED_ENABLED")
-    frontend_site_url: str = Field("http://localhost:5173", env="FRONTEND_SITE_URL")
+    frame_ancestors: List[str] = Field(default_factory=lambda: ["'self'"], alias="FRAME_ANCESTORS")
+    embed_enabled: bool = Field(default=True, alias="EMBED_ENABLED")
+    frontend_site_url: str = Field(default="http://localhost:5173", alias="FRONTEND_SITE_URL")
 
     # 🌱 Entorno
-    app_env: Literal["dev", "test", "prod"] = Field("dev", env="APP_ENV")
+    app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="APP_ENV")
 
     # 🚦 Rate limiting
-    rate_limit_enabled: bool = Field(True, env="RATE_LIMIT_ENABLED")
-    rate_limit_backend: Literal["memory", "redis"] = Field("memory", env="RATE_LIMIT_BACKEND")
-    rate_limit_window_sec: int = Field(60, env="RATE_LIMIT_WINDOW_SEC")
-    rate_limit_max_requests: int = Field(60, env="RATE_LIMIT_MAX_REQUESTS")
-    redis_url: Optional[str] = Field(None, env="REDIS_URL")
+    rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
+    rate_limit_backend: Literal["memory", "redis"] = Field(default="memory", alias="RATE_LIMIT_BACKEND")
+    rate_limit_window_sec: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SEC")
+    rate_limit_max_requests: int = Field(default=60, alias="RATE_LIMIT_MAX_REQUESTS")
+    redis_url: Optional[str] = Field(None, alias="REDIS_URL")
+
+    # 📞 Helpdesk / Escalada a humano
+    helpdesk_kind: Literal["webhook", "zendesk", "freshdesk", "jira", "zoho"] = Field(
+        default="webhook", alias="HELPDESK_KIND"
+    )
+    helpdesk_webhook: Optional[str] = Field(None, alias="HELPDESK_WEBHOOK")
+    helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
     # ───── Normalizadores CSV/JSON ─────
     @validator("allowed_origins", "frame_ancestors", pre=True)
@@ -90,26 +108,9 @@ class Settings(BaseSettings):
 
     @property
     def s3_enabled(self) -> bool:
-        return bool(self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key)
+        return bool(
+            self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key
+        )
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-class Settings(BaseSettings):
-    # ...tus otras variables (mongo, jwt, etc.)
-
-    # === Helpdesk / Escalada a humano ===
-    helpdesk_kind: Literal["webhook", "zendesk", "freshdesk", "jira", "zoho"] = Field(
-        "webhook", env="HELPDESK_KIND"
-    )
-    helpdesk_webhook: Optional[str] = Field(None, env="HELPDESK_WEBHOOK")
-    helpdesk_token: Optional[str] = Field(None, env="HELPDESK_TOKEN")
-
-    class Config:
-        env_file = ".env"
-# --- al final de Settings(...)
-helpdesk_kind: Literal["webhook","zendesk","freshdesk","jira","zoho"] = Field("webhook", env="HELPDESK_KIND")
-helpdesk_webhook: Optional[str] = Field(None, env="HELPDESK_WEBHOOK")
-helpdesk_token: Optional[str] = Field(None, env="HELPDESK_TOKEN")
+# Instancia global de settings
 settings = Settings()

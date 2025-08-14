@@ -1,4 +1,3 @@
-# tests/test_chat.py
 import jwt
 import pytest
 import respx
@@ -13,7 +12,7 @@ client = TestClient(app)
 
 @pytest.fixture
 def rasa_mock():
-    """Mock de la URL de Rasa."""
+    """Mock de la URL de Rasa"""
     with respx.mock(assert_all_called=True) as respx_mock:
         yield respx_mock
 
@@ -42,7 +41,7 @@ def test_without_token(endpoint, rasa_mock):
     mock_call = rasa_mock.post(settings.rasa_url).mock(
         return_value=httpx.Response(
             status_code=200,
-            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesi√≥n."}],
+            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesiÛn."}],
         )
     )
 
@@ -60,7 +59,7 @@ def test_without_token(endpoint, rasa_mock):
 
 @pytest.mark.parametrize("endpoint", ["/chat", "/api/chat"])
 def test_with_token(endpoint, rasa_mock):
-    """Prueba ambos endpoints con token v√°lido."""
+    """Prueba ambos endpoints con token v·lido."""
     token = _build_token({"sub": "user123", "role": "student"})
     mock_call = rasa_mock.post(settings.rasa_url).mock(
         return_value=httpx.Response(
