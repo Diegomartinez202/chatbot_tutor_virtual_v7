@@ -3,16 +3,15 @@
 /**
  * URL base del REST proxy del backend (FastAPI) hacia Rasa.
  * - Por defecto usamos /api/chat (proxy recomendado).
- * - Puedes sobreescribir con VITE_CHAT_REST_URL (p.ej. https://backend.tuapp.com/api/chat)
- *   o pasando { baseUrl } a cada función.
+ * - Puedes sobreescribir con VITE_CHAT_REST_URL o pasando { baseUrl }.
  */
-const DEFAULT_CHAT_URL =
+export const DEFAULT_CHAT_URL =
     (import.meta?.env?.VITE_CHAT_REST_URL && String(import.meta.env.VITE_CHAT_REST_URL).trim()) ||
     "/api/chat";
 
 /**
  * Healthcheck simple contra tu backend (alias a Rasa).
- * Intenta GET <baseUrl>/health y considera OK si responde 2xx.
+ * GET <baseUrl>/health → OK si responde 2xx.
  *
  * @param {Object} opts
  * @param {string} [opts.baseUrl]   - Base URL del chat (ej: "/api/chat" o "https://.../api/chat")
@@ -24,7 +23,7 @@ export async function connectRasaRest(opts = {}) {
     const base = String(opts.baseUrl || DEFAULT_CHAT_URL).replace(/\/$/, "");
     const healthUrl =
         opts.healthUrl ||
-        // si base termina en /chat → /chat/health, si no, añadimos /health igualmente
+        // si base termina en /chat → /chat/health
         `${base}${base.endsWith("/chat") ? "" : ""}/health`;
 
     const headers = {};
@@ -35,25 +34,21 @@ export async function connectRasaRest(opts = {}) {
 
     const res = await fetch(healthUrl, { method: "GET", headers });
     if (!res.ok) throw new Error(`Healthcheck failed: ${res.status}`);
-
-    // Aceptamos cualquier payload 2xx como "ready"
     return true;
 }
 
 /**
- * Envía un mensaje de usuario al backend (proxy REST) que a su vez reenvía a Rasa.
- * Por defecto POST a <baseUrl>, con body { sender, message, metadata }.
- * Adjunta Authorization: Bearer <token> si existe (zajuna_token).
- *
- * Rasa suele responder un array: [{ text?, image?, buttons?, quick_replies?, custom? }, ...]
+ * Envía un mensaje al backend (proxy REST → Rasa).
+ * Body compatible con rutas antiguas y nuevas: { text, message, sender, metadata }.
+ * Adjunta Authorization: Bearer <token> si existe.
  *
  * @param {Object} params
  * @param {string} params.text                  - Texto o payload ("/intent{...}")
  * @param {string} [params.sender]              - ID del usuario/sender
- * @param {Object} [params.metadata={}]         - Metadatos adicionales para tracker.latest_message.metadata
+ * @param {Object} [params.metadata={}]         - Metadatos para tracker.latest_message.metadata
  * @param {string} [params.baseUrl]             - Override del endpoint (por defecto DEFAULT_CHAT_URL)
- * @param {string} [params.token]               - Override del token Bearer (si no, usa localStorage.zajuna_token)
- * @returns {Promise<Array>}                    - Array de mensajes Rasa
+ * @param {string} [params.token]               - Token Bearer (si no, usa localStorage.zajuna_token)
+ * @returns {Promise<Array>}                    - Array de mensajes Rasa [{ text?, image?, ... }]
  */
 export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, token } = {}) {
     if (!text || !String(text).trim()) {
@@ -69,9 +64,10 @@ export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, to
     if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
     const body = {
-        sender: sender || getOrCreateSenderId(),
+        // compat: algunos backends esperan `message`, otros `text`
+        text,
         message: text,
-        // Adjuntamos bandera de autenticación en metadata
+        sender: sender || getOrCreateSenderId(),
         metadata: {
             ...metadata,
             auth: { hasToken: !!authToken },
@@ -93,7 +89,7 @@ export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, to
     return Array.isArray(data) ? data : [];
 }
 
-// —— Helpers ——
+// —— Helpers —— //
 const SENDER_KEY = "chat_sender_id";
 function getOrCreateSenderId() {
     try {
