@@ -11,7 +11,10 @@
     "lint": "eslint src --ext .js,.jsx",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:webkit": "playwright test --project=webkit"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",

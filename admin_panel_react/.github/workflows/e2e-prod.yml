@@ -1,0 +1,124 @@
+name: E2E Production (Matrix)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  # release:
+  #   types: [published]
+
+concurrency:
+  group: e2e-prod-${{ github.ref }}
+  cancel-in-progress: true
+
+# ⬇️ Cambia este path si tu frontend NO está en "admin_panel_react"
+defaults:
+  run:
+    working-directory: ./admin_panel_react
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    env:
+      # 👉 Configura estas variables en GitHub → Settings → Secrets and variables → Actions
+      # Usa vars o secrets: el workflow contempla ambos.
+      PLAYWRIGHT_BASE_URL: ${{ vars.PROD_FRONTEND_URL || secrets.PROD_FRONTEND_URL }}
+      CHAT_BASE: ${{ vars.PROD_BACKEND_CHAT_BASE || secrets.PROD_BACKEND_CHAT_BASE }}
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            admin_panel_react/package-lock.json
+            admin_panel_react/package.json
+
+      - name: 🟢 Validar variables requeridas
+        run: |
+          echo "PLAYWRIGHT_BASE_URL=$PLAYWRIGHT_BASE_URL"
+          echo "CHAT_BASE=$CHAT_BASE"
+          if [ -z "$PLAYWRIGHT_BASE_URL" ]; then
+            echo "❌ Falta PROD_FRONTEND_URL (en vars o secrets)."
+            exit 1
+          fi
+          if [ -z "$CHAT_BASE" ]; then
+            echo "❌ Falta PROD_BACKEND_CHAT_BASE (en vars o secrets)."
+            exit 1
+          fi
+
+      - name: ⏳ Esperar frontend (prod) arriba
+        run: |
+          URL="$PLAYWRIGHT_BASE_URL"
+          echo "Esperando $URL ..."
+          ok=""
+          for i in {1..60}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            echo "Intento $i => HTTP $code"
+            if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
+              echo "✅ Frontend OK ($code)"
+              ok="yes"
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$ok" ]; then
+            echo "❌ Frontend no responde en tiempo."
+            exit 1
+          fi
+
+      - name: ⏳ Esperar backend /api/chat/health arriba
+        run: |
+          HEALTH="${CHAT_BASE%/}/health"
+          echo "Esperando $HEALTH ..."
+          ok=""
+          for i in {1..60}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH" || true)
+            echo "Intento $i => HTTP $code"
+            if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
+              echo "✅ Backend health OK ($code)"
+              ok="yes"
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$ok" ]; then
+            echo "❌ Backend health no responde en tiempo."
+            exit 1
+          fi
+
+      - name: 📦 Instalar deps frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm i
+          fi
+
+      - name: 🎭 Instalar Playwright (browsers + deps)
+        run: npx playwright install --with-deps
+
+      - name: 🧪 E2E (${{ matrix.browser }})
+        run: npx playwright test --project=${{ matrix.browser }} --reporter=html
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
+          CHAT_BASE: ${{ env.CHAT_BASE }}
+
+      - name: 📎 Subir reporte Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: admin_panel_react/playwright-report/
+          retention-days: 7
