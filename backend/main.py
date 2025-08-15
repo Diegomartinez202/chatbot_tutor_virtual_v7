@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from pathlib import Path
-from typing import List, Deque, DefaultDict
+from typing import Deque, DefaultDict
 from time import time
 from collections import defaultdict, deque
 import os
@@ -11,14 +11,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import (
-    FileResponse,
-    HTMLResponse,
-    JSONResponse,
-    Response,
-    RedirectResponse,
-)
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse, Response, RedirectResponse
 
 # 🚀 Settings y logging unificado
 from backend.config.settings import settings
@@ -45,11 +38,8 @@ try:
 except Exception:
     aioredis = None
 
-# === Paths útiles ===
+# === Paths útiles (solo por si aún usas estáticos del backend para descargas) ===
 STATIC_DIR = Path(settings.static_dir).resolve()
-ICONS_DIR = STATIC_DIR / "icons"
-WIDGETS_DIR = STATIC_DIR / "widgets"
-TEMPLATES_DIR = Path(settings.template_dir).resolve()
 
 # === Logger de módulo ===
 setup_logging()
@@ -90,9 +80,8 @@ def create_app() -> FastAPI:
     # ➕ Middleware IP/UA centralizado
     app.middleware("http")(request_meta_middleware)
 
-    # 📁 Estáticos / templates
+    # 📁 Estáticos propios del backend (descargas/exportaciones, si las tienes)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-    templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     # 🔀 Rutas API agregadas
     app.include_router(api_router, prefix="/api")
@@ -102,13 +91,11 @@ def create_app() -> FastAPI:
     app.include_router(api_chat.router)
 
     # ✅ Chat router montado dos veces (compat): raíz y /api
-    #    Expone /chat, /chat/health, /chat/debug y sus equivalentes en /api/*
-    app.include_router(chat_router)                  # /chat/*
-    app.include_router(chat_router, prefix="/api")   # /api/chat/*
+    app.include_router(chat_router)                # /chat/*
+    app.include_router(chat_router, prefix="/api") # /api/chat/*
 
     # ─────────────────────────────────────────
     # 🔒 CSP (embebidos) — override por EMBED_ALLOWED_ORIGINS, fallback a settings.frame_ancestors
-    # Acepta: espacio ("'self' https://a.com ...") o CSV ("https://a.com,https://b.com")
     # ─────────────────────────────────────────
     @app.middleware("http")
     async def csp_headers(request: Request, call_next):
@@ -125,45 +112,52 @@ def create_app() -> FastAPI:
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(AuthMiddleware)
 
-    # 🖼️ Iconos/fav
-    @app.get("/favicon.ico")
+    # 🌐 Base pública del frontend (donde vive Vite/public)
+    FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
+
+    # 🖼️ Redirecciones de iconos/manifest → frontend (assets en public/)
+    @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
-        path = ICONS_DIR / "favicon.ico"
-        if path.is_file():
-            return FileResponse(path)
-        try:
-            return FileResponse(Path(settings.favicon_path))
-        except Exception:
-            return Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/favicon.ico", status_code=302)
+        return Response(status_code=404)
 
-    @app.get("/apple-touch-icon.png")
+    @app.get("/apple-touch-icon.png", include_in_schema=False)
     async def apple_touch():
-        path = ICONS_DIR / "apple-touch-icon.png"
-        return FileResponse(path) if path.is_file() else Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/apple-touch-icon.png", status_code=302)
+        return Response(status_code=404)
 
-    @app.get("/android-chrome-192x192.png")
+    @app.get("/android-chrome-192x192.png", include_in_schema=False)
     async def android_192():
-        path = ICONS_DIR / "android-chrome-192x192.png"
-        return FileResponse(path) if path.is_file() else Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/android-chrome-192x192.png", status_code=302)
+        return Response(status_code=404)
 
-    @app.get("/android-chrome-512x512.png")
+    @app.get("/android-chrome-512x512.png", include_in_schema=False)
     async def android_512():
-        path = ICONS_DIR / "android-chrome-512x512.png"
-        return FileResponse(path) if path.is_file() else Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/android-chrome-512x512.png", status_code=302)
+        return Response(status_code=404)
 
-    @app.get("/bot-avatar.png")
+    @app.get("/bot-avatar.png", include_in_schema=False)
     async def bot_avatar():
-        path = ICONS_DIR / "bot-avatar.png"
-        return FileResponse(path) if path.is_file() else Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/bot-avatar.png", status_code=302)
+        return Response(status_code=404)
 
-    @app.get("/bot-loading.png")
+    @app.get("/bot-loading.png", include_in_schema=False)
     async def bot_loading():
-        path = ICONS_DIR / "bot-loading.png"
-        return FileResponse(path) if path.is_file() else Response(status_code=404)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/bot-loading.png", status_code=302)
+        return Response(status_code=404)
 
-    # 📄 Manifest
-    @app.get("/site.webmanifest")
-    async def manifest(_: Request):
+    # 📄 Manifest → frontend
+    @app.get("/site.webmanifest", include_in_schema=False)
+    async def manifest():
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/site.webmanifest", status_code=302)
+        # Fallback mínimo si no hay FRONT_BASE
         data = {
             "name": "Chatbot Tutor Virtual",
             "short_name": "TutorBot",
@@ -176,42 +170,51 @@ def create_app() -> FastAPI:
             "background_color": "#ffffff",
             "icons": [
                 {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-                {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
                 {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-                {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
             ],
         }
         return JSONResponse(data, media_type="application/manifest+json")
 
-    # ✅ Página de embed (canónica, servida por FastAPI)
-    @app.get("/chat-embed.html", response_class=HTMLResponse)
-    async def chat_embed(request: Request):
-        return templates.TemplateResponse("chat-embed.html", {"request": request})
+    # ✅ /chat-embed.html ahora lo sirve el frontend → redirige acá
+    @app.get("/chat-embed.html", include_in_schema=False)
+    async def chat_embed_alias():
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-embed.html", status_code=302)
+        return JSONResponse(
+            {"detail": "chat-embed vive en el frontend (public/chat-embed.html). Configura FRONTEND_SITE_URL."},
+            status_code=501,
+        )
 
-    # ✅ Redirects 301 de rutas legacy → canónica
+    # ✅ Redirects 301 legacy → launcher moderno del frontend
     @app.get("/widget.html", include_in_schema=False)
     async def legacy_widget_alias():
-        return RedirectResponse(url="/chat-embed.html", status_code=301)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-embed.html", status_code=301)
+        return JSONResponse({"detail": "chat-embed vive en el frontend."}, status_code=501)
 
     @app.get("/static/widgets/widget.html", include_in_schema=False)
     async def legacy_static_widget_html():
-        return RedirectResponse(url="/chat-embed.html", status_code=301)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-embed.html", status_code=301)
+        return JSONResponse({"detail": "chat-embed vive en el frontend."}, status_code=501)
 
-    # Redirige JS legacy al launcher del frontend (URL absoluta)
     @app.get("/embedded.js", include_in_schema=False)
     async def legacy_embedded_js_alias():
-        base = settings.frontend_site_url.rstrip("/")
-        return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-widget.js", status_code=301)
+        return JSONResponse({"detail": "chat-widget vive en el frontend."}, status_code=501)
 
     @app.get("/static/widgets/embed.js", include_in_schema=False)
     async def legacy_static_embed_js():
-        base = settings.frontend_site_url.rstrip("/")
-        return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-widget.js", status_code=301)
+        return JSONResponse({"detail": "chat-widget vive en el frontend."}, status_code=501)
 
     @app.get("/static/widgets/embedded.js", include_in_schema=False)
     async def legacy_static_embedded_js():
-        base = settings.frontend_site_url.rstrip("/")
-        return RedirectResponse(url=f"{base}/chat-widget.js", status_code=301)
+        if FRONT_BASE:
+            return RedirectResponse(url=f"{FRONT_BASE}/chat-widget.js", status_code=301)
+        return JSONResponse({"detail": "chat-widget vive en el frontend."}, status_code=501)
 
     # 🌱 Root + Health
     @app.get("/")

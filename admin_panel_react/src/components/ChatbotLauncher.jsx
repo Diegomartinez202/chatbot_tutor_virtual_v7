@@ -1,21 +1,14 @@
-// src/components/ChatbotLauncher.jsx
 import React, { useState } from "react";
 import { Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
+import assets from "@/config/assets";
 
 /**
  * Botón flotante para abrir/cerrar el chat.
- * Props:
- * - onClick: () => void
- * - avatarSrc: string (por defecto "/bot-avatar.png")
- * - size: number (px) tamaño del botón
- * - ariaLabel: string
- * - title: string
- * - isOpen?: boolean (opcional; solo para accesibilidad/estado)
  */
 export default function ChatbotLauncher({
     onClick,
-    avatarSrc = "/bot-avatar.png",
+    avatarSrc = assets.BOT_AVATAR,
     size = 64,
     ariaLabel = "Abrir chat",
     title = "Abrir chat",
@@ -31,6 +24,7 @@ export default function ChatbotLauncher({
                 style={{ width: size, height: size }}
                 aria-label={ariaLabel}
                 aria-pressed={isOpen}
+                aria-expanded={isOpen}
                 title={title}
                 type="button"
             >

@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -19,11 +18,11 @@ import UserManagementPage from "@/pages/UserManagementPage";
 import AssignRoles from "@/pages/AssignRoles";
 import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
-import IntentosFallidosPage from "@/pages/IntentosFallidosPage"; // ✅ NUEVO
+import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 
-import ChatPage from "@/pages/ChatPage"; // ✅ NUEVO: página de chat
+import ChatPage from "@/pages/ChatPage";
 
-import { TooltipProvider } from "@/components/ui/IconTooltip"; // ✅ Provider global
+import { TooltipProvider } from "@/components/ui/IconTooltip";
 
 function CatchAllRedirect() {
     const { isAuthenticated } = useAuth();
@@ -34,15 +33,15 @@ function App() {
     return (
         <TooltipProvider>
             <Routes>
-                {/* 🌐 Públicas */}
+                {/* Públicas */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
 
-                {/* ✅ Chat público */}
-                {/* /chat → pública; ChatPage redirige a /login si NO viene embed=1 */}
+                {/* Chat público */}
                 <Route path="/chat" element={<ChatPage />} />
-                {/* /chat-embed → pública y forzada a embed (ideal para iframes/embeds antiguos) */}
                 <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+                {/* 👇 Alias extra de compat modern iframe */}
+                <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
 
                 {/* Home protegido */}
                 <Route
@@ -54,7 +53,7 @@ function App() {
                     }
                 />
 
-                {/* 🔐 Protegidas sin rol */}
+                {/* Protegidas sin rol */}
                 <Route
                     path="/dashboard"
                     element={
@@ -72,7 +71,7 @@ function App() {
                     }
                 />
 
-                {/* 🛠️ admin/soporte */}
+                {/* admin/soporte */}
                 <Route
                     path="/logs"
                     element={
@@ -94,7 +93,7 @@ function App() {
                     }
                 />
 
-                {/* 👑 admin-only */}
+                {/* admin-only */}
                 <Route
                     path="/intents"
                     element={
@@ -165,8 +164,6 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* ✅ NUEVA RUTA: Fallos del bot (admin) */}
                 <Route
                     path="/intentos-fallidos"
                     element={

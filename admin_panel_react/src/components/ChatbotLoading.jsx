@@ -1,30 +1,22 @@
-// src/components/ChatbotLoading.jsx
 import React, { useState } from "react";
 import { Loader2, Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
+import assets from "@/config/assets";
 
 /**
  * Loader del chatbot con avatar.
- * Props:
- * - avatarSrc: string (ruta pública, ej: "/bot-loading.png" o "/bot-avatar.png")
- * - label: string
- * - useSpinner: boolean (muestra spinner superpuesto)
- * - showStatusBadge: boolean (muestra un Badge de estado debajo)
- * - status: "connecting" | "ready" | "error" | string (mapea a Badge type="status")
- * - statusMessage: string (opc. para sobreescribir texto del badge)
  */
 export default function ChatbotLoading({
-    avatarSrc = "/bot-loading.png",
+    avatarSrc = assets.BOT_LOADING,
     label = "Cargando…",
     useSpinner = true,
     showStatusBadge = false,
-    status,                // opcional
-    statusMessage,         // opcional
+    status,        // "connecting" | "ready" | "error" | string
+    statusMessage,
 }) {
     const [imgError, setImgError] = useState(false);
 
-    // Mapeo simple para el Badge (mantiene compat con tus STATUS_STYLES)
     const statusValue =
         status === "connecting" ? "pendiente" :
             status === "ready" ? "ok" :
@@ -32,17 +24,10 @@ export default function ChatbotLoading({
                     status || undefined;
 
     return (
-        <div
-            className="w-full h-full flex flex-col items-center justify-center gap-3"
-            role="status"
-            aria-live="polite"
-        >
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
             <div className="relative">
                 <IconTooltip label={label} side="top">
-                    <div
-                        className="w-20 h-20 rounded-full shadow-lg overflow-hidden bg-white"
-                        aria-busy={useSpinner}
-                    >
+                    <div className="w-20 h-20 rounded-full shadow-lg overflow-hidden bg-white" aria-busy={useSpinner}>
                         {imgError ? (
                             <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-white">
                                 <Bot className="w-8 h-8" aria-hidden="true" />

@@ -3,8 +3,8 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import IconTooltip from "@/components/ui/IconTooltip";
 import ChatWidget from "@/components/ChatWidget";
-import { connectDemo } from "@/services/chat/connectDemo";
 import { connectRasaRest } from "@/services/chat/connectRasaRest";
+import { connectWS } from "@/services/chat/connectWS";
 import {
     Bot,
     Mail,
@@ -16,8 +16,6 @@ import {
     FlaskConical,
     LogOut,
 } from "lucide-react";
-import { connectWS } from "@/services/chat/connectWS";
-
 
 const AdminLayout = () => {
     const { logout, user } = useAuth();
@@ -28,9 +26,16 @@ const AdminLayout = () => {
         navigate("/login");
     };
 
+    // 🚦 REST/WS por ENV (Vite)
+    const transport = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
+    const connectFn =
+        transport === "ws"
+            ? () => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL || "wss://tu-ws" })
+            : connectRasaRest;
+
     return (
         <div className="flex min-h-screen">
-            {/* Sidebar / Header */}
+            {/* Sidebar */}
             <aside className="w-64 bg-gray-800 text-white flex flex-col justify-between">
                 <div className="p-4">
                     <div className="flex items-center gap-2 mb-6">
@@ -52,50 +57,36 @@ const AdminLayout = () => {
                     )}
 
                     <nav className="flex flex-col space-y-2">
-                        <Link
-                            to="/dashboard"
-                            className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2"
-                        >
+                        <Link to="/dashboard" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
                             <IconTooltip label="Dashboard" side="right">
                                 <LayoutDashboard className="w-4 h-4" />
                             </IconTooltip>
                             <span>Dashboard</span>
                         </Link>
 
-                        <Link
-                            to="/intents"
-                            className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2"
-                        >
+                        <Link to="/intents" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
                             <IconTooltip label="Intents" side="right">
                                 <Brain className="w-4 h-4" />
                             </IconTooltip>
                             <span>Intents</span>
                         </Link>
 
-                        <Link
-                            to="/logs"
-                            className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2"
-                        >
+                        <Link to="/logs" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
                             <IconTooltip label="Logs" side="right">
                                 <FileText className="w-4 h-4" />
                             </IconTooltip>
                             <span>Logs</span>
                         </Link>
 
-                        <Link
-                            to="/stats"
-                            className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2"
-                        >
+                        <Link to="/stats" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
                             <IconTooltip label="Estadísticas" side="right">
                                 <BarChart2 className="w-4 h-4" />
                             </IconTooltip>
                             <span>Estadísticas</span>
                         </Link>
 
-                        <Link
-                            to="/test"
-                            className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2"
-                        >
+                        {/* 🔧 coincide con App.jsx */}
+                        <Link to="/diagnostico" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
                             <IconTooltip label="Pruebas/Diagnóstico" side="right">
                                 <FlaskConical className="w-4 h-4" />
                             </IconTooltip>
@@ -108,6 +99,7 @@ const AdminLayout = () => {
                     <button
                         onClick={handleLogout}
                         className="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white flex items-center justify-center gap-2"
+                        type="button"
                     >
                         <LogOut className="w-4 h-4" />
                         Cerrar sesión
@@ -115,17 +107,13 @@ const AdminLayout = () => {
                 </div>
             </aside>
 
-            {/* Contenido principal */}
+            {/* Main */}
             <main className="flex-1 bg-gray-100 p-6">
                 <Outlet />
             </main>
 
-            {/* Widget flotante in-app (usa demo mientras cableamos la API real) */}
-            <ChatWidget connectFn={connectDemo} />
-            <ChatWidget connectFn={connectRasaRest} />;
-            <ChatWidget connectFn={() => connectWS({
-                wsUrl: import.meta.env.VITE_RASA_WS_URL || "wss://tu-ws",
-            })} />
+            {/* ✅ Un solo widget global (REST/WS según ENV) */}
+            <ChatWidget connectFn={connectFn} title="TutorBot" />
         </div>
     );
 };

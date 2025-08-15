@@ -1,0 +1,162 @@
+# Chatbot Embed Guide
+
+Guía oficial para embeber el **Chatbot Tutor Virtual** en sitios externos y para usar el **launcher** (botón flotante).
+
+---
+
+## 1) Arquitectura
+
+- **Frontend (Vite)**: expone la SPA (panel + `/chat`) y los recursos públicos:
+  - `public/chat-embed.html` → contenedor del iframe (canónico).
+  - `public/chat-widget.js` → launcher moderno (botón flotante).
+  - Íconos/manifest: `favicon.ico`, `apple-touch-icon.png`, `android-chrome-*.png`, `site.webmanifest`.
+
+- **Backend (FastAPI)**: APIs (`/api/*`), chat REST/WS (`/chat` y `/api/chat`) y **redirecciones**:
+  - `GET /chat-embed.html` → 302 a `<FRONTEND_SITE_URL>
+    /chat-embed.html`
+    - `GET /favicon.ico`, `/bot-avatar.png`, etc. → 302 a `<FRONTEND_SITE_URL>
+        /...`
+        - Legacy (`/embedded.js`, `/static/widgets/*`) → 301 a `chat-widget.js` o `chat-embed.html`.
+
+        ---
+
+        ## 2) Variables de entorno (frontend)
+
+        En `Vite (.env)`:
+
+        ```env
+        # Transporte del widget/ChatPage
+        VITE_CHAT_TRANSPORT=rest     # o 'ws'
+        VITE_RASA_WS_URL=wss://tu-servidor-de-rasa/ws
+
+        # REST del chat (si usas proxy backend /api/chat)
+        VITE_CHAT_REST_URL=/api/chat
+
+        # Orígenes permitidos para postMessage (seguridad)
+        VITE_ALLOWED_HOST_ORIGINS=https://app.tu-dominio.com,http://localhost:5173
+
+        # URL pública del panel (og:url, etc.)
+        VITE_PUBLIC_SITE_URL=https://panel.tu-dominio.com/
+
+        # (Opcional) avatar por defecto
+        VITE_BOT_AVATAR=/bot-avatar.png
+        Nota: Todas las variables del frontend deben iniciar con VITE_.
+
+        3) Variables de entorno (backend)
+        Asegura que apunten a tus dominios reales de producción/desarrollo:
+
+        env
+        Copiar
+        Editar
+        ALLOWED_ORIGINS=http://localhost:5173,https://tu-dominio.com,https://panel.tu-dominio.com
+        FRAME_ANCESTORS='self' http://localhost:5173 https://tu-dominio.com https://panel.tu-dominio.com
+        EMBED_ALLOWED_ORIGINS='self' http://localhost:5173 https://tu-dominio.com https://panel.tu-dominio.com
+        FRONTEND_SITE_URL=https://panel.tu-dominio.com
+        EMBED_ENABLED=true
+        4) Opción A — Usar chat-embed.html directamente
+        Inserta un iframe hacia el embed canónico (sirve el frontend):
+
+        html
+        Copiar
+        Editar
+        <!-- En tu sitio externo -->
+        <iframe src="https://panel.tu-dominio.com/chat-embed.html?src=/chat%3Fembed%3D1&w=380px&h=560px"
+                width="380"
+                height="560"
+                title="Chatbot Tutor Virtual"
+                referrerpolicy="no-referrer"
+                allow="clipboard-write"
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups">
+        </iframe>
+        Parámetros soportados por chat-embed.html:
+
+        src: URL del contenido real a mostrar en el iframe interno. Por defecto: /chat?embed=1.
+
+        w / h: tamaño sugerido del contenedor (ej. 380px, 560px).
+
+        (Se reenvían api, user_id, avatar si están en el querystring).
+
+        5) Opción B — Usar el launcher chat-widget.js (botón flotante)
+        Incluye el script en la página externa:
+
+        html
+        Copiar
+        Editar
+        <script src="https://panel.tu-dominio.com/chat-widget.js"
+                data-chat-url="https://panel.tu-dominio.com/chat-embed.html?src=%2Fchat%3Fembed%3D1"
+                data-avatar="https://panel.tu-dominio.com/bot-avatar.png"
+                data-title="Abrir chat"
+                data-position="bottom-right"
+                data-panel-width="380px"
+                data-panel-height="560px"
+                data-allowed-origins="https://panel.tu-dominio.com,https://app.tu-dominio.com"
+                data-login-url="https://tu-dominio.com/login"
+                data-badge="auto"
+                defer></script>
+        Atributos útiles (data-*):
+
+        data-chat-url: URL del embed (por defecto /chat-embed.html?embed=1).
+
+        data-avatar: imagen del botón.
+
+        data-title: tooltip del botón.
+
+        data-position: bottom-right, bottom-left.
+
+        data-panel-width / data-panel-height: tamaño del panel.
+
+        data-allowed-origins: whitelist para postMessage (seguridad).
+
+        data-login-url: para redirigir si el host requiere autenticación.
+
+        data-badge: "" (off) | "auto" | número inicial.
+
+        API JS opcional:
+
+        js
+        Copiar
+        Editar
+        // después de cargar el script:
+        window.ChatWidget.open();
+        window.ChatWidget.close();
+        window.ChatWidget.unmount();
+        window.ChatWidget.mount({ /* opciones */ });
+        6) Seguridad (CSP/CORS/iframe)
+        Define CORS en backend (ALLOWED_ORIGINS).
+
+        Restringe embeds con FRAME_ANCESTORS y EMBED_ALLOWED_ORIGINS.
+
+        chat-embed.html usa sandbox="allow-scripts allow-forms allow-same-origin allow-popups" y allow="clipboard-write".
+
+        7) Pruebas rápidas (Smoke test)
+        Frontend dev: npm run dev
+
+        Abre: http://localhost:5173/chat
+
+        Abre: http://localhost:5173/chat-embed.html?src=/chat%3Fembed%3D1
+
+        Backend dev: uvicorn backend.main:app --reload
+
+        GET http://localhost:8000/chat-embed.html → 302 a http://localhost:5173/chat-embed.html
+
+        Launcher: inserta el
+        <script ...>
+ en un HTML externo y prueba:
+
+Badge auto.
+
+Redirect a login si falta token.
+
+8) Migración desde legacy
+Reemplaza <script src="/static/widgets/embed.js"> por el nuevo chat-widget.js.
+
+Rutas legacy (/widget.html, /static/widgets/*) ya redirigen 301 → canónico.
+
+Borra del repo los HTML/JS antiguos en backend/static/* y backend/templates/*.
+
+9) Troubleshooting
+No abre: revisa data-chat-url y FRONTEND_SITE_URL.
+
+No muestra badge: puede que el host no envíe postMessage. El nuevo widget soporta chat:badge.
+
+CORS: confirma ALLOWED_ORIGINS en backend y VITE_ALLOWED_HOST_ORIGINS en frontend.

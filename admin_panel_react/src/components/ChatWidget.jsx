@@ -1,4 +1,3 @@
-// src/components/ChatWidget.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { X, Bot, RefreshCw } from "lucide-react";
 import ChatbotLauncher from "@/components/ChatbotLauncher";
@@ -6,21 +5,15 @@ import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import IconTooltip from "@/components/ui/IconTooltip";
 import ChatUI from "@/components/chat/ChatUI";
+import assets from "@/config/assets";
 
 /**
  * Widget flotante para el chat.
- * Props:
- * - connectFn?: () => Promise<void>   (si falla => error; si resuelve => ready)
- * - title?: string
- * - avatarSrc?: string
- * - launcherSize?: number
- * - defaultOpen?: boolean
- * - children?: ReactNode (UI de chat cuando status === 'ready'; si no, renderiza <ChatUI embed />)
  */
 export default function ChatWidget({
-    connectFn,
+    connectFn,                  // () => Promise<void>
     title = "Asistente",
-    avatarSrc = "/bot-avatar.png",
+    avatarSrc = assets.BOT_AVATAR,
     launcherSize = 64,
     defaultOpen = false,
     children,
@@ -34,8 +27,7 @@ export default function ChatWidget({
             if (connectFn) {
                 await connectFn();
             } else {
-                // fallback de demo para no bloquear mientras cableamos la API real
-                await new Promise((r) => setTimeout(r, 700));
+                await new Promise((r) => setTimeout(r, 700)); // demo fallback
             }
             setStatus("ready");
         } catch {
@@ -43,12 +35,10 @@ export default function ChatWidget({
         }
     }, [connectFn]);
 
-    // Conectar cuando el widget se abre
     useEffect(() => {
         if (open) connect();
     }, [open, connect]);
 
-    // Cierra con ESC
     useEffect(() => {
         if (!open) return;
         const onEsc = (e) => e.key === "Escape" && setOpen(false);
@@ -102,18 +92,12 @@ export default function ChatWidget({
                         {/* Body */}
                         <div className="flex-1">
                             {status === "connecting" && (
-                                <ChatbotLoading
-                                    avatarSrc={avatarSrc}
-                                    label="Conectando…"
-                                    useSpinner
-                                />
+                                <ChatbotLoading avatarSrc={avatarSrc} label="Conectando…" useSpinner />
                             )}
 
                             {status === "error" && (
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-                                    <p className="text-gray-700">
-                                        No pudimos conectar con el servicio de chat.
-                                    </p>
+                                    <p className="text-gray-700">No pudimos conectar con el servicio de chat.</p>
                                     <button
                                         onClick={connect}
                                         className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-100"
@@ -127,7 +111,7 @@ export default function ChatWidget({
 
                             {status === "ready" && (
                                 <div className="w-full h-full">
-                                    {/* Tu UI real (Rasa/iframe/lo que uses). Si no pasas children, renderiza ChatUI en modo embed */}
+                                    {/* Tu UI real; si no pasas children, usamos ChatUI en modo embed */}
                                     {children ?? <ChatUI embed />}
                                 </div>
                             )}

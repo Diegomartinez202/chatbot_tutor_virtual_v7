@@ -1,3 +1,7 @@
+
+## 📎 Integración en sitios externos
+Consulta la guía: [EMBED_GUIDE.md](./EMBED_GUIDE.md)
+
 # 🤖 Chatbot Tutor Virtual v2 – Proyecto SENA
 
 Sistema modular e inteligente para orientación académica y soporte en línea, desarrollado como solución embebible para plataformas educativas como **Zajuna**. Utiliza **FastAPI**, **Rasa**, **MongoDB**, **React** y **Docker**.
