@@ -21,7 +21,7 @@ jobs:
     env:
       PLAYWRIGHT_BASE_URL: ${{ secrets.PROD_FRONTEND_URL }}
       PROD_BACKEND_CHAT_BASE: ${{ secrets.PROD_BACKEND_CHAT_BASE }}
-      CHAT_BASE: ${{ secrets.PROD_BACKEND_CHAT_BASE }}   # ← para health.spec.ts
+      CHAT_BASE: ${{ secrets.PROD_BACKEND_CHAT_BASE }}   # para health.spec.ts
       CI: true
 
     steps:
@@ -68,7 +68,6 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
 
-      # ⛔ Falla si hay flaky/retries (lee el JSON del reporter)
       - name: Check for flaky tests
         run: node scripts/check-no-flaky.js ./playwright-report/results.json
 

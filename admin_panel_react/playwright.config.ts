@@ -1,4 +1,4 @@
-// admin_panel_react/playwright.config.ts
+/// <reference types="node" />
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = Number(process.env.PORT || 5173);
@@ -14,21 +14,20 @@ export default defineConfig({
     reporter: [
         ["line"],
         ["html", { outputFolder: "playwright-report", open: "never" }],
-        ["json", { outputFile: "playwright-report/results.json" }], // ← necesario para anti-flaky
+        ["json", { outputFile: "playwright-report/results.json" }]
     ],
     use: {
         baseURL: BASE_URL,
         headless: true,
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
-        video: "retain-on-failure",
+        video: "retain-on-failure"
     },
     projects: [
         { name: "chromium", use: { ...devices["Desktop Chrome"] } },
         { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-        { name: "webkit", use: { ...devices["Desktop Safari"] } },
+        { name: "webkit", use: { ...devices["Desktop Safari"] } }
     ],
-    // Si apuntas a Railway/Prod (externo), NO levanta server local
     webServer: isExternal
         ? undefined
         : [
@@ -36,7 +35,7 @@ export default defineConfig({
                 command: `npm run dev -- --port ${PORT}`,
                 port: PORT,
                 reuseExistingServer: true,
-                timeout: 60_000,
-            },
-        ],
+                timeout: 60_000
+            }
+        ]
 });

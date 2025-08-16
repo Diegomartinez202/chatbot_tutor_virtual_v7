@@ -1,6 +1,5 @@
-// admin_panel_react/tests/e2e/stats-v2.spec.a11y.ts
 import { test, expect } from "@playwright/test";
-import { injectAxe, checkA11y } from "@axe-core/playwright";
+import AxeBuilder from "@axe-core/playwright";
 
 test.describe("A11y StatsPageV2", () => {
     test("sin violaciones críticas/serias y roles básicos presentes", async ({ page }) => {
@@ -17,22 +16,23 @@ test.describe("A11y StatsPageV2", () => {
         await page.goto("/stats-v2");
 
         // Roles/semántica básicos
-        await expect(page.getByRole("heading").first()).toBeVisible(); // título presente
-        // si tienes region/main/landmark, puedes descomentar:
-        // await expect(page.getByRole("main")).toBeVisible();
+        await expect(page.getByRole("heading").first()).toBeVisible();
 
-        // Inyecta Axe y revisa accesibilidad
-        await injectAxe(page);
+        // Escaneo a11y con Axe
+        // (Si algún gráfico dispara falsos positivos de contraste, puedes añadir `.disableRules(['color-contrast'])`)
+        const results = await new AxeBuilder({ page }).analyze();
 
-        // Reglas: permite "minor" y falla si hay "serious" o "critical"
-        await checkA11y(page, undefined, {
-            detailedReport: true,
-            detailedReportOptions: { html: true },
-            axeOptions: {
-                // Puedes excluir gráficos si dan falsos positivos:
-                // rules: { "color-contrast": { enabled: true } },
-            },
-            includedImpacts: ["serious", "critical"],
-        });
+        // Filtra solo impactos serios/críticos
+        const serious = results.violations.filter((v) => ["serious", "critical"].includes(v.impact ?? ""));
+        if (serious.length) {
+            await test.info().attach("a11y-serious", {
+                body: JSON.stringify(serious, null, 2),
+                contentType: "application/json",
+            });
+        }
+        expect(
+            serious.length,
+            `Violaciones a11y (serious/critical):\n${JSON.stringify(serious, null, 2)}`
+        ).toBe(0);
     });
 });

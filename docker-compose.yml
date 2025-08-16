@@ -1,5 +1,3 @@
-version: "3.9"
-
 name: tutorbot-local
 
 services:
@@ -17,7 +15,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: ./backend/Dockerfile
+      dockerfile: Dockerfile   # ← era ./backend/Dockerfile (doble ruta). Corregido.
     container_name: backend
     restart: unless-stopped
     env_file:
@@ -42,12 +40,12 @@ services:
   rasa:
     build:
       context: ./rasa
-      dockerfile: ./rasa/Dockerfile
+      dockerfile: Dockerfile   # ← era ./rasa/Dockerfile. Corregido.
     container_name: rasa
     restart: unless-stopped
     environment:
-      # Nuestro entrypoint genera endpoints.yml con esta URL
       ACTION_SERVER_URL: http://action-server:5055/webhook
+      RASA_AUTOTRAIN: "true"
     ports:
       - "5005:5005"
     depends_on:
@@ -58,7 +56,7 @@ services:
   action-server:
     build:
       context: ./rasa_action_server
-      dockerfile: ./rasa_action_server/Dockerfile
+      dockerfile: Dockerfile   # ← era ./rasa_action_server/Dockerfile. Corregido.
     container_name: action-server
     restart: unless-stopped
     ports:
@@ -69,12 +67,9 @@ services:
   admin:
     build:
       context: ./admin_panel_react
-      dockerfile: ./admin_panel_react/Dockerfile
+      dockerfile: Dockerfile   # ← era ./admin_panel_react/Dockerfile. Corregido.
     container_name: admin
     restart: unless-stopped
-    environment:
-      # Si tu build usa variables Vite en build-time, ponlas como --build-arg en el Dockerfile
-      # VITE_CHAT_TRANSPORT: "rest"
     ports:
       - "8080:80"
     networks:

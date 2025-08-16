@@ -69,7 +69,6 @@ stories:
     - action: utter_gracias_continuar
 
 # 5) Soporte técnico: iniciar soporte_form desde diferentes intents
-#    (Si ya tienes reglas para esto, estas historias refuerzan el comportamiento en entrenamiento)
 - story: Soporte técnico (intent principal)
   steps:
     - intent: soporte_tecnico

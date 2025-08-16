@@ -24,6 +24,7 @@ jobs:
         working-directory: admin_panel_react
     env:
       CI: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +45,6 @@ jobs:
       - name: Run Playwright tests (auto webServer from config)
         run: npx playwright test
 
-      # ⛔ Falla si hay flaky/retries
       - name: Check for flaky tests
         run: node scripts/check-no-flaky.js ./playwright-report/results.json
 

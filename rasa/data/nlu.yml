@@ -1,6 +1,7 @@
 version: "3.1"
 
 nlu:
+
 # ————————— SALUDO
 - intent: saludo
   examples: |
@@ -14,6 +15,10 @@ nlu:
     - holi
     - buenos días
     - buenas tardes
+    - buenas noches
+    - hola!! 
+    - hola, qué tal?
+    - qué onda
 
 # ————————— EXPLORAR TEMAS / CATÁLOGO
 - intent: explorar_temas
@@ -26,6 +31,8 @@ nlu:
     - catálogo de cursos
     - ver oferta académica
     - cursos disponibles
+    - quiero aprender algo nuevo
+    - ver catálogo
 
 # ————————— INGRESO / LOGIN
 - intent: ingreso_zajuna
@@ -38,6 +45,8 @@ nlu:
     - iniciar sesión en la plataforma
     - no encuentro el login
     - entrar a mi cuenta
+    - no puedo abrir el login
+    - necesito iniciar sesión
 
 # ————————— RECUPERAR CONTRASEÑA
 - intent: recuperar_contrasena
@@ -50,6 +59,7 @@ nlu:
     - no recuerdo mi contraseña
     - cómo recupero mi password
     - necesito cambiar mi clave
+    - recuperar mi password
 
 # ————————— OTRO PROBLEMA DE ACCESO
 - intent: otro_problema_acceso
@@ -60,6 +70,7 @@ nlu:
     - el sistema no me deja pasar
     - tengo otro inconveniente para entrar
     - error distinto al de contraseña
+    - otro error al intentar ingresar
 
 # ————————— PROCESO ACADÉMICO / ADMIN
 - intent: proceso_academico
@@ -70,6 +81,7 @@ nlu:
     - información académica
     - trámites académicos
     - ayuda con el proceso académico
+    - procesos administrativos
 
 # ————————— CERTIFICADOS (PRIVADO → REQUIERE AUTH)
 - intent: ver_certificados
@@ -86,6 +98,7 @@ nlu:
     - lista de certificados
     - necesito mi constancia
     - quiero mis certificados en PDF
+    - descargar mis diplomas
 
 # ————————— TUTOR / HORARIOS
 - intent: tutor_asignado
@@ -96,6 +109,7 @@ nlu:
     - cuál es mi tutor actual
     - necesito el contacto de mi tutor
     - datos del tutor
+    - cómo contacto al tutor
 
 - intent: horarios_calendario
   examples: |
@@ -105,6 +119,7 @@ nlu:
     - cuándo son mis clases
     - calendario del curso
     - plan académico
+    - horarios del semestre
 
 # ————————— SOPORTE TÉCNICO / INCIDENTES
 - intent: soporte_tecnico
@@ -119,6 +134,7 @@ nlu:
     - abrir ticket de soporte
     - comunicarme con soporte
     - soporte
+    - quiero reportar un incidente
 
 - intent: problema_no_ingreso
   examples: |
@@ -128,6 +144,7 @@ nlu:
     - no puedo acceder
     - no me deja entrar al sistema
     - al entrar me da error
+    - no puedo loguearme
 
 - intent: pantalla_blanca
   examples: |
@@ -137,6 +154,7 @@ nlu:
     - la página queda en blanco
     - el curso no carga y queda en blanco
     - white screen
+    - se queda congelado en blanco
 
 - intent: error_actividad
   examples: |
@@ -146,6 +164,7 @@ nlu:
     - actividad no abre
     - error en el cuestionario
     - se bloquea al abrir la actividad
+    - no deja entregar la actividad
 
 - intent: otro_problema_tecnico
   examples: |
@@ -155,6 +174,7 @@ nlu:
     - tengo un problema distinto
     - error raro en el sistema
     - no sé qué error es
+    - un problema diferente
 
 # ————————— ESCALAR A HUMANO
 - intent: escalar_humano
@@ -165,6 +185,7 @@ nlu:
     - hablar con asesor
     - necesito un humano
     - atención humana por favor
+    - conéctame con un agente
 
 - intent: confirmacion_escalar_humano
   examples: |
@@ -173,6 +194,7 @@ nlu:
     - de acuerdo
     - confirmo
     - adelante
+    - ok, pásame con humano
 
 - intent: negar_escalar
   examples: |
@@ -181,6 +203,7 @@ nlu:
     - prefiero continuar aquí
     - no necesito humano
     - sigamos con el chat
+    - no, continuemos aquí
 
 # ————————— ESTADO ESTUDIANTE (PRIVADO → REQUIERE AUTH)
 - intent: estado_estudiante
@@ -197,6 +220,7 @@ nlu:
     - sigo activo este periodo
     - mi estatus académico
     - estado en el periodo actual
+    - ver mi estado actual
 
 # ————————— CAMBIO DE IDIOMA
 - intent: cambiar_idioma_ingles
@@ -207,6 +231,7 @@ nlu:
     - responde en inglés
     - cambiar idioma a inglés
     - I prefer English
+    - talk to me in English
 
 - intent: cambiar_idioma_espanol
   examples: |
@@ -216,6 +241,7 @@ nlu:
     - ponlo en español
     - cambia al español
     - quiero español
+    - switch back to spanish
 
 # ————————— INSCRIPCIONES
 - intent: inscribirme
@@ -226,6 +252,7 @@ nlu:
     - cómo me inscribo
     - registrarme en el curso
     - quiero matricularme
+    - inscribirme en ese programa
 
 # ————————— LOGIN EXPLÍCITO (TRACKING DEL BOTÓN “INICIAR SESIÓN”)
 - intent: auth_login
@@ -236,6 +263,7 @@ nlu:
     - quiero loguearme
     - acceder a mi cuenta
     - entrar con mi usuario
+    - abrir el login
 
 # ————————— AFFIRM / DENY / FALLBACK
 - intent: affirm
@@ -248,6 +276,7 @@ nlu:
     - sí por favor
     - afirmativo
     - va
+    - perfecto
 
 - intent: deny
   examples: |
@@ -259,8 +288,8 @@ nlu:
     - mejor no
     - no por ahora
     - nah
+    - cancela
 
-# Nota: Rasa maneja fallback con políticas; no es obligatorio dar ejemplos.
 - intent: fallback
   examples: |
     - no entiendo
@@ -268,6 +297,8 @@ nlu:
     - qué
     - no sé
     - ayuda
+    - mmm
+    - ¿ah?
 
 # ————————— EMAIL (REGEX + FRASES CON ENTIDAD)
 - regex: email
@@ -284,3 +315,7 @@ nlu:
     - mi email: [persona.apellido@dominio.edu](email)
     - envía el enlace a [soporte@empresa.co](email)
     - mi correo de contacto es [daniel.martinez010201@gmail.com](email)
+    - envíame un correo a [estudiante@universidad.edu.co](email)
+    - escribe a [pruebas+qa@zajuna.edu](email)
+    - mi correo es juan@ejemplo.com
+    - puedes escribir a soporte@empresa.co

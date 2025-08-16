@@ -5,7 +5,6 @@ test("backend /health responde 2xx (skip si no hay base)", async ({ request }) =
     if (!chatBase) test.skip(true, "CHAT_BASE/PROD_BACKEND_CHAT_BASE no definido");
 
     const base = chatBase!.replace(/\/$/, "");
-    // probamos varias rutas conocidas
     const candidates = ["/health", "/api/chat/health", "/chat/health"];
 
     let ok = false;

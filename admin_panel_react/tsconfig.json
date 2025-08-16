@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "NodeNext",
     "jsx": "react-jsx",
-    "types": [ "vite/client", "@playwright/test", "node" ],
+    "types": [ "vite/client", "@playwright/test", "@axe-core/playwright", "node" ],
     "allowJs": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

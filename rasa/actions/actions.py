@@ -5,7 +5,7 @@ import os
 import re
 import time
 import smtplib
-from typing import Any, Dict, List, Text
+from typing import Any, Dict, List, Optional, Text
 
 import requests
 from email.mime.text import MIMEText
@@ -16,17 +16,12 @@ from rasa_sdk.events import SlotSet
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction  # Rasa SDK 3.x
 
-
 # =========================
 #    Config & Constantes
 # =========================
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
-HELPDESK_WEBHOOK: str = os.getenv(
-    "HELPDESK_WEBHOOK",
-    "http://localhost:8000/api/helpdesk/tickets",
-).strip()
-
+HELPDESK_WEBHOOK: str = (os.getenv("HELPDESK_WEBHOOK") or "http://localhost:8000/api/helpdesk/tickets").strip()
 HELPDESK_TOKEN: str = (os.getenv("HELPDESK_TOKEN") or "").strip()
 
 # SMTP (opcional para action_enviar_correo)
@@ -36,9 +31,13 @@ SMTP_USER = (os.getenv("SMTP_USER") or "").strip()
 SMTP_PASS = (os.getenv("SMTP_PASS") or "").strip()
 EMAIL_FROM = (os.getenv("EMAIL_FROM") or SMTP_USER or "bot@ejemplo.com").strip()
 
+# Timeouts/reintentos para webhooks
+REQUEST_TIMEOUT_SECS = int(os.getenv("ACTIONS_HTTP_TIMEOUT", "10"))
+MAX_RETRIES = int(os.getenv("ACTIONS_HTTP_RETRIES", "2"))
+
 
 # =========================
-#   Utilidades opcionales
+#   Utilidades HTTP/SMTP
 # =========================
 def send_email(subject: str, body: str, to_addr: str) -> bool:
     """
@@ -53,7 +52,7 @@ def send_email(subject: str, body: str, to_addr: str) -> bool:
         msg["Subject"] = subject
         msg["From"] = EMAIL_FROM
         msg["To"] = to_addr
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=REQUEST_TIMEOUT_SECS) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
             server.sendmail(EMAIL_FROM, [to_addr], msg.as_string())
@@ -62,6 +61,25 @@ def send_email(subject: str, body: str, to_addr: str) -> bool:
     except Exception as e:
         print(f"[actions] ❌ Error enviando correo: {e}")
         return False
+
+
+def post_json_with_retries(url: str, payload: Dict[str, Any], headers: Optional[Dict[str, str]] = None) -> Optional[requests.Response]:
+    """
+    POST JSON con cabeceras y reintento básico.
+    Devuelve Response o None si falla definitivamente.
+    """
+    headers = dict(headers or {})
+    headers.setdefault("Content-Type", "application/json")
+    for attempt in range(1, MAX_RETRIES + 2):
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT_SECS)
+            return resp
+        except Exception as e:
+            print(f"[actions] POST intento {attempt} falló: {e}")
+            if attempt >= MAX_RETRIES + 1:
+                break
+            time.sleep(0.5 * attempt)
+    return None
 
 
 # =========================
@@ -140,6 +158,7 @@ class ValidateRecoveryForm(FormValidationAction):
 
 
 # ==============   Acciones   ==============
+
 class ActionEnviarCorreo(Action):
     """Envía un email de recuperación (opcionalmente por SMTP)"""
 
@@ -169,6 +188,56 @@ class ActionEnviarCorreo(Action):
         else:
             dispatcher.utter_message(text="ℹ️ Tu solicitud fue registrada. Revisa tu correo más tarde.")
         return []
+
+
+class ActionEnviarSoporte(Action):
+    """
+    Variante genérica para enviar un soporte rápido sin pasar por el form,
+    usando el último mensaje del usuario y slots si existen.
+    """
+
+    def name(self) -> Text:
+        return "action_enviar_soporte"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[Dict[Text, Any]]:
+        nombre = (tracker.get_slot("nombre") or "Usuario").strip()
+        email = (tracker.get_slot("email") or "sin-correo@zajuna.edu").strip()
+        mensaje = (tracker.latest_message.get("text") or "").strip() or "Solicitud de soporte (sin detalle)."
+
+        meta: Dict[str, Any] = {
+            "rasa_sender_id": tracker.sender_id,
+            "latest_intent": (tracker.latest_message.get("intent") or {}).get("name"),
+            "timestamp": int(time.time()),
+            "slots": tracker.current_slot_values(),
+        }
+
+        payload = {
+            "name": nombre,
+            "email": email,
+            "subject": "Soporte rápido (Rasa)",
+            "message": mensaje,
+            "conversation_id": tracker.sender_id,
+            "metadata": meta,
+        }
+
+        headers = {"Content-Type": "application/json"}
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+
+        resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
+        if resp and 200 <= resp.status_code < 300:
+            dispatcher.utter_message(text="✅ He enviado tu solicitud de soporte. Un agente te contactará.")
+            return []
+        else:
+            code = getattr(resp, "status_code", "sin-respuesta")
+            print(f"[actions] action_enviar_soporte: fallo {code}")
+            dispatcher.utter_message(text="⚠️ No pude registrar el soporte ahora mismo. Intentaremos de nuevo.")
+            return []
 
 
 class ActionSoporteSubmit(Action):
@@ -216,35 +285,23 @@ class ActionSoporteSubmit(Action):
         if HELPDESK_TOKEN:
             headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
 
-        try:
-            resp = requests.post(
-                HELPDESK_WEBHOOK,
-                json=payload,
-                headers=headers,
-                timeout=10,
-            )
-            if 200 <= resp.status_code < 300:
-                # —— Extra: mostrar ticket_id si viene en la respuesta ——
-                data: Dict[str, Any] = {}
-                try:
-                    data = resp.json()
-                except Exception:
-                    pass
-                tid = (data or {}).get("ticket_id") or (data or {}).get("id")
-                if tid:
-                    dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
-                    # Si quieres reutilizar el ID más tarde, descomenta:
-                    # return [SlotSet("ticket_id", str(tid)), SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
-                    return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
-                else:
-                    dispatcher.utter_message(response="utter_soporte_creado")
-                    return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+        resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
+        if resp and 200 <= resp.status_code < 300:
+            data: Dict[str, Any] = {}
+            try:
+                data = resp.json()
+            except Exception:
+                pass
+            tid = (data or {}).get("ticket_id") or (data or {}).get("id")
+            if tid:
+                dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
             else:
-                print(f"[actions] Helpdesk respondió {resp.status_code}: {resp.text}")
-                dispatcher.utter_message(response="utter_soporte_error")
-                return []
-        except Exception as e:
-            print(f"[actions] Excepción contactando Helpdesk: {e}")
+                dispatcher.utter_message(response="utter_soporte_creado")
+            # limpiar slots del form
+            return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
+        else:
+            code = getattr(resp, "status_code", "sin-respuesta")
+            print(f"[actions] Helpdesk respondió {code}: {getattr(resp, 'text', '')}")
             dispatcher.utter_message(response="utter_soporte_error")
             return []
 
@@ -286,21 +343,13 @@ class ActionConectarHumano(Action):
         if HELPDESK_TOKEN:
             headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
 
-        try:
-            resp = requests.post(
-                HELPDESK_WEBHOOK,
-                json=payload,
-                headers=headers,
-                timeout=10,
-            )
-            if 200 <= resp.status_code < 300:
-                dispatcher.utter_message(text="🧑‍💻 ¡Listo! Te conecto con un agente humano, por favor espera…")
-            else:
-                print(f"[actions] Escalado falló {resp.status_code}: {resp.text}")
-                dispatcher.utter_message(text="⚠️ No pude crear el ticket de escalado en este momento.")
-        except Exception as e:
-            print(f"[actions] Excepción en escalado: {e}")
-            dispatcher.utter_message(text="⚠️ No pude contactar a la mesa de ayuda. Intentaremos de nuevo en breve.")
+        resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
+        if resp and 200 <= resp.status_code < 300:
+            dispatcher.utter_message(text="🧑‍💻 ¡Listo! Te conecto con un agente humano, por favor espera…")
+        else:
+            code = getattr(resp, "status_code", "sin-respuesta")
+            print(f"[actions] Escalado falló {code}: {getattr(resp, 'text', '')}")
+            dispatcher.utter_message(text="⚠️ No pude crear el ticket de escalado en este momento.")
         return []
 
 

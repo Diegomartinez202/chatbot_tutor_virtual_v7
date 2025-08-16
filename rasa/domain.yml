@@ -23,7 +23,7 @@ intents:
   - cambiar_idioma_espanol
   - inscribirme
   - enviar_correo
-  - auth_login          # solo para analítica del botón "Iniciar sesión"
+  - auth_login          # analítica del botón "Iniciar sesión"
   - affirm
   - deny
   - fallback
@@ -220,6 +220,7 @@ actions:
   - action_enviar_correo
   - action_conectar_humano
   - action_soporte_submit
+  - action_enviar_soporte     # ← añadida (implementada en actions.py)
   - validate_soporte_form
   - validate_recovery_form
   - action_check_auth
