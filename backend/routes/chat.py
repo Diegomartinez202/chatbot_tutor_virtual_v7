@@ -3,6 +3,7 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, Any, Dict, List
+from time import perf_counter  # [ADDED]
 
 from backend.config.settings import settings
 from backend.utils.logging import get_logger
@@ -84,7 +85,8 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     if "url" not in enriched_meta and "referer" in request.headers:
         enriched_meta["url"] = request.headers.get("referer")
 
-    # 2) Enviar a Rasa (propagando metadata). Soporta firmas antiguas de process_user_message.
+    # 2) Enviar a Rasa (propagando metadata) con medición de latencia
+    t0 = perf_counter()  # [ADDED]
     try:
         try:
             bot_responses: List[Dict[str, Any]] = await process_user_message(
@@ -95,6 +97,7 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     except Exception as e:
         log.error(f"Error al comunicar con Rasa: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Error al comunicar con Rasa: {str(e)}")
+    latency_ms = int((perf_counter() - t0) * 1000)  # [ADDED]
 
     # 3) Intent defensivo (si viene adjunto en la 1ª respuesta)
     intent = None
@@ -122,6 +125,7 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         "user_agent": user_agent,
         "origen": "widget" if data.sender_id == "anonimo" else "autenticado",
         "metadata": enriched_meta,
+        "latency_ms": latency_ms,  # [ADDED]
     }
     try:
         get_logs_collection().insert_one(log_doc)
@@ -130,4 +134,4 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         log.warning(f"No se pudo guardar el log en Mongo: {e}")
 
     # 5) Responder en formato Rasa (lista de mensajes)
-    return bot_responses
+    return bot_responses  # (corregido: sin el punto final)

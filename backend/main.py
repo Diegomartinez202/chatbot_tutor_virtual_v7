@@ -32,6 +32,9 @@ from backend.routes import helpdesk
 from backend.routes.chat import chat_router  # expone /chat, /chat/health, /chat/debug
 from backend.routes import api_chat
 
+# ✅ [NEW] Stats router (/api/stats/*)
+from backend.routes import stats  # <-- añade el archivo backend/routes/stats.py con el router que te compartí
+
 # Redis opcional (rate limiting)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
@@ -93,6 +96,10 @@ def create_app() -> FastAPI:
     # ✅ Chat router montado dos veces (compat): raíz y /api
     app.include_router(chat_router)                # /chat/*
     app.include_router(chat_router, prefix="/api") # /api/chat/*
+
+    # ✅ [NEW] Exponer /api/stats (summary/series/confusion/latency)
+    #     Requiere: backend/routes/stats.py con "router = APIRouter(prefix='/api/stats', ...)"
+    app.include_router(stats.router)
 
     # ─────────────────────────────────────────
     # 🔒 CSP (embebidos) — override por EMBED_ALLOWED_ORIGINS, fallback a settings.frame_ancestors

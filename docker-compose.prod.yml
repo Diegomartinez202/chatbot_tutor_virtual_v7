@@ -1,6 +1,11 @@
 version: "3.9"
 
-name: tutorbot-local
+name: tutorbot-prod-like
+
+# Puedes exportar TAG para usar un sha/versión concreta:
+#   TAG=abc123 docker compose -f docker-compose.prod.yml up -d
+# En Windows PowerShell:
+#   $env:TAG="abc123"; docker compose -f docker-compose.prod.yml up -d
 
 services:
   mongo:
@@ -15,22 +20,20 @@ services:
       - app-net
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: ./backend/Dockerfile
+    image: docker.io/diego0102/zajuna-backend:${TAG:-latest}
     container_name: backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env
+      - ./backend/.env.prod
     environment:
-      # Forzamos URLs internas de Compose
+      # Overrides para entorno compose (interna de red)
       MONGO_URI: mongodb://mongo:27017/tutor_virtual
       MONGO_DB_NAME: tutor_virtual
       RASA_URL: http://rasa:5005
       FRONTEND_SITE_URL: http://localhost:8080
       ALLOWED_ORIGINS: http://localhost:8080,http://localhost:5173
-      APP_ENV: dev
-      DEBUG: "true"
+      APP_ENV: prod
+      DEBUG: "false"
     depends_on:
       - mongo
       - rasa
@@ -40,25 +43,20 @@ services:
       - app-net
 
   rasa:
-    build:
-      context: ./rasa
-      dockerfile: ./rasa/Dockerfile
+    image: docker.io/diego0102/zajuna-rasa:${TAG:-latest}
     container_name: rasa
     restart: unless-stopped
     environment:
-      # Nuestro entrypoint genera endpoints.yml con esta URL
       ACTION_SERVER_URL: http://action-server:5055/webhook
-    ports:
-      - "5005:5005"
     depends_on:
       - action-server
+    ports:
+      - "5005:5005"
     networks:
       - app-net
 
   action-server:
-    build:
-      context: ./rasa_action_server
-      dockerfile: ./rasa_action_server/Dockerfile
+    image: docker.io/diego0102/zajuna-action:${TAG:-latest}
     container_name: action-server
     restart: unless-stopped
     ports:
@@ -67,20 +65,16 @@ services:
       - app-net
 
   admin:
-    build:
-      context: ./admin_panel_react
-      dockerfile: ./admin_panel_react/Dockerfile
+    image: docker.io/diego0102/zajuna-admin:${TAG:-latest}
     container_name: admin
     restart: unless-stopped
-    environment:
-      # Si tu build usa variables Vite en build-time, ponlas como --build-arg en el Dockerfile
-      # VITE_CHAT_TRANSPORT: "rest"
+    # Normalmente el admin es estático y no necesita ENV en runtime
     ports:
       - "8080:80"
-    networks:
-      - app-net
     depends_on:
       - backend
+    networks:
+      - app-net
 
 networks:
   app-net:

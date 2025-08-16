@@ -1,29 +1,42 @@
-// playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
+// admin_panel_react/playwright.config.ts
+import { defineConfig, devices } from "@playwright/test";
 
-const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
-const isExternal = !!process.env.PLAYWRIGHT_BASE_URL && !BASE.includes('localhost');
+const PORT = Number(process.env.PORT || 5173);
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
+const isExternal = !!process.env.PLAYWRIGHT_BASE_URL && !BASE_URL.includes("localhost");
 
 export default defineConfig({
-    testDir: 'tests/e2e',
+    testDir: "tests/e2e",
     timeout: 30_000,
-    fullyParallel: true,
-    use: {
-        baseURL: BASE,
-        headless: true,
-    },
-    // Proyectos/navegadores a ejecutar en matriz
-    projects: [
-        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    expect: { timeout: 5_000 },
+    retries: process.env.CI ? 1 : 0,
+    forbidOnly: !!process.env.CI,
+    reporter: [
+        ["line"],
+        ["html", { outputFolder: "playwright-report", open: "never" }],
+        ["json", { outputFile: "playwright-report/results.json" }], // ← necesario para anti-flaky
     ],
-    // Si apuntas a Railway (externo), NO levanta server local
+    use: {
+        baseURL: BASE_URL,
+        headless: true,
+        trace: "retain-on-failure",
+        screenshot: "only-on-failure",
+        video: "retain-on-failure",
+    },
+    projects: [
+        { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+        { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+        { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    ],
+    // Si apuntas a Railway/Prod (externo), NO levanta server local
     webServer: isExternal
         ? undefined
-        : {
-            command: 'npm run dev',
-            port: 5173,
-            reuseExistingServer: true,
-        },
+        : [
+            {
+                command: `npm run dev -- --port ${PORT}`,
+                port: PORT,
+                reuseExistingServer: true,
+                timeout: 60_000,
+            },
+        ],
 });

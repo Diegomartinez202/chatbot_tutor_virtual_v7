@@ -1,7 +1,7 @@
 // src/components/BotonesAdmin.jsx
 import React, { useState } from "react";
 import { useAdminActions } from "@/services/useAdminActions";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui"; // ← barrel
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { BrainCog, Upload, RefreshCw, Download, CheckCircle, XCircle, Bot, Search, ListChecks, MessagesSquare } from "lucide-react";
@@ -80,19 +80,20 @@ function BotonesAdmin() {
                 <IconTooltip label="Reentrenar modelo con nuevos intents" side="top">
                     <Button
                         onClick={handleTrain}
-                        disabled={trainMutation.isLoading}
+                        disabled={trainMutation.isPending}
                         className="flex items-center gap-2"
                         aria-label="Entrenar bot"
                         type="button"
                     >
                         <BrainCog className="w-5 h-5" />
-                        {trainMutation.isLoading ? "Entrenando..." : "Entrenar Bot"}
+                        {trainMutation.isPending ? "Entrenando..." : "Entrenar Bot"}
                     </Button>
                 </IconTooltip>
 
-                {/* Entrenar alternativo con componente (por si prefieres botón standalone) */}
+                {/* Entrenar alternativo con componente standalone */}
                 <IconTooltip label="Reentrenar (alternativo)" side="top">
                     <span>
+                        {/* Puedes pasar mode="ci" branch="main" si quieres disparar CI desde aquí */}
                         <TrainBotButton />
                     </span>
                 </IconTooltip>
@@ -100,43 +101,43 @@ function BotonesAdmin() {
                 <IconTooltip label="Cargar intents desde archivo o panel" side="top">
                     <Button
                         onClick={handleUpload}
-                        disabled={uploadMutation.isLoading}
+                        disabled={uploadMutation.isPending}
                         className="flex items-center gap-2"
                         aria-label="Subir intents"
                         type="button"
                     >
                         <Upload className="w-5 h-5" />
-                        {uploadMutation.isLoading ? "Subiendo..." : "Subir Intents"}
+                        {uploadMutation.isPending ? "Subiendo..." : "Subir Intents"}
                     </Button>
                 </IconTooltip>
 
                 <IconTooltip label="Reiniciar servidor de backend" side="top">
                     <Button
                         onClick={handleRestart}
-                        disabled={restartMutation.isLoading}
+                        disabled={restartMutation.isPending}
                         className="flex items-center gap-2"
                         aria-label="Reiniciar servidor"
                         type="button"
                     >
                         <RefreshCw className="w-5 h-5" />
-                        {restartMutation.isLoading ? "Reiniciando..." : "Reiniciar"}
+                        {restartMutation.isPending ? "Reiniciando..." : "Reiniciar"}
                     </Button>
                 </IconTooltip>
 
                 <IconTooltip label="Exportar logs del chatbot por rango de fechas" side="top">
                     <Button
                         onClick={handleExport}
-                        disabled={exportMutation.isLoading}
+                        disabled={exportMutation.isPending}
                         className="flex items-center gap-2"
                         aria-label="Exportar CSV de logs"
                         type="button"
                     >
                         <Download className="w-5 h-5" />
-                        {exportMutation.isLoading ? "Exportando..." : "Exportar CSV"}
+                        {exportMutation.isPending ? "Exportando..." : "Exportar CSV"}
                     </Button>
                 </IconTooltip>
 
-                {/* Navegación rápida (compat y nuevas rutas) */}
+                {/* Navegación rápida */}
                 <IconTooltip label="Crear intent (ruta clásica /intents)" side="top">
                     <Link to="/intents">
                         <Button variant="outline" className="inline-flex items-center gap-2">
@@ -173,7 +174,7 @@ function BotonesAdmin() {
                     </Link>
                 </IconTooltip>
 
-                {/* Alias /chat para compatibilidad */}
+                {/* Alias /chat */}
                 <IconTooltip label="Abrir chat (alias /chat)" side="top">
                     <Link to="/chat">
                         <Button variant="outline" className="inline-flex items-center gap-2">

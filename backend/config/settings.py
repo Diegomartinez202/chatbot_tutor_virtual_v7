@@ -112,5 +112,19 @@ class Settings(BaseSettings):
             self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key
         )
 
+    # ⚙️ [ADDED] Compat: algunos módulos esperan 'rasa_rest_base'
+    @property
+    def rasa_rest_base(self) -> str:
+        """
+        Compatibilidad con módulos que usen settings.rasa_rest_base.
+        En este proyecto, es equivalente a RASA_URL (REST API de Rasa).
+        """
+        return self.rasa_url
+
+    # ⚙️ [ADDED] Por si algún middleware requiere lista garantizada
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        return list(self.allowed_origins or [])
+
 # Instancia global de settings
 settings = Settings()

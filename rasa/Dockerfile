@@ -13,3 +13,16 @@ EXPOSE 5005
 
 # Ejecuta Rasa en modo servidor API
 CMD ["rasa", "run", "--enable-api", "--cors", "*", "--debug", "--port", "5005"]
+
+FROM rasa/rasa:3.6.20-full
+
+WORKDIR /app
+COPY rasa /app
+
+# Copiamos explícitamente la plantilla y el entrypoint
+COPY rasa/endpoints.tpl.yml /app/endpoints.tpl.yml
+COPY rasa/docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 5005
+ENTRYPOINT ["/entrypoint.sh"]

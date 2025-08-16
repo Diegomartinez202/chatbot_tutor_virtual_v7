@@ -1,5 +1,6 @@
+// src/pages/TestPage.jsx
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui"; // ✅ barrel unificado
 import Header from "@/components/Header";
 import axiosClient from "@/services/axiosClient";
 import { useAdminActions } from "@/services/useAdminActions";
@@ -8,7 +9,7 @@ import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/Badge"; // ✅ CORRECTO
 import {
     TestTube, Server, Bot, ListChecks, TimerReset,
-    RefreshCw, Download, Search, Loader2, ClipboardList, Cloud, CheckCircle
+    RefreshCw, Download, Search, Loader2, ClipboardList, Cloud, CheckCircle, Rocket
 } from "lucide-react";
 import ResumenSistema from "@/components/ResumenSistema";
 import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
@@ -45,7 +46,7 @@ function TestPage() {
             fn: () => axiosClient.get("/admin/rasa/status"),
         },
         {
-            name: "Estado de entrenamiento",
+            name: "Estado de entrenamiento (dry_run)",
             icon: <TimerReset className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/train?dry_run=true"),
         },
@@ -58,6 +59,12 @@ function TestPage() {
             name: "Conexión S3 (/admin/exportaciones/tests)",
             icon: <Cloud className="w-4 h-4 mr-2" />,
             fn: () => axiosClient.get("/admin/exportaciones/tests"),
+        },
+        // ✅ Nuevo: botón de prueba para disparar CI/CD (entrenamiento + deploy)
+        {
+            name: "Disparar CI/CD (entrenamiento+deploy)",
+            icon: <Rocket className="w-4 h-4 mr-2" />,
+            fn: () => axiosClient.post("/admin/train", { mode: "ci", branch: "main" }),
         },
     ];
 
@@ -119,6 +126,7 @@ function TestPage() {
     };
 
     const handleExport = () => {
+        // ⛑️ React Query v5: usar .isPending, no .isLoading
         exportMutation.mutate(filtros);
     };
 
@@ -198,7 +206,11 @@ function TestPage() {
                 <FiltrosFecha filtros={filtros} setFiltros={setFiltros} />
                 <div className="flex gap-2">
                     <IconTooltip label="Exportar CSV de logs" side="top">
-                        <Button onClick={handleExport} disabled={exportMutation.isLoading} variant="outline">
+                        <Button
+                            onClick={handleExport}
+                            disabled={exportMutation.isPending}
+                            variant="outline"
+                        >
                             <Download className="w-4 h-4 mr-2" /> Exportar CSV
                         </Button>
                     </IconTooltip>

@@ -33,7 +33,9 @@ function downloadBlob(blob, filename, addBom = false) {
 }
 
 // === Mutations base ===
-const trainBot = () => axiosClient.post("/admin/train");
+// 👉 Compat: sin argumentos funciona como antes (LOCAL).
+//    Si quieres CI: trainMutation.mutate({ mode: "ci", branch: "main" })
+const trainBot = (payload) => axiosClient.post("/admin/train", payload || {});
 const uploadIntents = () => axiosClient.post("/admin/upload");
 const restartServerReq = () => axiosClient.post("/admin/restart");
 
@@ -51,7 +53,12 @@ const exportTestsCsv = () =>
 export function useAdminActions() {
     const trainMutation = useMutation({
         mutationFn: trainBot,
-        onSuccess: () => toast.success("🤖 Entrenamiento iniciado"),
+        onSuccess: (res) => {
+            const mode = res?.data?.mode || "local";
+            toast.success(
+                mode === "ci" ? "🚀 CI/CD disparado (entrenamiento/deploy)" : "🤖 Entrenamiento iniciado (local)"
+            );
+        },
         onError: (e) => toast.error(e?.response?.data?.detail || "Error al entrenar"),
     });
 

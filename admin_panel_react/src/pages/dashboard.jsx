@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard, BarChart, Calendar, X } from "lucide-react";
@@ -7,10 +6,9 @@ import BotonesAdmin from "@/components/BotonesAdmin";
 import ResumenSistema from "@/components/ResumenSistema";
 import StatsChart from "@/components/StatsChart";
 import IconTooltip from "@/components/ui/IconTooltip";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui"; // ← barrel aquí
 
 function Dashboard() {
-    // Filtro de fechas opcional para StatsChart
     const [desde, setDesde] = useState("");
     const [hasta, setHasta] = useState("");
 
@@ -32,7 +30,7 @@ function Dashboard() {
             {/* Acciones principales */}
             <BotonesAdmin />
 
-            {/* Atajo a la página dedicada de estadísticas (se mantiene) */}
+            {/* Atajo a la página dedicada de estadísticas */}
             <Link
                 to="/stats-v2"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
@@ -40,10 +38,10 @@ function Dashboard() {
                 <BarChart size={18} /> Ver estadísticas v2
             </Link>
 
-            {/* Resumen compacto (tarjetas) */}
+            {/* Resumen compacto */}
             <ResumenSistema />
 
-            {/* Filtros de fecha para gráficos (opcional) */}
+            {/* Filtros de fecha (opcional) */}
             <div className="mt-4 rounded-md border bg-white p-4">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -86,7 +84,6 @@ function Dashboard() {
                     </div>
                 </div>
 
-                {/* Gráficos y tablas: StatsChart ya normaliza internamente */}
                 <StatsChart desde={desde || undefined} hasta={hasta || undefined} />
             </div>
         </div>

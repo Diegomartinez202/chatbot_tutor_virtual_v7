@@ -1,0 +1,7 @@
+# Dependencias opcionales para tus custom actions (Action Server).
+# Agrega aquí solo lo que tus acciones importen realmente.
+# Ejemplos (descomenta si las necesitas):
+# requests==2.32.3
+# pandas==2.2.2
+# python-dotenv==1.0.1
+# spacy==3.7.5

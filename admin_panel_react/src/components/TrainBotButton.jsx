@@ -1,9 +1,8 @@
 // src/components/TrainBotButton.jsx
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { Button } from "@/components/ui"; // ← barrel unificado
 import IconTooltip from "@/components/ui/IconTooltip";
-import { trainBot } from "@/services/api";
-import { toast } from "react-hot-toast";
+import { useAdminActions } from "@/services/useAdminActions";
 import { Cog, Loader2 } from "lucide-react";
 
 function TrainBotButton({
@@ -11,47 +10,39 @@ function TrainBotButton({
     variant = "default",
     size = "default",
     tooltipLabel = "Reentrenar modelo del bot",
-    onTrained, // opcional: callback tras entrenamiento exitoso
+    onTrained, // opcional: callback tras éxito
+    mode,      // opcional: "local" | "ci"
+    branch,    // opcional: rama para CI
 }) {
-    const [loading, setLoading] = useState(false);
+    const { trainMutation } = useAdminActions();
 
-    const handleTrain = async () => {
-        setLoading(true);
-        try {
-            const res = await trainBot();
-            if (res?.success === false) {
-                toast.error(res?.error || "Error al reentrenar el bot");
-            } else {
-                toast.success(res?.message || "Bot reentrenado correctamente");
-                if (typeof onTrained === "function") onTrained(res);
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error(err?.response?.data?.detail || "Error al reentrenar el bot");
-        } finally {
-            setLoading(false);
-        }
+    const handleTrain = () => {
+        const payload = mode ? { mode, branch: branch || "main" } : undefined;
+        trainMutation.mutate(payload, {
+            onSuccess: (res) => {
+                if (typeof onTrained === "function") onTrained(res?.data || res);
+            },
+        });
     };
 
     return (
         <IconTooltip label={tooltipLabel} side="top">
-            {/* Nota: envolvemos en <span> para que el tooltip funcione aunque el botón esté disabled */}
             <span>
                 <Button
                     onClick={handleTrain}
-                    disabled={loading}
+                    disabled={trainMutation.isPending}
                     variant={variant}
                     size={size}
                     className={className}
                     aria-label="Reentrenar bot"
-                    aria-busy={loading ? "true" : "false"}
+                    aria-busy={trainMutation.isPending ? "true" : "false"}
                 >
-                    {loading ? (
+                    {trainMutation.isPending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
                         <Cog className="w-4 h-4 mr-2" />
                     )}
-                    {loading ? "Entrenando…" : "Reentrenar bot"}
+                    {trainMutation.isPending ? "Entrenando…" : "Reentrenar bot"}
                 </Button>
             </span>
         </IconTooltip>

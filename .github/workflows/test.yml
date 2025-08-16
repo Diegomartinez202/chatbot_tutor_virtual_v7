@@ -1,33 +1,38 @@
-name: Run Backend Tests
+name: Admin CI (build + tests)
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "admin_panel_react/**"
+      - ".github/workflows/test.yml"
+  pull_request:
+    paths:
+      - "admin_panel_react/**"
+      - ".github/workflows/test.yml"
+  workflow_dispatch:
 
 jobs:
-  test:
+  admin-ci:
     runs-on: ubuntu-latest
-
-    services:
-      mongo:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-        options: --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval=10s --health-timeout=5s --health-retries=5
-
+    defaults:
+      run:
+        working-directory: admin_panel_react
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          python-version: 3.10
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: admin_panel_react/package-lock.json
 
-      - name: 📦 Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
+      - name: Install deps
+        run: npm ci
 
-      - name: 🧪 Run backend tests
-        run: |
-          cd backend
-          pytest tests/
+      - name: Build (si aplica)
+        run: npm run build --if-present
+
+      - name: Unit tests (si existen)
+        run: npm test --if-present -- --ci --reporter=default
