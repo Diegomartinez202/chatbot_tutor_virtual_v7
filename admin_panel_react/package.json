@@ -10,12 +10,26 @@
     "test": "vitest",
     "lint": "eslint src --ext .js,.jsx",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
+
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
-    "test:e2e:webkit": "playwright test --project=webkit"
+    "test:e2e:webkit": "playwright test --project=webkit",
+
+    "screenshots": "playwright test tests/visual/screenshots.spec.ts --project=chromium",
+    "screenshots:headed": "playwright test tests/visual/screenshots.spec.ts --project=chromium --headed",
+
+    "screenshots:clean": "node scripts/visuals-clean.mjs archive",
+    "screenshots:archive-rebuild": "npm run screenshots:clean && npm run screenshots",
+
+    "screenshots:prod": "npm run screenshots:clean && playwright test tests/visual/screenshots.spec.ts --project=chromium",
+    "screenshots:prod:headed": "npm run screenshots:clean && playwright test tests/visual/screenshots.spec.ts --project=chromium --headed",
+    "screenshots:prod:archive": "npm run screenshots:clean && npm run screenshots",
+    "screenshots:prod:archive-headed": "npm run screenshots:clean && npm run screenshots:headed",
+
+    "screenshots:prod:ci": "node scripts/require-prod-env.mjs && npm run screenshots:prod"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",
@@ -36,7 +50,7 @@
     "@playwright/test": "^1.54.2",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
-    "@types/node": "^22.7.4",
+    "@types/node": "^22.17.1",
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",

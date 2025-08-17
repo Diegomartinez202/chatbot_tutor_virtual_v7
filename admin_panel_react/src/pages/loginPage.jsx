@@ -53,7 +53,12 @@ function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="username"
+                    // 👇 añadidos para tests
+                    name="email"
+                    placeholder="Correo"
+                    data-testid="login-email"
                 />
+
                 <Input
                     label="Contraseña"
                     type="password"
@@ -61,8 +66,19 @@ function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
+                    // 👇 añadidos para tests
+                    name="password"
+                    placeholder="Contraseña"
+                    data-testid="login-password"
                 />
-                <Button type="submit" disabled={loading} aria-busy={loading}>
+
+                <Button
+                    type="submit"
+                    disabled={loading}
+                    aria-busy={loading}
+                    // 👇 añadido para tests
+                    data-testid="login-submit"
+                >
                     {loading ? 'Ingresando...' : 'Ingresar'}
                 </Button>
             </form>

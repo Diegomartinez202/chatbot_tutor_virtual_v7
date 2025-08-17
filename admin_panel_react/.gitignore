@@ -18,3 +18,9 @@ yarn-error.log*
 # Env
 .env*
 !.env.example
+docs/visuals/
+
+/admin_panel_react/docs/visuals/*.png
+/admin_panel_react/docs/visuals/*.jpg
+/admin_panel_react/docs/visuals/*.webp
+/admin_panel_react/docs/visuals/_archive/
