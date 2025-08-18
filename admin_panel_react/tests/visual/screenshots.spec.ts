@@ -1,6 +1,7 @@
+// admin_panel_react/tests/visual/screenshots.spec.ts
 import { test, expect, type Page } from "@playwright/test";
-import fs from "node:fs";
-import path from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 // ==== Timeout de la suite (por si tu máquina va lenta) ====
 const SUITE_TIMEOUT = Number(process.env.SCREENSHOTS_TIMEOUT_MS || 120_000);
@@ -9,7 +10,7 @@ test.describe.configure({ timeout: SUITE_TIMEOUT });
 // ==== Carpeta de salida ====
 const OUT_DIR = path.join(process.cwd(), "docs", "visuals");
 
-// ==== Mocks rápidos ====
+// ==== Mocks base (stats/logs) ====
 const statsMock = {
     summary: { total_messages: 345, bot_success: 290, not_understood: 24, avg_response_ms: 420, accuracy: 0.89 },
     series: {
@@ -59,6 +60,66 @@ const logsMock = {
     })),
 };
 
+// ==== Mocks adicionales (auth/users/exports/health/intents/confusions/chat) ====
+const userMeMock = {
+    id: "u_123",
+    email: "admin@demo.com",
+    name: "Admin Demo",
+    roles: ["admin", "soporte"],
+};
+
+const authRefreshMock = {
+    access_token: "mocked.token.value",
+    token_type: "Bearer",
+    expires_in: 3600,
+};
+
+const exportacionesMock = {
+    total: 3,
+    items: [
+        { id: "exp_1", tipo: "logs_csv", estado: "completado", creado_en: "2025-08-14T09:00:00Z", url: "/api/exportaciones/exp_1/download" },
+        { id: "exp_2", tipo: "stats_json", estado: "en_proceso", creado_en: "2025-08-14T10:00:00Z" },
+        { id: "exp_3", tipo: "intents_xlsx", estado: "fallido", creado_en: "2025-08-14T11:00:00Z", error: "Timeout" },
+    ],
+};
+
+const intentsMock = {
+    total: 4,
+    items: [
+        { name: "saludo", ejemplos: ["hola", "buenas"], updated_at: "2025-08-10T12:00:00Z" },
+        { name: "despedida", ejemplos: ["chao", "hasta luego"], updated_at: "2025-08-11T12:00:00Z" },
+        { name: "consulta_envio", ejemplos: ["cuando llega", "estado del pedido"], updated_at: "2025-08-12T12:00:00Z" },
+        { name: "problema_pago", ejemplos: ["no puedo pagar", "error con tarjeta"], updated_at: "2025-08-13T12:00:00Z" },
+    ],
+};
+
+const confusionsTopMock = {
+    total: 3,
+    items: [
+        { intent: "nlu_fallback", count: 12, example: "no entiendo esto" },
+        { intent: "faq_envio", count: 4, example: "cuando llega?" },
+        { intent: "faq_pagos", count: 3, example: "no puedo pagar" },
+    ],
+};
+
+const healthOk = { ok: true, status: "healthy" };
+
+// Chat mocks
+const chatHistoryMock = {
+    conversation_id: "conv_1",
+    items: [
+        { id: "m1", role: "user", text: "Hola", ts: Date.now() - 60_000 },
+        { id: "m2", role: "assistant", text: "¡Hola! ¿En qué te ayudo?", ts: Date.now() - 59_000 },
+    ],
+};
+
+const chatReplyFactory = (userText: string) => ({
+    id: `m_${Math.random().toString(36).slice(2, 8)}`,
+    role: "assistant",
+    text: `Respuesta mock para: “${userText}”`,
+    ts: Date.now(),
+});
+
 // ==== Helpers ====
 function ensureOutDir() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -74,12 +135,86 @@ async function shoot(page: Page, filename: string) {
 }
 
 async function mockApis(page: Page) {
+    // Stats (cubre /api/stats y /api/stats/*)
     await page.route("**/api/stats**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(statsMock) })
     );
+
+    // Logs
     await page.route("**/api/logs**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(logsMock) })
     );
+
+    // Auth / Users
+    await page.route("**/api/users/me**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(userMeMock) })
+    );
+    await page.route("**/api/auth/refresh**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(authRefreshMock) })
+    );
+
+    // Exportaciones (listar / status / download)
+    await page.route("**/api/exportaciones**", async (route) => {
+        const url = route.request().url();
+        if (url.includes("/download")) {
+            // Devolver algo descargable si la UI lo intenta (texto simulando CSV)
+            return route.fulfill({
+                status: 200,
+                contentType: "text/csv",
+                body: "id,evento,fecha\n1,descarga_mock,2025-08-14",
+            });
+        }
+        // Listado/estado
+        return route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(exportacionesMock),
+        });
+    });
+
+    // Health / Status
+    await page.route("**/admin/rasa/status**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(healthOk) })
+    );
+    await page.route("**/api/health**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(healthOk) })
+    );
+    await page.route("**/api/chat/health**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(healthOk) })
+    );
+
+    // Intents
+    await page.route("**/api/intents**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(intentsMock) })
+    );
+
+    // Confusions
+    await page.route("**/api/confusions/top**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(confusionsTopMock) })
+    );
+
+    // Chat: history
+    await page.route("**/api/chat/history**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(chatHistoryMock) })
+    );
+
+    // Chat: send/message (acepta POST y responde eco)
+    await page.route("**/api/chat/(send|message)**", async (route) => {
+        let userText = "mensaje";
+        try {
+            const req = route.request();
+            const ct = req.headers()["content-type"] || "";
+            if (ct.includes("application/json")) {
+                const body = req.postDataJSON?.();
+                userText = body?.text || body?.message || userText;
+            } else {
+                const raw = req.postData() || "";
+                userText = raw || userText;
+            }
+        } catch { }
+        const reply = chatReplyFactory(userText);
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply }) });
+    });
 }
 
 // Si la page se cerró por timeout previo, reabre una nueva

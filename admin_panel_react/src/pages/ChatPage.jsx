@@ -1,13 +1,7 @@
-// src/pages/ChatPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Bot, RefreshCw } from "lucide-react";
-
-// ✅ usa UNA de estas dos importaciones según tu repo:
-// 1) Si está en src/components/chat/ChatUI.jsx:
 import ChatUI from "@/components/chat/ChatUI";
-// 2) Si lo tienes en src/components/ChatUI.jsx, usa esta y comenta la otra:
-// import ChatUI from "@/components/ChatUI";
 
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
@@ -20,12 +14,16 @@ import { connectWS } from "@/services/chat/connectWS";
  * - Ruta /chat (con login) y modo embed (?embed=1) sin chrome (no exige login)
  * - Estados: connecting | ready | error
  * - Si se pasa children, renderiza tu UI; si no, <ChatUI />
+ *
+ * NUEVO: prop opcional `embedHeight` para controlar la altura en modo embed
+ *         sin depender de una clase fija. Por defecto "560px".
  */
 export default function ChatPage({
     forceEmbed = false,
     avatarSrc = "/bot-avatar.png",
     title = "Asistente",
     connectFn = connectRasaRest, // por defecto REST a /api/chat
+    embedHeight = "560px",       // ← NUEVO
     children,
 }) {
     const [params] = useSearchParams();
@@ -63,8 +61,13 @@ export default function ChatPage({
 
     if (!isEmbed && !isAuthenticated) return null;
 
+    // Estilos/estructura del contenedor según modo
+    const wrapperClass = isEmbed ? "p-0" : "p-6 min-h-[70vh] flex flex-col";
+    const bodyClass = isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden";
+    const wrapperStyle = isEmbed ? { height: embedHeight } : undefined; // ← usa el prop sin hacks
+
     return (
-        <div className={isEmbed ? "p-0 h-[560px]" : "p-6 min-h-[70vh] flex flex-col"}>
+        <div className={wrapperClass} style={wrapperStyle}>
             {/* Header (oculto en embed) */}
             {!isEmbed && (
                 <div className="flex items-center justify-between mb-4">
@@ -77,7 +80,7 @@ export default function ChatPage({
             )}
 
             {/* Body */}
-            <div className={isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden"}>
+            <div className={bodyClass}>
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
                         <ChatbotLoading avatarSrc={avatarSrc} label="Conectando…" />
@@ -117,6 +120,6 @@ export default function ChatPage({
    - WebSocket:
      <ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
 
-   - Forzar modo embed (sin depender de ?embed=1):
-     <ChatPage forceEmbed />
+   - Forzar modo embed con altura custom:
+     <ChatPage forceEmbed embedHeight="100vh" />
 */

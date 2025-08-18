@@ -1,7 +1,8 @@
+// admin_panel_react/tests/visual/screenshots.a11y.spec.ts
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-// === Mocks ===
+// === Mocks: evita llamadas reales a tu backend ===
 const statsMock = {
     summary: { total_messages: 345, bot_success: 290, not_understood: 24, avg_response_ms: 420, accuracy: 0.89 },
     series: {
@@ -44,39 +45,17 @@ const logsMock = {
     })),
 };
 
-async function mockApis(page) {
+async function mockApis(page: import("@playwright/test").Page) {
     await page.route("**/api/stats**", (route) =>
-        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(statsMock) })
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(statsMock) }),
     );
     await page.route("**/api/logs**", (route) =>
-        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(logsMock) })
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(logsMock) }),
     );
-}
-
-// Helper para rellenar el primer locator que exista
-async function fillFirst(page, locators: import("@playwright/test").Locator[], value: string) {
-    for (const l of locators) {
-        if ((await l.count()) > 0) {
-            await l.first().fill(value);
-            return true;
-        }
-    }
-    return false;
-}
-
-// Click en el primer bot�n que exista
-async function clickFirst(page, locators: import("@playwright/test").Locator[]) {
-    for (const l of locators) {
-        if ((await l.count()) > 0) {
-            await l.first().click();
-            return true;
-        }
-    }
-    return false;
 }
 
 // Login opcional por ENV (si no configuras las variables, se salta)
-async function loginIfNeeded(page, baseURL?: string) {
+async function loginIfNeeded(page: import("@playwright/test").Page, baseURL?: string) {
     const loginPath = process.env.PLAYWRIGHT_LOGIN_PATH;
     const user = process.env.PLAYWRIGHT_LOGIN_USER;
     const pass = process.env.PLAYWRIGHT_LOGIN_PASS;
@@ -84,52 +63,54 @@ async function loginIfNeeded(page, baseURL?: string) {
 
     await page.goto(new URL(loginPath, baseURL || page.url()).toString());
 
-    // Prioriza data-testid y luego fallback a name/role
-    await fillFirst(page, [
-        page.getByTestId("login-email"),
-        page.locator('input[name="email"]'),
-        page.locator('input[name="username"]'),
-    ], user);
+    // Prioriza data-testid; luego name/role
+    const userInput = page.locator('input[name="email"], input[name="username"], [data-testid="login-email"]').first();
+    const passInput = page.locator('input[type="password"], [data-testid="login-password"]').first();
+    const submitBtn = page
+        .locator('button[type="submit"], [data-testid="login-submit"], button:has-text("Ingresar"), button:has-text("Login")]')
+        .first();
 
-    await fillFirst(page, [
-        page.getByTestId("login-password"),
-        page.locator('input[type="password"]'),
-    ], pass);
-
-    await clickFirst(page, [
-        page.getByTestId("login-submit"),
-        page.locator('button[type="submit"]'),
-        page.getByRole("button", { name: /(Ingresar|Login|Entrar)/i }),
-    ]);
-
+    if (await userInput.count()) await userInput.fill(user);
+    if (await passInput.count()) await passInput.fill(pass);
+    if (await submitBtn.count()) await submitBtn.click();
     await page.waitForLoadState("networkidle");
 }
 
-// Axe (falla si hay violaciones serious/critical)
-async function assertNoSeriousA11y(page) {
-    const results = await new AxeBuilder({ page })
-        // Si los charts generan falsos positivos, puedes excluirlos descomentando:
-        // .exclude("svg")
-        .analyze();
-
-    const bad = results.violations.filter(v => v.impact === "serious" || v.impact === "critical");
-    if (bad.length) {
-        console.log("A11y serious/critical violations:\n", JSON.stringify(bad, null, 2));
-    }
-    expect(bad.map(v => v.id), "Violaciones de accesibilidad (serious/critical)").toHaveLength(0);
+// Rutas a evaluar: lee de env SCREENSHOTS_ROUTES o usa defaults
+function getRoutes(): string[] {
+    const env = (process.env.SCREENSHOTS_ROUTES || "").trim();
+    if (env) return env.split(/[,\s]+/).filter(Boolean);
+    return ["/dashboard", "/stats", "/stats-v2", "/intentos-fallidos", "/diagnostico", "/chat", "/"];
 }
 
-test("A11y: dashboard, stats, stats-v2, intentos-fallidos, diagnostico, chat", async ({ page, baseURL }) => {
-    await mockApis(page);
-    await loginIfNeeded(page, baseURL);
+// Chequeo Axe: falla si hay violaciones "serious" o "critical"
+async function assertNoSeriousOrCritical(page: import("@playwright/test").Page, route: string) {
+    const results = await new AxeBuilder({ page })
+        // Si los gráficos dan falsos positivos, puedes excluirlos:
+        // .exclude(".recharts-wrapper")
+        .analyze();
 
-    const routes = ["/dashboard", "/stats", "/stats-v2", "/intentos-fallidos", "/diagnostico", "/chat"];
-    for (const r of routes) {
-        await page.goto(r);
-        await assertNoSeriousA11y(page);
-    }
+    const bad = results.violations.filter(
+        (v) => v.impact === "serious" || v.impact === "critical",
+    );
+    expect(bad, `Violaciones (serious/critical) en ${route}`).toHaveLength(0);
+}
 
-    // Home con widget
-    await page.goto("/");
-    await assertNoSeriousA11y(page);
+// ==== TEST ====
+test.describe("A11y (Axe) en vistas principales", () => {
+    test("sin issues críticas/serias por vista", async ({ page, baseURL }) => {
+        await mockApis(page);
+        await loginIfNeeded(page, baseURL);
+
+        for (const route of getRoutes()) {
+            await page.goto(route);
+            // Un pequeño wait por si tarda el render
+            await page.waitForLoadState("domcontentloaded");
+            await assertNoSeriousOrCritical(page, route);
+        }
+
+        // Home (por si el widget/landing está ahí)
+        await page.goto("/");
+        await assertNoSeriousOrCritical(page, "/");
+    });
 });

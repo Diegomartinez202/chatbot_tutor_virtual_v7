@@ -30,7 +30,8 @@
     "screenshots:prod:archive-headed": "npm run screenshots:clean && npm run screenshots:headed",
     "screenshots:prod:ci": "node -e \"if(!process.env.PLAYWRIGHT_BASE_URL){console.error('❌ Missing PLAYWRIGHT_BASE_URL');process.exit(1)}\" && npm run screenshots:prod",
 
-    "screenshots:harness": "SCREENSHOTS_ROUTES=\"/harness/dashboard,/harness/stats,/harness/intentos-fallidos,/harness/chat\" playwright test tests/visual/screenshots.spec.ts --project=chromium"
+    "screenshots:harness": "SCREENSHOTS_ROUTES=\"/harness/dashboard,/harness/stats,/harness/stats-v2,/harness/logs,/harness/exportaciones,/harness/intents,/harness/intentos-fallidos,/harness/diagnostico,/harness/users,/harness/assign-roles,/harness/upload-intents,/harness/chat,/harness/chat-kiosk\" playwright test tests/visual/screenshots.spec.ts --project=chromium",
+    "screenshots:harness:chat": "SCREENSHOTS_ROUTES=\"/harness/chat-full,/harness/chat-widget,/harness/chat-scenario,/harness/chat-kiosk\" playwright test tests/visual/screenshots.spec.ts --project=chromium"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",

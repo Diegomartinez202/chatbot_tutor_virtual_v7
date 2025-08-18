@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "types": [ "@playwright/test", "node" ]
+  },
+  "include": [ "tests", "playwright.config.ts" ]
+}
