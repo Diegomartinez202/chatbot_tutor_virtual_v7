@@ -23,7 +23,10 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 
 import { TooltipProvider } from "@/components/ui/IconTooltip";
-
+import StatsHarness from "@/snapshots/StatsHarness";
+import DashboardHarness from "@/snapshots/DashboardHarness";
+import IntentosFallidosHarness from "@/snapshots/IntentosFallidosHarness";
+import ChatHarness from "@/snapshots/ChatHarness";
 function CatchAllRedirect() {
     const { isAuthenticated } = useAuth();
     return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
@@ -36,7 +39,10 @@ function App() {
                 {/* Públicas */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-
+                <Route path="/harness/stats" element={<StatsHarness />} />
+                <Route path="/harness/dashboard" element={<DashboardHarness />} />
+                <Route path="/harness/intentos-fallidos" element={<IntentosFallidosHarness />} />
+                <Route path="/harness/chat" element={<ChatHarness />} />
                 {/* Chat público */}
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat-embed" element={<ChatPage forceEmbed />} />

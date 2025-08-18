@@ -28,8 +28,9 @@
     "screenshots:prod:headed": "npm run screenshots:clean && playwright test tests/visual/screenshots.spec.ts --project=chromium --headed",
     "screenshots:prod:archive": "npm run screenshots:clean && npm run screenshots",
     "screenshots:prod:archive-headed": "npm run screenshots:clean && npm run screenshots:headed",
+    "screenshots:prod:ci": "node -e \"if(!process.env.PLAYWRIGHT_BASE_URL){console.error('❌ Missing PLAYWRIGHT_BASE_URL');process.exit(1)}\" && npm run screenshots:prod",
 
-    "screenshots:prod:ci": "node -e \"if(!process.env.PLAYWRIGHT_BASE_URL){console.error('❌ Missing PLAYWRIGHT_BASE_URL');process.exit(1)}\" && npm run screenshots:prod"
+    "screenshots:harness": "SCREENSHOTS_ROUTES=\"/harness/dashboard,/harness/stats,/harness/intentos-fallidos,/harness/chat\" playwright test tests/visual/screenshots.spec.ts --project=chromium"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",
