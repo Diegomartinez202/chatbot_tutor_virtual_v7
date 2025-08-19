@@ -1,16 +1,16 @@
-// src/snapshots/ChatHarness.jsx
-import React from "react";
-import ProviderHarness from "./ProviderHarness";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Harness from "@/pages/Harness";
+import ChatHarness from "@/snapshots/ChatHarness";
+// ...otros imports
 
-// TODO: ajusta import a tu página de chat real (si existe):
-import ChatAdminPage from "@/pages/ChatPage";
-
-export default function ChatHarness() {
+export default function App() {
     return (
-        <ProviderHarness>
-            <main data-testid="app-root" className="p-6">
-                <ChatAdminPage />
-            </main>
-        </ProviderHarness>
+        <BrowserRouter>
+            <Routes>
+                {/* ...otras rutas */}
+                <Route path="/chat" element={<Harness />} />
+                <Route path="/snapshots/chat" element={<ChatHarness />} />
+            </Routes>
+        </BrowserRouter>
     );
 }

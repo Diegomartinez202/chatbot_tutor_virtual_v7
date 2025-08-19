@@ -55,11 +55,7 @@ function BotAvatar({ size = 28 }) {
             aria-hidden="true"
         >
             {err ? (
-                <svg
-                    viewBox="0 0 24 24"
-                    className="w-4 h-4 text-indigo-600"
-                    fill="currentColor"
-                >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-indigo-600" fill="currentColor">
                     <path d="M12 2a3 3 0 0 1 3 3v1h2a3 3 0 0 1 3 3v3a5 5 0 0 1-4 4.9V19a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3v-2.1A5 5 0 0 1 3 12V9a3 3 0 0 1 3-3h2V5a3 3 0 0 1 3-3Z" />
                 </svg>
             ) : (
@@ -418,18 +414,17 @@ export default function ChatUI({
         </div>
     );
 
-    const meLabel =
-        user?.email || user?.nombre || user?.name || "Tu cuenta";
+    const meLabel = user?.email || user?.nombre || user?.name || "Tu cuenta";
 
-    const personaParam =
-        (typeof window !== "undefined" &&
-            new URLSearchParams(window.location.search).get("persona")) ||
-        null;
+    // Lee persona/lang desde la URL para el MicButton (audio)
+    const qs = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : ""
+    );
+    const personaFromQS = qs.get("persona") || null;
+    const langFromQS = qs.get("lang") || "es";
 
     return (
-        <div
-            className={embed ? "h-full flex flex-col" : "h-full flex flex-col bg-white"}
-        >
+        <div className={embed ? "h-full flex flex-col" : "h-full flex flex-col bg-white"}>
             {/* Mensajes */}
             <div
                 ref={listRef}
@@ -461,18 +456,12 @@ export default function ChatUI({
                                         <div className="p-3">
                                             <div className="font-semibold">{m.card.title}</div>
                                             {m.card.subtitle ? (
-                                                <div className="text-xs text-gray-500 mt-0.5">
-                                                    {m.card.subtitle}
-                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">{m.card.subtitle}</div>
                                             ) : null}
                                             {!!(m.card.buttons || []).length && (
                                                 <div className="mt-3 flex flex-wrap gap-2">
                                                     {m.card.buttons.map((b) => (
-                                                        <IconTooltip
-                                                            key={b.id}
-                                                            label={b.payload || b.url || "Acción"}
-                                                            side="top"
-                                                        >
+                                                        <IconTooltip key={b.id} label={b.payload || b.url || "Acción"} side="top">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleActionClick(gId, b)}
@@ -484,10 +473,7 @@ export default function ChatUI({
                                                                 aria-label={b.title}
                                                             >
                                                                 {b.url ? (
-                                                                    <ExternalLink
-                                                                        className="w-3.5 h-3.5"
-                                                                        aria-hidden="true"
-                                                                    />
+                                                                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                                                                 ) : null}
                                                                 {b.title}
                                                             </button>
@@ -508,16 +494,10 @@ export default function ChatUI({
                             return (
                                 <BotRow key={m.id}>
                                     <div className="rounded-2xl px-3 py-2 bg-gray-100 text-gray-800 max-w-[75%]">
-                                        <div className="text-xs text-gray-500 mb-2">
-                                            Elige una opción:
-                                        </div>
+                                        <div className="text-xs text-gray-500 mb-2">Elige una opción:</div>
                                         <div className="flex flex-wrap gap-2">
                                             {m.buttons.map((b) => (
-                                                <IconTooltip
-                                                    key={b.id}
-                                                    label={b.payload || b.title}
-                                                    side="top"
-                                                >
+                                                <IconTooltip key={b.id} label={b.payload || b.title} side="top">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleActionClick(gId, b)}
@@ -548,11 +528,7 @@ export default function ChatUI({
                                         <div className="text-xs text-gray-500 mb-2">Sugerencias:</div>
                                         <div className="flex items-center gap-2 overflow-x-auto pb-1">
                                             {m.quickReplies.map((q) => (
-                                                <IconTooltip
-                                                    key={q.id}
-                                                    label={q.payload || q.title}
-                                                    side="top"
-                                                >
+                                                <IconTooltip key={q.id} label={q.payload || q.title} side="top">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleActionClick(gId, q)}
@@ -584,12 +560,7 @@ export default function ChatUI({
                                             <div className="flex items-center gap-2">
                                                 <ImgIcon className="w-4 h-4 opacity-70" aria-hidden="true" />
                                                 <IconTooltip label="Ver imagen" side="top">
-                                                    <a
-                                                        href={m.image}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="underline"
-                                                    >
+                                                    <a href={m.image} target="_blank" rel="noreferrer" className="underline">
                                                         Ver imagen
                                                     </a>
                                                 </IconTooltip>
@@ -609,12 +580,7 @@ export default function ChatUI({
                                         <div className="flex items-center gap-2">
                                             <ImgIcon className="w-4 h-4 opacity-70" aria-hidden="true" />
                                             <IconTooltip label="Ver imagen" side="top">
-                                                <a
-                                                    href={m.image}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="underline"
-                                                >
+                                                <a href={m.image} target="_blank" rel="noreferrer" className="underline">
                                                     Ver imagen
                                                 </a>
                                             </IconTooltip>
@@ -675,11 +641,12 @@ export default function ChatUI({
 
                     {/* 🎤 Mic (audio → /api/chat/audio), justo antes de Enviar */}
                     <MicButton
+                        disabled={sending}
                         onPushUser={appendUserMessage}
                         onPushBot={appendBotMessages}
                         userId={userId || undefined}
-                        persona={personaParam || null}
-                        lang="es"
+                        persona={personaFromQS || undefined}
+                        lang={langFromQS || "es"}
                     />
 
                     {/* Botón Enviar */}

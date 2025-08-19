@@ -29,6 +29,9 @@ import StatsHarness from "@/snapshots/StatsHarness";
 import DashboardHarness from "@/snapshots/DashboardHarness";
 import IntentosFallidosHarness from "@/snapshots/IntentosFallidosHarness";
 import ChatHarness from "@/snapshots/ChatHarness";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Harness from "@/pages/Harness";
+
 function CatchAllRedirect() {
     const { isAuthenticated } = useAuth();
     return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;

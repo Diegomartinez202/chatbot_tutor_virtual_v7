@@ -1,47 +1,30 @@
 import { test, expect } from "@playwright/test";
+import ok from "../fixtures/bot.response.ok.json";
 
 const CHAT_PATH = process.env.CHAT_PATH || "/chat";
 
-test.describe("Chat (texto) → intercept /api/chat", () => {
+test.describe("Chat - Texto (REST)", () => {
     test("envía texto y muestra respuesta del bot", async ({ page }) => {
-        // Interceptar POST /api/chat (ajusta si tu servicio usa otra ruta)
-        await page.route("**/api/chat", async (route) => {
-            const body = await route.request().postDataJSON().catch(() => ({}));
-            const text = (body && body.text) || "";
-
-            // Respuesta estilo Rasa REST
-            const rasaMessages = [
-                { text: `Recibí: "${text}". ¡Vamos a resolverlo!` },
-                {
-                    buttons: [
-                        { title: "Opción A", payload: "/opcion_a" },
-                        { title: "Opción B", payload: "/opcion_b" },
-                    ],
-                },
-            ];
-
-            return route.fulfill({
-                status: 200,
-                contentType: "application/json",
-                body: JSON.stringify(rasaMessages),
-            });
+        await page.route("**/api/chat", async route => {
+            if (route.request().method() === "POST") {
+                await route.fulfill({
+                    status: 200,
+                    contentType: "application/json",
+                    body: JSON.stringify(ok),
+                });
+                return;
+            }
+            route.continue();
         });
 
         await page.goto(CHAT_PATH);
+        await page.getByTestId("chat-input").fill("Necesito ayuda con fracciones");
+        await page.getByTestId("chat-send").click();
 
-        // Escribe un mensaje
-        const input = page.getByTestId("chat-input");
-        const sendBtn = page.getByTestId("chat-send");
-
-        await expect(input).toBeVisible();
-        await input.fill("¿Cómo sumo fracciones?");
-        await sendBtn.click();
-
-        // Verifica eco/flujo
-        await expect(page.getByText("¿Cómo sumo fracciones?")).toBeVisible();
-        await expect(page.getByText('Recibí: "¿Cómo sumo fracciones?". ¡Vamos a resolverlo!')).toBeVisible();
+        // Verifica que aparezca texto del bot
+        await expect(page.getByText("Te ayudo con fracciones", { exact: false })).toBeVisible();
 
         // Screenshot de la conversación
-        await page.screenshot({ path: "playwright-report/chat-text-full.png", fullPage: true });
+        await expect(page).toHaveScreenshot("chat-text.png", { fullPage: true });
     });
 });
