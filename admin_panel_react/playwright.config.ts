@@ -6,7 +6,7 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
 const isExternal = !!process.env.PLAYWRIGHT_BASE_URL && !BASE_URL.includes("localhost");
 
 export default defineConfig({
-    testDir: "tests", // ← ahora detecta tests/e2e y tests/visual
+    testDir: "tests",
     timeout: 30_000,
     expect: { timeout: 5_000 },
     retries: process.env.CI ? 1 : 0,

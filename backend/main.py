@@ -24,16 +24,17 @@ from backend.middleware.logging_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.request_meta import request_meta_middleware  # IP/UA
 
-# 🧭 Routers
+# 🧭 Routers (existentes)
 from backend.routes import router as api_router
 from backend.routes import exportaciones
 from app.routers import admin_failed
 from backend.routes import helpdesk
 from backend.routes.chat import chat_router  # expone /chat, /chat/health, /chat/debug
 from backend.routes import api_chat
-
+# ✅ [NEW] Audio → Rasa + logs (Mongo)
+from app.routers import chat_audio
 # ✅ [NEW] Stats router (/api/stats/*)
-from backend.routes import stats  # <-- añade el archivo backend/routes/stats.py con el router que te compartí
+from backend.routes import stats  # <-- requiere backend/routes/stats.py
 
 # Redis opcional (rate limiting)
 try:
@@ -97,8 +98,10 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)                # /chat/*
     app.include_router(chat_router, prefix="/api") # /api/chat/*
 
+    # ✅ [NEW] Audio → Rasa + logs (Mongo)
+    app.include_router(chat_audio.router)          # /api/chat/audio
+
     # ✅ [NEW] Exponer /api/stats (summary/series/confusion/latency)
-    #     Requiere: backend/routes/stats.py con "router = APIRouter(prefix='/api/stats', ...)"
     app.include_router(stats.router)
 
     # ─────────────────────────────────────────
@@ -282,6 +285,16 @@ def create_app() -> FastAPI:
                 await redis_client.aclose()
             except Exception:
                 pass
+
+    # ✅ [NEW] Startup: asegurar índices de voice_logs/voice_audio_refs
+    @app.on_event("startup")
+    async def _init_voice_indexes():
+        try:
+            from app.routers.chat_audio import ensure_indexes as _ensure_voice_indexes
+            await _ensure_voice_indexes()
+            log.info("voice_logs/voice_audio_refs: índices verificados.")
+        except Exception as e:
+            log.error(f"No se pudieron asegurar los índices de voz: {e}")
 
     @app.middleware("http")
     async def rate_limit_middleware(request: Request, call_next):

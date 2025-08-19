@@ -15,8 +15,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
-    "test:e2e:webkit": "playwright test --project=webkit",
-
+    
     "screenshots": "playwright test tests/visual/screenshots.spec.ts --project=chromium",
     "screenshots:headed": "playwright test tests/visual/screenshots.spec.ts --project=chromium --headed",
     "screenshots:a11y": "playwright test tests/visual/screenshots.a11y.spec.ts --project=chromium",

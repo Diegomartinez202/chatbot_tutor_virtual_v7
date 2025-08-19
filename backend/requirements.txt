@@ -1,10 +1,26 @@
+# --- FastAPI core ---
 fastapi==0.111.0
-uvicorn==0.29.0
+uvicorn[standard]==0.29.0
+
+# --- HTTP cliente asíncrono (para llamar a Rasa REST, etc.) ---
+aiohttp==3.9.5
+requests==2.31.0
+
+# --- Subida de archivos (UploadFile / Form) ---
+python-multipart==0.0.9
+
+# --- MongoDB (sincrónico y asíncrono) ---
 pymongo==4.7.2
+motor==3.4.0
+
+# --- Utilidades / seguridad / plantillas ---
 python-dotenv==1.0.1
 email-validator==2.1.1
 passlib[bcrypt]==1.7.4
 python-jose==3.3.0
 Jinja2==3.1.4
-requests==2.31.0
 redis>=5.0
+
+# --- (Opcional) STT real ---
+# faster-whisper==1.0.0
+# NOTA: para faster-whisper suele requerirse ffmpeg instalado en el sistema.

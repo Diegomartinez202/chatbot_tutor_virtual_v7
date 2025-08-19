@@ -1,4 +1,4 @@
-/* public/chat-widget.js — launcher moderno con auth handshake */
+/* public/chat-widget.js — launcher moderno con auth handshake + CustomEvent telemetry */
 (function () {
     const LS_KEY = "ctv_widget_settings";
     const ONE = 1;
@@ -29,7 +29,6 @@
     const str = (v, fb) => (v == null || v === "" ? fb : String(v));
     const arr = (v) => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
 
-    // 🔧 Helper de normalización de orígenes (para comparar de forma segura)
     function normalizeOrigin(o) {
         return String(o || "").trim().replace(/\/+$/, "");
     }
@@ -57,7 +56,11 @@
         };
     }
 
-    const getSavedSettings = () => { try { return { theme: "light", contrast: false, lang: "es", ...(JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}) }; } catch { return { theme: "light", contrast: false, lang: "es" }; } };
+    const getSavedSettings = () => {
+        try {
+            return { theme: "light", contrast: false, lang: "es", ...(JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}) };
+        } catch { return { theme: "light", contrast: false, lang: "es" }; }
+    };
     const saveSettings = (s) => { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { } };
 
     function applyPanelSkin({ panel, header, overlay, state }) {
@@ -179,27 +182,19 @@
             content.appendChild(frame);
         }
 
-        // 🔐 Seguridad postMessage: targetOrigin y validación estricta
-        // Definimos valores por defecto seguros en caso de que no exista iframe
+        // Seguridad postMessage
         let target = "*";
         let originAllowedStrict = () => false;
 
         if (frame) {
-            // 🚩 Determinar el origin REAL del iframe (si src es relativo, se resuelve con location.href)
             const frameURL = new URL(frame.src, window.location.href);
             const frameOrigin = normalizeOrigin(frameURL.origin);
-
-            // Si allowedOrigins no está definido, por defecto acepta SOLO el origin del iframe
             const allowedSet = new Set(
                 (cfg.allowedOrigins && cfg.allowedOrigins.length ? cfg.allowedOrigins : [frameOrigin])
                     .map(normalizeOrigin)
             );
-
-            // Función segura: origen permitido Y fuente correcta (nuestro iframe)
             originAllowedStrict = (origin, source) =>
                 source === frame.contentWindow && allowedSet.has(normalizeOrigin(origin));
-
-            // ✅ siempre el origin del iframe
             target = frameOrigin;
         }
 
@@ -208,6 +203,8 @@
             panel.style.display = "block";
             btn.setAttribute("aria-expanded", "true");
             if (cfg.badge === "auto") setBadge(0);
+            // 🔔 Telemetría
+            try { window.dispatchEvent(new CustomEvent("ctv:widget-opened")); } catch { }
             if (frame?.contentWindow) {
                 frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target);
                 frame.contentWindow.postMessage({ type: "chat:visibility", open: true }, target);
@@ -217,6 +214,8 @@
             if (cfg.overlay) ov.style.display = "none";
             panel.style.display = "none";
             btn.setAttribute("aria-expanded", "false");
+            // 🔔 Telemetría
+            try { window.dispatchEvent(new CustomEvent("ctv:widget-closed")); } catch { }
             if (frame?.contentWindow) {
                 frame.contentWindow.postMessage({ type: "chat:visibility", open: false }, target);
             }
@@ -250,7 +249,7 @@
         closeBtn.addEventListener("click", close);
         applyAndNotify();
 
-        // 🔐 Handshake AUTH y badge auto (validación estricta por origin + source del iframe)
+        // Handshake + badge
         window.addEventListener("message", (ev) => {
             if (!originAllowedStrict(ev.origin, ev.source)) return;
             const data = ev.data || {};
@@ -259,6 +258,8 @@
             if (data.type === "chat:badge" && typeof data.count === "number") {
                 const isOpen = panel.style.display === "block";
                 if (cfg.badge === "auto") setBadge(isOpen ? 0 : data.count);
+                // 🔔 Telemetría
+                try { window.dispatchEvent(new CustomEvent("ctv:badge", { detail: { count: data.count } })); } catch { }
             }
 
             // auth handshake
@@ -277,7 +278,7 @@
             }
         });
 
-        // reenvía settings al cargar
+        // Reenvía settings al cargar
         frame?.addEventListener("load", () => {
             try { frame.contentWindow.postMessage({ type: "chat:settings", ...state }, target); } catch { }
         });

@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import IconTooltip from "@/components/ui/IconTooltip";
+import MicButton from "./MicButton";
 
 // ————————————————————————————————
 // Helpers de origen seguro (parentOrigin + normalización)
@@ -315,6 +316,25 @@ export default function ChatUI({
     // - Exigir token en embed (origen externo) o cuando no hay user autenticado en el contexto React.
     const needAuth = embed || !user;
 
+    // Helpers expuestos al MicButton
+    const appendUserMessage = useCallback((text) => {
+        const t = String(text || "").trim();
+        if (!t) return;
+        const userMsg = { id: `u-${Date.now()}`, role: "user", text: t };
+        setMessages((m) => [...m, userMsg]);
+    }, []);
+
+    const appendBotMessages = useCallback(
+        (rasaItemsArray) => {
+            const botMsgs = normalizeRasaItems(rasaItemsArray);
+            setMessages((m) => [...m, ...botMsgs]);
+            const inc = botMsgs.length || 1;
+            unreadRef.current = Math.max(0, unreadRef.current + inc);
+            postBadge(unreadRef.current);
+        },
+        [postBadge]
+    );
+
     // Pipeline → Rasa (con gate de auth)
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
@@ -400,6 +420,11 @@ export default function ChatUI({
 
     const meLabel =
         user?.email || user?.nombre || user?.name || "Tu cuenta";
+
+    const personaParam =
+        (typeof window !== "undefined" &&
+            new URLSearchParams(window.location.search).get("persona")) ||
+        null;
 
     return (
         <div
@@ -623,9 +648,12 @@ export default function ChatUI({
                 </div>
             ) : null}
 
-            {/* Input (con avatar del usuario a la derecha del textarea) */}
+            {/* Composer (input + avatar + mic + enviar) */}
             <div className={"border-t " + (embed ? "p-2" : "p-3 bg-white")}>
-                <div className="max-w-3xl mx-auto flex items-end gap-2">
+                <div
+                    className="max-w-3xl mx-auto flex items-end gap-2"
+                    data-testid="chat-composer"
+                >
                     <textarea
                         className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                         placeholder={placeholder}
@@ -635,6 +663,7 @@ export default function ChatUI({
                         onKeyDown={onKeyDown}
                         disabled={sending}
                         aria-label="Escribe tu mensaje"
+                        data-testid="chat-input"
                     />
 
                     {/* 👤 Avatar del usuario en la barra de entrada */}
@@ -644,6 +673,15 @@ export default function ChatUI({
                         </div>
                     </IconTooltip>
 
+                    {/* 🎤 Mic (audio → /api/chat/audio), justo antes de Enviar */}
+                    <MicButton
+                        onPushUser={appendUserMessage}
+                        onPushBot={appendBotMessages}
+                        userId={userId || undefined}
+                        persona={personaParam || null}
+                        lang="es"
+                    />
+
                     {/* Botón Enviar */}
                     <IconTooltip label="Enviar (Enter)">
                         <button
@@ -652,6 +690,7 @@ export default function ChatUI({
                             disabled={sending || !input.trim()}
                             className="inline-flex items-center justify-center rounded-md bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Enviar"
+                            data-testid="chat-send"
                         >
                             {sending ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

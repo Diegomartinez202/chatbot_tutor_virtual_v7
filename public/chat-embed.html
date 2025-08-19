@@ -77,15 +77,23 @@
     <script>
         (function () {
             const qs = new URLSearchParams(location.search);
+
+            // Tamaño del wrapper externo
             const w = qs.get("w") || "380px";
             const h = qs.get("h") || "560px";
             document.documentElement.style.setProperty("--w", w);
             document.documentElement.style.setProperty("--h", h);
-            window.__CHAT_SRC__ = qs.get("src") || "";                 // URL del widget (backend)
+
+            // Parametrización del iframe wrapper
+            window.__CHAT_SRC__ = qs.get("src") || "";                   // URL del chat interno (obligatorio)
             window.__CHAT_AVATAR__ = qs.get("avatar") || "/bot-avatar.png";
             window.__CHAT_TITLE__ = qs.get("title") || "Conectando con el Chatbot…";
             window.__IFR_ALLOW__ = qs.get("allow") || "clipboard-write";
             window.__IFR_SBOX__ = qs.get("sandbox") || "allow-scripts allow-forms allow-same-origin allow-popups";
+
+            // 🔁 Claves que se reenvían (forward) al src interno del chat
+            // Añadidas: api, user_id, persona, initial_message, lang (además de avatar)
+            window.__FW_KEYS__ = ["api", "user_id", "persona", "initial_message", "lang", "avatar"];
         })();
     </script>
 </head>
@@ -104,20 +112,35 @@
             const title = window.__CHAT_TITLE__;
             const allow = window.__IFR_ALLOW__;
             const sandbox = window.__IFR_SBOX__;
+            const fwdKeys = window.__FW_KEYS__ || [];
 
+            // Placeholder
             document.getElementById("phAvatar").src = avatar;
             document.getElementById("phText").innerHTML = `${title} <span class="spin" aria-hidden="true"></span>`;
 
             if (src) {
+                const hostQS = new URLSearchParams(location.search);
+
+                // Construir URL final del iframe interno y hacer "forward" de claves permitidas
+                const url = new URL(src, window.location.href);
+                for (const k of fwdKeys) {
+                    const v = hostQS.get(k);
+                    if (v != null && v !== "" && !url.searchParams.has(k)) {
+                        url.searchParams.set(k, v);
+                    }
+                }
+
                 const mount = document.getElementById("mount");
                 mount.innerHTML = "";
+
                 const frame = document.createElement("iframe");
                 frame.className = "chat";
                 frame.loading = "eager";
                 frame.referrerPolicy = "no-referrer";
                 frame.allow = allow;
                 frame.sandbox = sandbox;
-                frame.src = src;
+                frame.src = url.toString();
+
                 mount.appendChild(frame);
             }
         })();

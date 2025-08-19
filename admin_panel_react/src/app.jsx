@@ -24,7 +24,6 @@ import ChatWidgetHarness from "@/snapshots/ChatWidgetHarness";
 import ChatScenarioHarness from "@/snapshots/ChatScenarioHarness";
 import ChatKioskHarness from "@/snapshots/ChatKioskHarness";
 import ChatPage from "@/pages/ChatPage";
-
 import { TooltipProvider } from "@/components/ui/IconTooltip";
 import StatsHarness from "@/snapshots/StatsHarness";
 import DashboardHarness from "@/snapshots/DashboardHarness";
@@ -63,7 +62,7 @@ function App() {
                 <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
                 {/* 👇 Alias extra de compat modern iframe */}
                 <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
-
+                <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
                 {/* Home protegido */}
                 <Route
                     path="/"
