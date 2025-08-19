@@ -1,15 +1,20 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+// admin_panel_react/src/App.jsx
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/IconTooltip";
 import { useAuth } from "@/context/AuthContext";
+
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
+// Páginas públicas
 import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
 
+// Páginas principales
 import Dashboard from "@/pages/Dashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import TestPage from "@/pages/TestPage";
-
 import LogsPage from "@/pages/LogsPage";
 import IntentsPage from "@/pages/IntentsPage";
 import StatsPage from "@/pages/StatsPage";
@@ -19,17 +24,11 @@ import AssignRoles from "@/pages/AssignRoles";
 import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
-import ChatFullHarness from "@/snapshots/ChatFullHarness";
-import ChatWidgetHarness from "@/snapshots/ChatWidgetHarness";
-import ChatScenarioHarness from "@/snapshots/ChatScenarioHarness";
-import ChatKioskHarness from "@/snapshots/ChatKioskHarness";
+
+// Chat “clásico” (lo dejamos como backup en /chat-old)
 import ChatPage from "@/pages/ChatPage";
-import { TooltipProvider } from "@/components/ui/IconTooltip";
-import StatsHarness from "@/snapshots/StatsHarness";
-import DashboardHarness from "@/snapshots/DashboardHarness";
-import IntentosFallidosHarness from "@/snapshots/IntentosFallidosHarness";
-import ChatHarness from "@/snapshots/ChatHarness";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Harness QA para el chat (página recomendada para /chat)
 import Harness from "@/pages/Harness";
 
 function CatchAllRedirect() {
@@ -37,172 +36,157 @@ function CatchAllRedirect() {
     return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
 
-function App() {
+export default function App() {
     return (
-        <TooltipProvider>
-            <Routes>
-                {/* Públicas */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="/harness/stats" element={<StatsHarness />} />
-                <Route path="/harness/dashboard" element={<DashboardHarness />} />
-                <Route path="/harness/intentos-fallidos" element={<IntentosFallidosHarness />} />
-                <Route path="/harness/chat" element={<ChatHarness />} />
-                <Route path="/harness/stats-v2" element={<StatsV2Harness />} />
-                <Route path="/harness/logs" element={<LogsHarness />} />
-                <Route path="/harness/exportaciones" element={<ExportacionesHarness />} />
-                <Route path="/harness/intents" element={<IntentsHarness />} />
-                <Route path="/harness/diagnostico" element={<DiagnosticoHarness />} />
-                <Route path="/harness/users" element={<UsersHarness />} />
-                <Route path="/harness/assign-roles" element={<AssignRolesHarness />} />
-                <Route path="/harness/upload-intents" element={<UploadIntentsHarness />} />
-                <Route path="/harness/chat-full" element={<ChatFullHarness />} />
-                <Route path="/harness/chat-widget" element={<ChatWidgetHarness />} />
-                <Route path="/harness/chat-scenario" element={<ChatScenarioHarness />} />
-                <Route path="/harness/chat-kiosk" element={<ChatKioskHarness />} />
-                {/* Chat público */}
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
-                {/* 👇 Alias extra de compat modern iframe */}
-                <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
-                <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
-                {/* Home protegido */}
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
+        <BrowserRouter>
+            <TooltipProvider>
+                <Routes>
+                    {/* Públicas */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/unauthorized" element={<Unauthorized />} />
 
-                {/* Protegidas sin rol */}
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/profile"
-                    element={
-                        <ProtectedRoute>
-                            <ProfilePage />
-                        </ProtectedRoute>
-                    }
-                />
+                    {/* Chat: apuntamos /chat al Harness para QA/Playwright */}
+                    <Route path="/chat" element={<Harness />} />
+                    {/* Conserva tu chat real como fallback */}
+                    <Route path="/chat-old" element={<ChatPage />} />
+                    <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+                    <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
+                    <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
 
-                {/* admin/soporte */}
-                <Route
-                    path="/logs"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin", "soporte"]}>
-                                <LogsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/diagnostico"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin", "soporte"]}>
+                    {/* Home protegida */}
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute>
+                                <Dashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Protegidas sin rol específico */}
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <ProtectedRoute>
+                                <Dashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute>
+                                <ProfilePage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/diagnostico"
+                        element={
+                            <ProtectedRoute>
                                 <TestPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                {/* admin-only */}
-                <Route
-                    path="/intents"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <IntentsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/stats"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <StatsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/stats-v2"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <StatsPageV2 />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/users"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <UserManagementPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/assign-roles"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <AssignRoles />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/upload-intents"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <UploadIntentsCSV />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/admin/exportaciones"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <ExportacionesPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/intentos-fallidos"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <IntentosFallidosPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
+                    {/* admin/soporte */}
+                    <Route
+                        path="/logs"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin", "soporte"]}>
+                                    <LogsPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
 
-                {/* Catch-all */}
-                <Route path="*" element={<CatchAllRedirect />} />
-            </Routes>
-        </TooltipProvider>
+                    {/* admin-only */}
+                    <Route
+                        path="/intents"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <IntentsPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/stats"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <StatsPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/stats-v2"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <StatsPageV2 />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/users"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <UserManagementPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/assign-roles"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <AssignRoles />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/upload-intents"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <UploadIntentsCSV />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/exportaciones"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <ExportacionesPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/intentos-fallidos"
+                        element={
+                            <ProtectedRoute>
+                                <RequireRole allowedRoles={["admin"]}>
+                                    <IntentosFallidosPage />
+                                </RequireRole>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Catch-all */}
+                    <Route path="*" element={<CatchAllRedirect />} />
+                </Routes>
+            </TooltipProvider>
+        </BrowserRouter>
     );
 }
-
-export default App;

@@ -3,11 +3,9 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// ==== Timeout de la suite (por si tu máquina va lenta) ====
 const SUITE_TIMEOUT = Number(process.env.SCREENSHOTS_TIMEOUT_MS || 120_000);
 test.describe.configure({ timeout: SUITE_TIMEOUT });
 
-// ==== Carpeta de salida ====
 const OUT_DIR = path.join(process.cwd(), "docs", "visuals");
 
 // ==== Mocks base (stats/logs) ====
@@ -61,19 +59,8 @@ const logsMock = {
 };
 
 // ==== Mocks adicionales (auth/users/exports/health/intents/confusions/chat) ====
-const userMeMock = {
-    id: "u_123",
-    email: "admin@demo.com",
-    name: "Admin Demo",
-    roles: ["admin", "soporte"],
-};
-
-const authRefreshMock = {
-    access_token: "mocked.token.value",
-    token_type: "Bearer",
-    expires_in: 3600,
-};
-
+const userMeMock = { id: "u_123", email: "admin@demo.com", name: "Admin Demo", roles: ["admin", "soporte"] };
+const authRefreshMock = { access_token: "mocked.token.value", token_type: "Bearer", expires_in: 3600 };
 const exportacionesMock = {
     total: 3,
     items: [
@@ -82,7 +69,6 @@ const exportacionesMock = {
         { id: "exp_3", tipo: "intents_xlsx", estado: "fallido", creado_en: "2025-08-14T11:00:00Z", error: "Timeout" },
     ],
 };
-
 const intentsMock = {
     total: 4,
     items: [
@@ -92,7 +78,6 @@ const intentsMock = {
         { name: "problema_pago", ejemplos: ["no puedo pagar", "error con tarjeta"], updated_at: "2025-08-13T12:00:00Z" },
     ],
 };
-
 const confusionsTopMock = {
     total: 3,
     items: [
@@ -101,7 +86,6 @@ const confusionsTopMock = {
         { intent: "faq_pagos", count: 3, example: "no puedo pagar" },
     ],
 };
-
 const healthOk = { ok: true, status: "healthy" };
 
 // Chat mocks
@@ -112,7 +96,6 @@ const chatHistoryMock = {
         { id: "m2", role: "assistant", text: "¡Hola! ¿En qué te ayudo?", ts: Date.now() - 59_000 },
     ],
 };
-
 const chatReplyFactory = (userText: string) => ({
     id: `m_${Math.random().toString(36).slice(2, 8)}`,
     role: "assistant",
@@ -121,10 +104,7 @@ const chatReplyFactory = (userText: string) => ({
 });
 
 // ==== Helpers ====
-function ensureOutDir() {
-    fs.mkdirSync(OUT_DIR, { recursive: true });
-}
-
+function ensureOutDir() { fs.mkdirSync(OUT_DIR, { recursive: true }); }
 async function shoot(page: Page, filename: string) {
     ensureOutDir();
     const file = path.join(OUT_DIR, filename);
@@ -135,12 +115,10 @@ async function shoot(page: Page, filename: string) {
 }
 
 async function mockApis(page: Page) {
-    // Stats (cubre /api/stats y /api/stats/*)
+    // Stats / Logs
     await page.route("**/api/stats**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(statsMock) })
     );
-
-    // Logs
     await page.route("**/api/logs**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(logsMock) })
     );
@@ -153,26 +131,16 @@ async function mockApis(page: Page) {
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(authRefreshMock) })
     );
 
-    // Exportaciones (listar / status / download)
+    // Exportaciones
     await page.route("**/api/exportaciones**", async (route) => {
         const url = route.request().url();
         if (url.includes("/download")) {
-            // Devolver algo descargable si la UI lo intenta (texto simulando CSV)
-            return route.fulfill({
-                status: 200,
-                contentType: "text/csv",
-                body: "id,evento,fecha\n1,descarga_mock,2025-08-14",
-            });
+            return route.fulfill({ status: 200, contentType: "text/csv", body: "id,evento,fecha\n1,descarga_mock,2025-08-14" });
         }
-        // Listado/estado
-        return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(exportacionesMock),
-        });
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(exportacionesMock) });
     });
 
-    // Health / Status
+    // Health
     await page.route("**/admin/rasa/status**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(healthOk) })
     );
@@ -183,12 +151,10 @@ async function mockApis(page: Page) {
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(healthOk) })
     );
 
-    // Intents
+    // Intents / Confusions
     await page.route("**/api/intents**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(intentsMock) })
     );
-
-    // Confusions
     await page.route("**/api/confusions/top**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(confusionsTopMock) })
     );
@@ -198,7 +164,10 @@ async function mockApis(page: Page) {
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(chatHistoryMock) })
     );
 
-    // Chat: send/message (acepta POST y responde eco)
+    // Chat: enviar texto (mock eco)
+    await page.route("**/api/chat", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+    );
     await page.route("**/api/chat/(send|message)**", async (route) => {
         let userText = "mensaje";
         try {
@@ -215,40 +184,33 @@ async function mockApis(page: Page) {
         const reply = chatReplyFactory(userText);
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply }) });
     });
+
+    // Chat: audio vacío
+    await page.route("**/api/chat/audio", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, transcript: "", bot: { messages: [] } }) })
+    );
 }
 
-// Si la page se cerró por timeout previo, reabre una nueva
 async function ensureOpenPage(page: Page): Promise<Page> {
     if (!page.isClosed()) return page;
     const ctx = page.context();
     return await ctx.newPage();
 }
-
 async function waitAppMounted(page: Page, ms = 10_000): Promise<boolean> {
     try {
-        await page.waitForSelector("#root, main, [data-testid='app-root'], body *", {
-            state: "visible",
-            timeout: ms,
-        });
+        await page.waitForSelector("#root, main, [data-testid='app-root'], body *", { state: "visible", timeout: ms });
         return true;
-    } catch {
-        return false;
-    }
+    } catch { return false; }
 }
-
-// Placeholder para evitar capturas en blanco
 async function injectPlaceholder(page: Page, title = "Vista mock") {
     await page.addStyleTag({
         content: `
-      html, body { background:#f6f7fb !important; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-      .mock-wrap { padding:24px; }
-      .mock-title { font-size:24px; font-weight:700; margin-bottom:16px; }
-      .mock-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
-      .mock-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-      .mock-sub { color:#6b7280; font-size:12px; }
-      .mock-val { font-size:22px; font-weight:700; margin-top:4px; }
-    `,
-    });
+    html, body { background:#f6f7fb !important; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .mock-wrap { padding:24px; } .mock-title { font-size:24px; font-weight:700; margin-bottom:16px; }
+    .mock-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+    .mock-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+    .mock-sub { color:#6b7280; font-size:12px; } .mock-val { font-size:22px; font-weight:700; margin-top:4px; }
+  `});
     await page.evaluate((t) => {
         const root = document.createElement("div");
         root.className = "mock-wrap";
@@ -259,19 +221,16 @@ async function injectPlaceholder(page: Page, title = "Vista mock") {
         <div class="mock-card"><div class="mock-sub">Aciertos</div><div class="mock-val">290</div></div>
         <div class="mock-card"><div class="mock-sub">No entendidos</div><div class="mock-val">24</div></div>
         <div class="mock-card"><div class="mock-sub">Latencia media</div><div class="mock-val">420 ms</div></div>
-      </div>
-    `;
+      </div>`;
         document.body.appendChild(root);
     }, title);
 }
 
-// Login opcional por env
 async function loginIfNeeded(page: Page, baseURL?: string) {
     const loginPath = process.env.PLAYWRIGHT_LOGIN_PATH;
     const user = process.env.PLAYWRIGHT_LOGIN_USER;
     const pass = process.env.PLAYWRIGHT_LOGIN_PASS;
     if (!loginPath || !user || !pass) return;
-
     try {
         await page.goto(new URL(loginPath, baseURL || page.url()).toString());
         const userInput = page.locator('input[name="email"], input[name="username"], [data-testid="login-email"]').first();
@@ -279,27 +238,22 @@ async function loginIfNeeded(page: Page, baseURL?: string) {
         const submitBtn = page
             .locator('button[type="submit"], [data-testid="login-submit"], button:has-text("Ingresar"), button:has-text("Login")]')
             .first();
-
         if (await userInput.count()) await userInput.fill(user);
         if (await passInput.count()) await passInput.fill(pass);
         if (await submitBtn.count()) await submitBtn.click();
-
         await page.waitForLoadState("networkidle");
     } catch (e) {
         console.warn("⚠️ Login opcional falló o no es necesario:", (e as Error).message);
     }
 }
 
-// Navega y saca capturas desktop + mobile (con salvavidas)
 async function shootRouteBoth(page: Page, route: string, baseName: string) {
     page = await ensureOpenPage(page);
 
     // Desktop
     await page.setViewportSize({ width: 1366, height: 900 });
     const resp = await page.goto(route);
-    if (resp && resp.status() >= 400) {
-        console.log(`🟧 ${resp.status()} ${resp.url()}`);
-    }
+    if (resp && resp.status() >= 400) console.log(`🟧 ${resp.status()} ${resp.url()}`);
     const mounted = await waitAppMounted(page);
     if (!mounted) await injectPlaceholder(page, `Mock de ${route}`);
     await page.locator("svg").first().waitFor({ state: "visible", timeout: 800 }).catch(() => { });
@@ -310,7 +264,6 @@ async function shootRouteBoth(page: Page, route: string, baseName: string) {
     await shoot(page, `${baseName}_mobile.png`);
 }
 
-// Widget obligatorio (real → embed → mock inline)
 async function captureWidgetOrFail(page: Page, baseURL?: string) {
     page = await ensureOpenPage(page);
 
@@ -332,7 +285,7 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
         }
     }
 
-    // 2) Embed servido por tu app (si existen chat-widget.js / chat-embed.html)
+    // 2) Embed servido por tu app
     try {
         const base = (baseURL || "").replace(/\/$/, "");
         const embedSrc = `${base}/chat-embed.html?src=${encodeURIComponent("/chat?embed=1")}`;
@@ -357,7 +310,7 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
         }
     } catch { }
 
-    // 3) Mock inline (último recurso)
+    // 3) Mock inline
     await page.setContent(`
     <!doctype html><html><body style="height:100vh;background:#f6f7fb;">
       <button id="fake-launcher" style="
@@ -383,7 +336,6 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
     await shoot(page, "chat_widget_open_desktop.png");
 }
 
-// Rutas por ENV o por defecto
 function getRoutes(): { path: string; name: string }[] {
     const env = (process.env.SCREENSHOTS_ROUTES || "").trim();
     if (!env) {
@@ -398,13 +350,9 @@ function getRoutes(): { path: string; name: string }[] {
         ];
     }
     const items = env.split(/[,\s]+/).filter(Boolean);
-    return items.map((p) => ({
-        path: p,
-        name: (p.replace(/^\//, "") || "home").replace(/[^\w-]/g, "_"),
-    }));
+    return items.map((p) => ({ path: p, name: (p.replace(/^\//, "") || "home").replace(/[^\w-]/g, "_") }));
 }
 
-// ==== Test ====
 test.describe("Visual screenshots (mocked + login opcional + widget obligatorio)", () => {
     test.beforeAll(() => ensureOutDir());
 

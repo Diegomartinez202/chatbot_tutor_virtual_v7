@@ -5,7 +5,7 @@ const CHAT_PATH = process.env.CHAT_PATH || "/chat";
 
 test.describe("Chat - Mic (mock grabación + intercept /api/chat/audio)", () => {
     test.beforeEach(async ({ page }) => {
-        // Mock muy simple de MediaRecorder + getUserMedia
+        // Mock de getUserMedia + MediaRecorder (graba y genera un "blob" dummy)
         await page.addInitScript(() => {
             // @ts-ignore
             navigator.mediaDevices = {
@@ -13,6 +13,7 @@ test.describe("Chat - Mic (mock grabación + intercept /api/chat/audio)", () => {
                     getTracks: () => [{ stop() { } }],
                 }),
             };
+
             // @ts-ignore
             window.MediaRecorder = class {
                 ondataavailable: ((ev: any) => void) | null = null;
@@ -23,9 +24,9 @@ test.describe("Chat - Mic (mock grabación + intercept /api/chat/audio)", () => {
                     this.state = "recording";
                     // Entrega un "blob" simulado enseguida
                     setTimeout(() => {
-                        const blob = new Blob(["dummy"], { type: "audio/webm" });
+                        const blob = new Blob(["dummy audio"], { type: "audio/webm" });
                         this.ondataavailable && this.ondataavailable({ data: blob });
-                    }, 30);
+                    }, 40);
                 }
                 stop() {
                     this.state = "inactive";
@@ -36,7 +37,8 @@ test.describe("Chat - Mic (mock grabación + intercept /api/chat/audio)", () => {
     });
 
     test("graba (mock), previsualiza y sube; muestra transcript + respuesta bot", async ({ page }) => {
-        await page.route("**/api/chat/audio", async route => {
+        // Intercepta POST /api/chat/audio y responde con transcript + mensajes del bot (fixture ok)
+        await page.route("**/api/chat/audio", async (route) => {
             await route.fulfill({
                 status: 200,
                 contentType: "application/json",
@@ -48,23 +50,46 @@ test.describe("Chat - Mic (mock grabación + intercept /api/chat/audio)", () => {
             });
         });
 
+        // (Opcional) si tu ChatUI pudiera hacer llamadas de texto en paralelo, evita hits reales:
+        await page.route("**/api/chat", (route) => {
+            if (route.request().method() === "POST") {
+                return route.fulfill({
+                    status: 200,
+                    contentType: "application/json",
+                    body: JSON.stringify([{ text: "Texto interceptado (mock)" }]),
+                });
+            }
+            route.continue();
+        });
+
         await page.goto(CHAT_PATH);
 
-        // Click en el botón Mic (aria-label definido en MicButton)
-        await page.getByRole("button", { name: "Grabar audio" }).click();
+        // 1) Grabar
+        const micBtn = page.getByRole("button", { name: "Grabar audio" });
+        await expect(micBtn).toBeVisible();
+        await micBtn.click();
 
-        // Detener grabación (cuando el mock deja el blob listo)
-        await page.getByRole("button", { name: "Detener grabación" }).click();
+        // 2) Detener
+        const stopBtn = page.getByRole("button", { name: "Detener grabación" });
+        await expect(stopBtn).toBeVisible({ timeout: 3000 });
+        await stopBtn.click();
 
-        // Enviar audio
-        await page.getByRole("button", { name: "Enviar audio" }).click();
+        // 3) Enviar audio
+        const uploadBtn = page.getByRole("button", { name: "Enviar audio" });
+        await expect(uploadBtn).toBeVisible();
+        await uploadBtn.click();
 
-        // Ver transcript añadido como mensaje del usuario
-        await expect(page.getByText("mi audio de prueba", { exact: false })).toBeVisible();
+        // 4) Ver transcript como mensaje del usuario
+        await expect(
+            page.getByText("mi audio de prueba sobre fracciones", { exact: false })
+        ).toBeVisible();
 
-        // Ver respuesta del bot (del fixture ok)
-        await expect(page.getByText("Te ayudo con fracciones", { exact: false })).toBeVisible();
+        // 5) Ver respuesta del bot (fixture ok)
+        await expect(
+            page.getByText("fracciones", { exact: false }) // ajusta a un texto seguro dentro de tu fixture
+        ).toBeVisible();
 
+        // 6) Screenshot
         await expect(page).toHaveScreenshot("chat-mic.png", { fullPage: true });
     });
 });

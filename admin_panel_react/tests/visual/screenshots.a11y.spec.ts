@@ -52,9 +52,13 @@ async function mockApis(page: import("@playwright/test").Page) {
     await page.route("**/api/logs**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(logsMock) }),
     );
+    // Evita posts reales del chat si se monta /chat
+    await page.route("**/api/chat", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
+    );
 }
 
-// Login opcional por ENV (si no configuras las variables, se salta)
+// Login opcional por ENV
 async function loginIfNeeded(page: import("@playwright/test").Page, baseURL?: string) {
     const loginPath = process.env.PLAYWRIGHT_LOGIN_PATH;
     const user = process.env.PLAYWRIGHT_LOGIN_USER;
@@ -62,8 +66,6 @@ async function loginIfNeeded(page: import("@playwright/test").Page, baseURL?: st
     if (!loginPath || !user || !pass) return;
 
     await page.goto(new URL(loginPath, baseURL || page.url()).toString());
-
-    // Prioriza data-testid; luego name/role
     const userInput = page.locator('input[name="email"], input[name="username"], [data-testid="login-email"]').first();
     const passInput = page.locator('input[type="password"], [data-testid="login-password"]').first();
     const submitBtn = page
@@ -76,27 +78,20 @@ async function loginIfNeeded(page: import("@playwright/test").Page, baseURL?: st
     await page.waitForLoadState("networkidle");
 }
 
-// Rutas a evaluar: lee de env SCREENSHOTS_ROUTES o usa defaults
+// Rutas a evaluar
 function getRoutes(): string[] {
     const env = (process.env.SCREENSHOTS_ROUTES || "").trim();
     if (env) return env.split(/[,\s]+/).filter(Boolean);
     return ["/dashboard", "/stats", "/stats-v2", "/intentos-fallidos", "/diagnostico", "/chat", "/"];
 }
 
-// Chequeo Axe: falla si hay violaciones "serious" o "critical"
+// Chequeo Axe
 async function assertNoSeriousOrCritical(page: import("@playwright/test").Page, route: string) {
-    const results = await new AxeBuilder({ page })
-        // Si los gráficos dan falsos positivos, puedes excluirlos:
-        // .exclude(".recharts-wrapper")
-        .analyze();
-
-    const bad = results.violations.filter(
-        (v) => v.impact === "serious" || v.impact === "critical",
-    );
+    const results = await new AxeBuilder({ page }).analyze();
+    const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(bad, `Violaciones (serious/critical) en ${route}`).toHaveLength(0);
 }
 
-// ==== TEST ====
 test.describe("A11y (Axe) en vistas principales", () => {
     test("sin issues críticas/serias por vista", async ({ page, baseURL }) => {
         await mockApis(page);
@@ -104,12 +99,10 @@ test.describe("A11y (Axe) en vistas principales", () => {
 
         for (const route of getRoutes()) {
             await page.goto(route);
-            // Un pequeño wait por si tarda el render
             await page.waitForLoadState("domcontentloaded");
             await assertNoSeriousOrCritical(page, route);
         }
 
-        // Home (por si el widget/landing está ahí)
         await page.goto("/");
         await assertNoSeriousOrCritical(page, "/");
     });
