@@ -1,7 +1,7 @@
-// admin_panel_react/tests/visual/screenshots.spec.ts
 import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { gotoSpa, resolveRoot } from "../utils/gotoSpa.js";
 
 const SUITE_TIMEOUT = Number(process.env.SCREENSHOTS_TIMEOUT_MS || 120_000);
 test.describe.configure({ timeout: SUITE_TIMEOUT });
@@ -164,28 +164,25 @@ async function mockApis(page: Page) {
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(chatHistoryMock) })
     );
 
-    // Chat: enviar texto (mock eco)
-    await page.route("**/api/chat", (route) =>
-        route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
-    );
-    await page.route("**/api/chat/(send|message)**", async (route) => {
+    // Chat: enviar texto (mock eco) + GET vacío
+    await page.route("**/api/chat**", async (route) => {
+        const method = route.request().method();
+        if (method !== "POST") {
+            return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+        }
         let userText = "mensaje";
         try {
             const req = route.request();
             const ct = req.headers()["content-type"] || "";
-            if (ct.includes("application/json")) {
-                const body = req.postDataJSON?.();
-                userText = body?.text || body?.message || userText;
-            } else {
-                const raw = req.postData() || "";
-                userText = raw || userText;
-            }
+            // @ts-ignore
+            if (ct.includes("application/json")) { const body = req.postDataJSON?.(); userText = body?.text || body?.message || userText; }
+            else { const raw = req.postData() || ""; userText = raw || userText; }
         } catch { }
         const reply = chatReplyFactory(userText);
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply }) });
     });
 
-    // Chat: audio vacío
+    // Chat: audio vacío (OK)
     await page.route("**/api/chat/audio", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, transcript: "", bot: { messages: [] } }) })
     );
@@ -205,12 +202,13 @@ async function waitAppMounted(page: Page, ms = 10_000): Promise<boolean> {
 async function injectPlaceholder(page: Page, title = "Vista mock") {
     await page.addStyleTag({
         content: `
-    html, body { background:#f6f7fb !important; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    .mock-wrap { padding:24px; } .mock-title { font-size:24px; font-weight:700; margin-bottom:16px; }
-    .mock-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
-    .mock-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-    .mock-sub { color:#6b7280; font-size:12px; } .mock-val { font-size:22px; font-weight:700; margin-top:4px; }
-  `});
+      html, body { background:#f6f7fb !important; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      .mock-wrap { padding:24px; } .mock-title { font-size:24px; font-weight:700; margin-bottom:16px; }
+      .mock-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+      .mock-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+      .mock-sub { color:#6b7280; font-size:12px; } .mock-val { font-size:22px; font-weight:700; margin-top:4px; }
+    `
+    });
     await page.evaluate((t) => {
         const root = document.createElement("div");
         root.className = "mock-wrap";
@@ -252,8 +250,7 @@ async function shootRouteBoth(page: Page, route: string, baseName: string) {
 
     // Desktop
     await page.setViewportSize({ width: 1366, height: 900 });
-    const resp = await page.goto(route);
-    if (resp && resp.status() >= 400) console.log(`🟧 ${resp.status()} ${resp.url()}`);
+    await gotoSpa(page, route);
     const mounted = await waitAppMounted(page);
     if (!mounted) await injectPlaceholder(page, `Mock de ${route}`);
     await page.locator("svg").first().waitFor({ state: "visible", timeout: 800 }).catch(() => { });
@@ -269,7 +266,7 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
 
     // 1) Home + launcher real
     await page.setViewportSize({ width: 1366, height: 900 });
-    await page.goto("/");
+    await gotoSpa(page, "/");
     const mounted = await waitAppMounted(page, 4000);
     if (!mounted) await injectPlaceholder(page, "Home (mock)");
 

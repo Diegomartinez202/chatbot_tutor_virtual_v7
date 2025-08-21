@@ -15,8 +15,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
-    
-    "screenshots": "playwright test tests/visual/screenshots.spec.ts --project=chromium",
+
+    "screenshots": "playwright test tests/visual/screenshots.spec.ts --project=chromium && npm run zip:visuals",
     "screenshots:headed": "playwright test tests/visual/screenshots.spec.ts --project=chromium --headed",
     "screenshots:a11y": "playwright test tests/visual/screenshots.a11y.spec.ts --project=chromium",
 
@@ -30,7 +30,12 @@
     "screenshots:prod:ci": "node -e \"if(!process.env.PLAYWRIGHT_BASE_URL){console.error('❌ Missing PLAYWRIGHT_BASE_URL');process.exit(1)}\" && npm run screenshots:prod",
 
     "screenshots:harness": "SCREENSHOTS_ROUTES=\"/harness/dashboard,/harness/stats,/harness/stats-v2,/harness/logs,/harness/exportaciones,/harness/intents,/harness/intentos-fallidos,/harness/diagnostico,/harness/users,/harness/assign-roles,/harness/upload-intents,/harness/chat,/harness/chat-kiosk\" playwright test tests/visual/screenshots.spec.ts --project=chromium",
-    "screenshots:harness:chat": "SCREENSHOTS_ROUTES=\"/harness/chat-full,/harness/chat-widget,/harness/chat-scenario,/harness/chat-kiosk\" playwright test tests/visual/screenshots.spec.ts --project=chromium"
+    "screenshots:harness:chat": "SCREENSHOTS_ROUTES=\"/harness/chat-full,/harness/chat-widget,/harness/chat-scenario,/harness/chat-kiosk\" playwright test tests/visual/screenshots.spec.ts --project=chromium",
+
+    "gallery": "playwright test tests/visual/gallery.spec.ts --project=chromium && npm run zip:visuals",
+    "zip:visuals": "powershell -NoProfile -Command \"$ts = Get-Date -Format yyyyMMdd_HHmmss; New-Item -ItemType Directory -Force -Path 'tests/__artifacts__' | Out-Null; if (Test-Path 'docs/visuals') { Compress-Archive -Path 'docs/visuals/*' -DestinationPath ('tests/__artifacts__/visuals_' + $ts + '.zip') -Force }; if (Test-Path 'playwright-report') { Compress-Archive -Path 'playwright-report/*' -DestinationPath ('tests/__artifacts__/report_' + $ts + '.zip') -Force }\"",
+    "check:imports": "node scripts/check-import-extensions.mjs",
+    "fix:imports": "node scripts/check-import-extensions.mjs --fix"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",

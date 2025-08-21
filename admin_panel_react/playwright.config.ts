@@ -14,19 +14,19 @@ export default defineConfig({
     reporter: [
         ["line"],
         ["html", { outputFolder: "playwright-report", open: "never" }],
-        ["json", { outputFile: "playwright-report/results.json" }],
+        ["json", { outputFile: "playwright-report/results.json" }]
     ],
     use: {
         baseURL: BASE_URL,
         headless: true,
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
-        video: "retain-on-failure",
+        video: "retain-on-failure"
     },
     projects: [
         { name: "chromium", use: { ...devices["Desktop Chrome"] } },
         { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-        { name: "webkit", use: { ...devices["Desktop Safari"] } },
+        { name: "webkit", use: { ...devices["Desktop Safari"] } }
     ],
     webServer: isExternal
         ? undefined
@@ -35,7 +35,7 @@ export default defineConfig({
                 command: `npm run dev -- --port ${PORT}`,
                 port: PORT,
                 reuseExistingServer: true,
-                timeout: 60_000,
-            },
-        ],
+                timeout: 60_000
+            }
+        ]
 });
