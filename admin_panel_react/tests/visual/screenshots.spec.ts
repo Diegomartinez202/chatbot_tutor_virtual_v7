@@ -103,15 +103,52 @@ const chatReplyFactory = (userText: string) => ({
     ts: Date.now(),
 });
 
-// ==== Helpers ====
+// ==== Helpers de salida/estabilidad/únicos ====
 function ensureOutDir() { fs.mkdirSync(OUT_DIR, { recursive: true }); }
-async function shoot(page: Page, filename: string) {
+
+// Evita duplicar nombres: si existe o ya lo tomamos, agrega _2, _3...
+const TAKEN = new Map<string, number>();
+function uniquePath(filename: string) {
     ensureOutDir();
-    const file = path.join(OUT_DIR, filename);
+    const base = path.join(OUT_DIR, filename);
+    if (!fs.existsSync(base) && !TAKEN.has(base)) {
+        TAKEN.set(base, 1);
+        return base;
+    }
+    let i = TAKEN.get(base) || 1;
+    let next;
+    do {
+        i += 1;
+        next = base.replace(/(\.\w+)$/, `_${i}$1`);
+    } while (fs.existsSync(next));
+    TAKEN.set(base, i);
+    return next;
+}
+
+// Deja la UI quieta (sin animaciones) y fondo blanco antes de capturar
+async function stabilizeUI(page: Page) {
+    await page.addStyleTag({
+        content: `
+      * { animation: none !important; transition: none !important; caret-color: transparent !important; }
+      html, body { background: #fff !important; }
+    `
+    }).catch(() => { });
+    // espera fuentes (si el browser las reporta)
+    try { /* @ts-ignore */ await page.waitForFunction(() => (document as any).fonts?.status === "loaded", null, { timeout: 2000 }); } catch { }
+    // 2 RAFs para estabilizar layout
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+
+// Disparo con estabilización + unique name
+async function shoot(page: Page, filename: string) {
+    await page.waitForLoadState("domcontentloaded").catch(() => { });
     await page.waitForLoadState("networkidle").catch(() => { });
-    await page.waitForTimeout(200);
+    await stabilizeUI(page);
+    await page.waitForTimeout(150);
+    const file = uniquePath(filename);
     await page.screenshot({ path: file, fullPage: true });
     console.log("📸", file);
+    return file;
 }
 
 async function mockApis(page: Page) {
@@ -250,7 +287,7 @@ async function shootRouteBoth(page: Page, route: string, baseName: string) {
 
     // Desktop
     await page.setViewportSize({ width: 1366, height: 900 });
-    await gotoSpa(page, route);
+    await gotoSpa(page, route); // evita 404
     const mounted = await waitAppMounted(page);
     if (!mounted) await injectPlaceholder(page, `Mock de ${route}`);
     await page.locator("svg").first().waitFor({ state: "visible", timeout: 800 }).catch(() => { });
@@ -264,6 +301,22 @@ async function shootRouteBoth(page: Page, route: string, baseName: string) {
 async function captureWidgetOrFail(page: Page, baseURL?: string) {
     page = await ensureOpenPage(page);
 
+    let closedCaptured = false;
+    let openCaptured = false;
+
+    const captureClosed = async () => {
+        if (!closedCaptured) {
+            await shoot(page, "chat_widget_closed_desktop.png");
+            closedCaptured = true;
+        }
+    };
+    const captureOpen = async () => {
+        if (!openCaptured) {
+            await shoot(page, "chat_widget_open_desktop.png");
+            openCaptured = true;
+        }
+    };
+
     // 1) Home + launcher real
     await page.setViewportSize({ width: 1366, height: 900 });
     await gotoSpa(page, "/");
@@ -272,13 +325,13 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
 
     const launcher = page.locator('button[aria-label="Abrir chat"], button:has-text("Chat")').first();
     if (await launcher.count()) {
-        await shoot(page, "chat_widget_closed_desktop.png");
+        await captureClosed();
         await launcher.click().catch(() => { });
         const iframe = page.locator('iframe[title="Chat"], iframe[title="Chatbot"]').first();
         if (await iframe.count()) {
             await expect(iframe).toBeVisible({ timeout: 3000 }).catch(() => { });
-            await shoot(page, "chat_widget_open_desktop.png");
-            return;
+            await captureOpen();
+            if (openCaptured) return; // ✅ listo
         }
     }
 
@@ -296,18 +349,18 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
         </script>
       </body></html>
     `);
-        await shoot(page, "chat_widget_closed_desktop.png");
+        await captureClosed();
         const btn = page.locator('button[aria-label="Abrir chat"], button:has-text("Chat")').first();
         await btn.click({ timeout: 2000 }).catch(() => { });
         const iframe = page.locator('iframe[title="Chat"], iframe[title="Chatbot"]').first();
         if (await iframe.count()) {
             await expect(iframe).toBeVisible({ timeout: 3000 }).catch(() => { });
-            await shoot(page, "chat_widget_open_desktop.png");
-            return;
+            await captureOpen();
+            if (openCaptured) return; // ✅ listo
         }
     } catch { }
 
-    // 3) Mock inline
+    // 3) Mock inline (si nada de lo anterior funcionó)
     await page.setContent(`
     <!doctype html><html><body style="height:100vh;background:#f6f7fb;">
       <button id="fake-launcher" style="
@@ -328,9 +381,9 @@ async function captureWidgetOrFail(page: Page, baseURL?: string) {
       </script>
     </body></html>
   `);
-    await shoot(page, "chat_widget_closed_desktop.png");
+    await captureClosed();
     await page.locator("#fake-launcher").click();
-    await shoot(page, "chat_widget_open_desktop.png");
+    await captureOpen();
 }
 
 function getRoutes(): { path: string; name: string }[] {

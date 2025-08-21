@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import ChatUI from "@/components/chat/ChatUI";
 
 /**
- * Harness.jsx (página QA)
+ * Harness.jsx (pÃ¡gina QA)
  * Ruta recomendada: /chat
- * - Pensado para pruebas de Zajuna (cursos, administración académica, navegación, FAQs).
+ * - Pensado para pruebas de Zajuna (cursos, administraciÃ³n acadÃ©mica, navegaciÃ³n, FAQs).
  * - Permite cambiar persona/lang por query (?persona=aprendiz|instructor|administrativo&lang=es|en).
  */
 
@@ -22,14 +22,14 @@ function getParam(name, fallback = "") {
 }
 
 export default function Harness() {
-    useDocTitle("Chatbot Tutor Virtual — Harness");
+    useDocTitle("Chatbot Tutor Virtual â€” Harness");
 
     const persona = getParam("persona", "aprendiz"); // aprendiz | instructor | administrativo
     const lang = getParam("lang", "es");             // es | en
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
-            {/* Barra de control mínima */}
+            {/* Barra de control mÃ­nima */}
             <div className="border-b bg-gray-50">
                 <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-3">
                     <span className="text-sm font-semibold">Harness Zajuna</span>
@@ -72,7 +72,7 @@ export default function Harness() {
                     </label>
 
                     <div className="ml-auto text-[11px] text-gray-500">
-                        Zajuna: cursos, matrícula, notas, navegación, FAQs.
+                        Zajuna: cursos, matrÃ­cula, notas, navegaciÃ³n, FAQs.
                     </div>
                 </div>
             </div>
@@ -80,15 +80,18 @@ export default function Harness() {
             {/* Contenedor del chat */}
             <div className="flex-1">
                 <div className="max-w-5xl mx-auto h-[calc(100vh-46px)] p-3">
-                    <div className="h-full border rounded-xl overflow-hidden">
+                    <div
+                        className="h-full border rounded-xl overflow-hidden"
+                        data-testid="chat-root"        /* â† test anchor para Playwright */
+                    >
                         <ChatUI
                             embed={false}
                             placeholder={
                                 persona === "instructor"
-                                    ? "Escribe tu duda (plan de curso, rúbricas, calificaciones, etc.)…"
+                                    ? "Escribe tu duda (plan de curso, rÃºbricas, calificaciones, etc.)â€¦"
                                     : persona === "administrativo"
-                                        ? "Escribe tu consulta (matrículas, certificados, pagos, etc.)…"
-                                        : "Escribe tu pregunta (clases, tareas, navegación en Zajuna, etc.)…"
+                                        ? "Escribe tu consulta (matrÃ­culas, certificados, pagos, etc.)â€¦"
+                                        : "Escribe tu pregunta (clases, tareas, navegaciÃ³n en Zajuna, etc.)â€¦"
                             }
                         />
                     </div>

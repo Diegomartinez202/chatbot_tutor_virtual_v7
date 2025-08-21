@@ -11,7 +11,16 @@ import queryClient from "@/lib/react-query";
 
 import { Toaster } from "react-hot-toast";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+// Salvaguarda: si #root no existe, crea uno para evitar pantalla en blanco.
+// (No altera tu lógica; solo previene errores de montaje en casos límite)
+let rootEl = document.getElementById("root");
+if (!rootEl) {
+    rootEl = document.createElement("div");
+    rootEl.id = "root";
+    document.body.appendChild(rootEl);
+}
+
+ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
         <BrowserRouter>
             <QueryClientProvider client={queryClient}>

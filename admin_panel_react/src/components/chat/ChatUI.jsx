@@ -401,14 +401,14 @@ export default function ChatUI({
     };
 
     // helpers de fila bot/usuario con avatar
-    const BotRow = ({ children }) => (
-        <div className="flex items-start gap-2 justify-start">
+    const BotRow = ({ children, testid }) => (
+        <div className="flex items-start gap-2 justify-start" data-testid={testid}>
             <BotAvatar />
             {children}
         </div>
     );
-    const UserRow = ({ children }) => (
-        <div className="flex items-start gap-2 justify-end">
+    const UserRow = ({ children, testid }) => (
+        <div className="flex items-start gap-2 justify-end" data-testid={testid}>
             {children}
             <UserAvatar user={user} />
         </div>
@@ -424,11 +424,16 @@ export default function ChatUI({
     const langFromQS = qs.get("lang") || "es";
 
     return (
-        <div className={embed ? "h-full flex flex-col" : "h-full flex flex-col bg-white"}>
+        <div
+            className={embed ? "h-full flex flex-col" : "h-full flex flex-col bg-white"}
+            data-testid="chat-ui"
+        >
             {/* Mensajes */}
             <div
                 ref={listRef}
                 className={"flex-1 overflow-auto px-3 " + (embed ? "py-2" : "py-4 bg-white")}
+                data-testid="chat-messages"
+                aria-live="polite"
             >
                 <div className="max-w-3xl mx-auto space-y-3">
                     {messages.map((m) => {
@@ -443,8 +448,11 @@ export default function ChatUI({
                             const gId = m.id;
                             const isDisabled = disabledActionGroups.has(gId);
                             return (
-                                <BotRow key={m.id}>
-                                    <div className="rounded-xl border bg-white text-gray-800 max-w-[75%] overflow-hidden">
+                                <BotRow key={m.id} testid="msg-bot">
+                                    <div
+                                        className="rounded-xl border bg-white text-gray-800 max-w-[75%] overflow-hidden"
+                                        data-testid="msg-card"
+                                    >
                                         {m.card.image ? (
                                             <img
                                                 src={m.card.image}
@@ -492,8 +500,11 @@ export default function ChatUI({
                             const gId = m.id;
                             const isDisabled = disabledActionGroups.has(gId);
                             return (
-                                <BotRow key={m.id}>
-                                    <div className="rounded-2xl px-3 py-2 bg-gray-100 text-gray-800 max-w-[75%]">
+                                <BotRow key={m.id} testid="msg-bot">
+                                    <div
+                                        className="rounded-2xl px-3 py-2 bg-gray-100 text-gray-800 max-w-[75%]"
+                                        data-testid="msg-buttons"
+                                    >
                                         <div className="text-xs text-gray-500 mb-2">Elige una opción:</div>
                                         <div className="flex flex-wrap gap-2">
                                             {m.buttons.map((b) => (
@@ -523,8 +534,11 @@ export default function ChatUI({
                             const gId = m.id;
                             const isDisabled = disabledActionGroups.has(gId);
                             return (
-                                <BotRow key={m.id}>
-                                    <div className="rounded-2xl px-2 py-2 bg-gray-100 text-gray-800 max-w-[90%]">
+                                <BotRow key={m.id} testid="msg-bot">
+                                    <div
+                                        className="rounded-2xl px-2 py-2 bg-gray-100 text-gray-800 max-w-[90%]"
+                                        data-testid="msg-quick-replies"
+                                    >
                                         <div className="text-xs text-gray-500 mb-2">Sugerencias:</div>
                                         <div className="flex items-center gap-2 overflow-x-auto pb-1">
                                             {m.quickReplies.map((q) => (
@@ -552,8 +566,8 @@ export default function ChatUI({
                         // Text / Image
                         if (isUser) {
                             return (
-                                <UserRow key={m.id}>
-                                    <div className={`${commonCls} ${bubbleCls}`}>
+                                <UserRow key={m.id} testid="msg-user">
+                                    <div className={`${commonCls} ${bubbleCls}`} data-testid="msg-user-bubble">
                                         {m.text ? (
                                             <p className="whitespace-pre-wrap">{m.text}</p>
                                         ) : m.image ? (
@@ -572,8 +586,8 @@ export default function ChatUI({
                         }
                         // bot
                         return (
-                            <BotRow key={m.id}>
-                                <div className={`${commonCls} ${bubbleCls}`}>
+                            <BotRow key={m.id} testid="msg-bot">
+                                <div className={`${commonCls} ${bubbleCls}`} data-testid="msg-bot-bubble">
                                     {m.text ? (
                                         <p className="whitespace-pre-wrap">{m.text}</p>
                                     ) : m.image ? (
@@ -593,7 +607,7 @@ export default function ChatUI({
 
                     {/* Indicador escribiendo… (bot) */}
                     {sending && (
-                        <div className="flex items-start gap-2 justify-start">
+                        <div className="flex items-start gap-2 justify-start" data-testid="chat-typing">
                             <BotAvatar />
                             <div className="rounded-2xl px-3 py-2 bg-gray-100 text-gray-600 text-sm inline-flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -606,7 +620,7 @@ export default function ChatUI({
 
             {/* Error inline */}
             {error ? (
-                <div className="px-3">
+                <div className="px-3" data-testid="chat-error">
                     <div className="max-w-3xl mx-auto my-2 text-xs text-red-600 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4" aria-hidden="true" />
                         <span>{error}</span>

@@ -80,7 +80,7 @@ export default function ChatPage({
             )}
 
             {/* Body */}
-            <div className={bodyClass}>
+            <div className={bodyClass} data-testid="chat-root">{/* ← test anchor para Playwright */}
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
                         <ChatbotLoading avatarSrc={avatarSrc} label="Conectando…" />

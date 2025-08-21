@@ -1,3 +1,4 @@
+// src/components/chat/MicButton.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     Mic,
@@ -232,6 +233,7 @@ export default function MicButton({
                 title="Micrófono no soportado"
                 className="inline-flex items-center justify-center rounded-md bg-gray-200 text-gray-500 px-3 py-2 cursor-not-allowed"
                 disabled
+                data-testid="mic-unsupported"
             >
                 <Mic className="w-4 h-4" />
             </button>
@@ -252,9 +254,12 @@ export default function MicButton({
                     onClick={stopRecording}
                     className="inline-flex items-center justify-center rounded-md bg-red-600 text-white px-3 py-2 hover:bg-red-700"
                     aria-label="Detener grabación"
+                    data-testid="mic-stop"
                 >
                     <Square className="w-4 h-4" />
-                    <span className="ml-2 text-xs">{formatSeconds(elapsed)}</span>
+                    <span className="ml-2 text-xs" data-testid="mic-timer">
+                        {formatSeconds(elapsed)}
+                    </span>
                 </button>
             ) : blob ? (
                 // Preview
@@ -271,6 +276,7 @@ export default function MicButton({
                         onClick={togglePlay}
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
                         aria-label={playing ? "Pausar" : "Reproducir"}
+                        data-testid={playing ? "mic-pause" : "mic-play"}
                     >
                         {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
@@ -280,6 +286,7 @@ export default function MicButton({
                         disabled={uploading || disabled}
                         className="inline-flex items-center justify-center rounded-md bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700 disabled:opacity-50"
                         aria-label="Enviar audio"
+                        data-testid="mic-upload"
                     >
                         {uploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -297,6 +304,7 @@ export default function MicButton({
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
                         aria-label="Regrabar"
                         title="Regrabar"
+                        data-testid="mic-rerecord"
                     >
                         <Repeat2 className="w-4 h-4" />
                     </button>
@@ -307,6 +315,7 @@ export default function MicButton({
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
                         aria-label="Cancelar"
                         title="Cancelar"
+                        data-testid="mic-cancel"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -320,14 +329,20 @@ export default function MicButton({
                     className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
                     aria-label="Grabar audio"
                     title="Grabar audio"
-                    data-testid="chat-mic"
+                    data-testid="mic-button"   /* compat con nuevos tests */
                 >
+                    {/* compat con specs antiguos que buscaban "chat-mic" */}
+                    <span className="sr-only" data-testid="chat-mic" />
                     <Mic className="w-4 h-4" />
                 </button>
             )}
 
             {/* Error inline */}
-            {err ? <span className="text-xs text-red-600">{err}</span> : null}
+            {err ? (
+                <span className="text-xs text-red-600" data-testid="mic-error">
+                    {err}
+                </span>
+            ) : null}
         </div>
     );
 }
