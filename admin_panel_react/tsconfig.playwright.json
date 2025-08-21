@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "NodeNext",
     "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
     "lib": [ "ES2020", "DOM", "DOM.Iterable" ],
     "types": [ "@playwright/test", "node" ],
@@ -15,7 +15,14 @@
     "incremental": true
   },
   "include": [
-    "tests",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "tests/**/*.mts",
+    "tests/**/*.cts",
     "playwright.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }
