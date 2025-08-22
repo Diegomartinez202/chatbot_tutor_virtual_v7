@@ -1,4 +1,3 @@
 {
-  "extends": "../tsconfig.playwright.json",
-  "include": [ "**/*" ]
+  "extends": "../tsconfig.playwright.json"
 }

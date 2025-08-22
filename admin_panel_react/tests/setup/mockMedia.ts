@@ -1,41 +1,67 @@
-export async function injectMediaMocks(page) {
+// tests/setup/mockMedia.ts
+/**
+ * Mocks de MediaDevices.getUserMedia y MediaRecorder para correr en browser context.
+ * - NO reasigna navigator.mediaDevices (es read-only), usa defineProperty.
+ * - getUserMedia devuelve un MediaStream real (vacío) → evita errores TS/lib.dom.
+ * - MediaRecorder mock emite unos chunks y permite stop().
+ */
+import type { Page } from "@playwright/test";
+
+export async function installMediaMocksInPage(page: Page) {
     await page.addInitScript(() => {
-        navigator.mediaDevices = navigator.mediaDevices || ({} as any);
-        navigator.mediaDevices.getUserMedia = async () => ({
-            getTracks: () => [{ stop: () => { } }],
+        // Definir mediaDevices si no existe (sin reasignar la propiedad)
+        if (!("mediaDevices" in navigator)) {
+            Object.defineProperty(navigator, "mediaDevices", {
+                value: {},
+                configurable: true
+            });
+        }
+
+        // getUserMedia que retorna un MediaStream real (evita errores de tipos)
+        Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+            configurable: true,
+            value: async () => new MediaStream()
         });
 
+        // Mock de MediaRecorder
         class MockMediaRecorder {
-            public mimeType: string;
             public ondataavailable: ((e: any) => void) | null = null;
             public onstop: (() => void) | null = null;
-            private interval: number | null = null;
-            private started = false;
+            public state: "inactive" | "recording" | "paused" = "inactive";
+            private _interval: number | null = null;
+            private _ticks = 0;
 
-            constructor(_stream: any, opts: any = {}) {
-                this.mimeType = opts.mimeType || "audio/webm";
-            }
-            static isTypeSupported(_type: string) {
+            constructor(_stream: MediaStream, _opts: any = {}) { }
+
+            static isTypeSupported() {
                 return true;
             }
+
             start() {
-                this.started = true;
-                let ticks = 0;
-                this.interval = window.setInterval(() => {
-                    ticks++;
-                    this.ondataavailable?.({ data: new Blob([`chunk-${ticks}`], { type: "audio/webm" }) });
-                    if (ticks >= 3) {
-                        window.clearInterval(this.interval!);
-                        this.interval = null;
+                this.state = "recording";
+                this._ticks = 0;
+                this._interval = window.setInterval(() => {
+                    this._ticks++;
+                    this.ondataavailable?.({
+                        data: new Blob([`chunk-${this._ticks}`], { type: "audio/webm" })
+                    });
+                    if (this._ticks >= 3 && this._interval) {
+                        window.clearInterval(this._interval);
+                        this._interval = null;
                     }
                 }, 100);
             }
+
             stop() {
-                if (!this.started) return;
-                this.started = false;
+                if (this._interval) {
+                    window.clearInterval(this._interval);
+                    this._interval = null;
+                }
+                this.state = "inactive";
                 this.onstop?.();
             }
         }
+
         (window as any).MediaRecorder = MockMediaRecorder;
     });
 }

@@ -1,120 +1,74 @@
+// tests/e2e/micbutton.spec.ts
 import { test, expect } from "@playwright/test";
+import { installMediaMocksInPage } from "../setup/mockMedia.js"; // ← extensión .js
 
-// Mock sencillo de MediaRecorder + getUserMedia inyectado antes de cargar la app
-async function injectMediaMocks(page) {
-    await page.addInitScript(() => {
-        // Mock getUserMedia
-        navigator.mediaDevices = navigator.mediaDevices || ({} as any);
-        navigator.mediaDevices.getUserMedia = async (_opts?: any) => {
-            // devolvemos un objeto con tracks deteníbles (lo usa el stop())
-            return {
-                getTracks: () => [
-                    {
-                        stop: () => { },
-                        kind: "audio",
-                        enabled: true,
-                        muted: false,
-                        label: "MockAudioTrack",
-                    },
-                ],
-            } as any;
-        };
+const CHAT_PATH = process.env.CHAT_PATH || "/chat";
 
-        // Mock MediaRecorder
-        class MockMediaRecorder {
-            public mimeType: string;
-            public ondataavailable: ((e: any) => void) | null = null;
-            public onstop: (() => void) | null = null;
-            private interval: number | null = null;
-            private started = false;
-
-            constructor(_stream: any, opts: any = {}) {
-                this.mimeType = opts.mimeType || "audio/webm";
-            }
-            static isTypeSupported(_type: string) {
-                return true;
-            }
-            start(_timeslice?: number) {
-                this.started = true;
-                // Emitimos algunos chunks falsos y dejamos que el test haga stop
-                let ticks = 0;
-                this.interval = window.setInterval(() => {
-                    ticks++;
-                    if (this.ondataavailable) {
-                        const blob = new Blob([`chunk-${ticks}`], { type: "audio/webm" });
-                        this.ondataavailable({ data: blob });
-                    }
-                    if (ticks >= 3) {
-                        // suficiente para previsualizar
-                        window.clearInterval(this.interval!);
-                        this.interval = null;
-                    }
-                }, 100);
-            }
-            stop() {
-                if (!this.started) return;
-                this.started = false;
-                if (this.onstop) this.onstop();
-            }
-        }
-        (window as any).MediaRecorder = MockMediaRecorder;
-    });
-}
+// Respuesta mínima del bot (evitamos importar JSON para no chocar con NodeNext)
+const ok = [
+    { text: "¡Claro! Empecemos con un ejemplo de fracciones." },
+    { buttons: [{ title: "1/2 + 1/3", payload: "/resolver_12_13" }] },
+];
 
 test.describe("MicButton - audio → /api/chat/audio", () => {
-    test("graba (mock), previsualiza y envía (intercept POST) mostrando transcript + respuesta bot", async ({
-        page,
-    }) => {
-        await injectMediaMocks(page);
+    test.beforeEach(async ({ page }) => {
+        // Inyecta mocks de getUserMedia + MediaRecorder en el contexto del navegador
+        await installMediaMocksInPage(page);
 
-        // Interceptar POST /api/chat/audio
+        // Intercepta POST de texto para aislar el flujo de audio
+        await page.route("**/api/chat", (route) => {
+            if (route.request().method() === "POST") {
+                return route.fulfill({
+                    status: 200,
+                    contentType: "application/json",
+                    body: JSON.stringify([{ text: "Texto interceptado (mock)" }]),
+                });
+            }
+            route.continue();
+        });
+    });
+
+    test("grabar → parar → subir (200 OK): muestra transcript + respuesta del bot", async ({ page }) => {
+        // Mock de /api/chat/audio: 200 OK con transcript y mensajes del bot
         await page.route("**/api/chat/audio", async (route) => {
-            const json = {
-                ok: true,
-                transcript: "hola, necesito ayuda con fracciones (desde test)",
-                bot: {
-                    messages: [
-                        { text: "¡Claro! Empecemos con un ejemplo de fracciones." },
-                        { buttons: [{ title: "1/2 + 1/3", payload: "/resolver_12_13" }] },
-                    ],
-                },
-            };
             return route.fulfill({
                 status: 200,
                 contentType: "application/json",
-                body: JSON.stringify(json),
+                body: JSON.stringify({
+                    ok: true,
+                    transcript: "hola, necesito ayuda con fracciones (desde test)",
+                    bot: { messages: ok },
+                }),
             });
         });
 
-        // Abre la pantalla del chat (tu app expone /chat)
-        await page.goto("/chat");
+        // Abre el chat (Harness en /chat no exige login)
+        await page.goto(`${CHAT_PATH}?persona=aprendiz&lang=es-CO`);
 
-        // Debe existir el botón de mic
-        const micBtn = page.getByTestId("chat-mic");
-        await expect(micBtn).toBeVisible();
+        // 1) Grabar
+        await page.getByTestId("mic-button").click();
 
-        // Start recording
-        await micBtn.click();
+        // 2) Detener
+        await page.getByTestId("mic-stop").click();
 
-        // Detener la grabación
-        await page.getByRole("button", { name: "Detener grabación" }).click();
+        // 3) Enviar
+        await page.getByTestId("mic-upload").click();
 
-        // Enviar el audio
-        await page.getByRole("button", { name: "Enviar audio" }).click();
-
-        // Verifica que cae el transcript como mensaje del usuario
+        // 4) Transcript del usuario visible en el chat
         await expect(
             page.getByText("hola, necesito ayuda con fracciones (desde test)")
         ).toBeVisible();
 
-        // Verifica la respuesta del bot renderizada
+        // 5) Respuesta del bot visible
         await expect(
             page.getByText("¡Claro! Empecemos con un ejemplo de fracciones.")
         ).toBeVisible();
 
-        // Screenshot rápido de la zona del composer
+        // 6) Captura rápida del composer tras el flujo de audio
         const composer = page.getByTestId("chat-composer");
         await expect(composer).toBeVisible();
-        await composer.screenshot({ path: "playwright-report/composer-after-audio.png" });
+        await composer.screenshot({
+            path: "playwright-report/composer-after-audio.png",
+        });
     });
 });

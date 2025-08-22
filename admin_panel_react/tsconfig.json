@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "jsx": "react-jsx",
 
@@ -30,8 +30,5 @@
     "dist",
     "tests",
     "playwright.config.ts"
-  ],
-  "references": [
-    { "path": "./tsconfig.playwright.json" }
   ]
 }

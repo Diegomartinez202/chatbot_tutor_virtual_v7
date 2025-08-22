@@ -6,7 +6,6 @@ export const API_BASE_URL = (
     import.meta.env.VITE_API_URL ||
     "http://localhost:8000/api"
 ).replace(/\/$/, ""); // sin slash final (evita // en requests)
-
 export const STORAGE_KEYS = {
     accessToken: "accessToken",
     refreshToken: "refreshToken", // por si luego lo usas en localStorage
@@ -72,3 +71,4 @@ export const INTENT_STYLES = {
     fallback: "bg-zinc-100 text-zinc-800",
     soporte_contacto: "bg-teal-100 text-teal-800",
     default: "bg-gray-100 text-gray-800",
+};
