@@ -1,5 +1,5 @@
 import React from "react";
-
+export { default } from "../Ui/Input.jsx";
 const Input = ({
     label,
     value,

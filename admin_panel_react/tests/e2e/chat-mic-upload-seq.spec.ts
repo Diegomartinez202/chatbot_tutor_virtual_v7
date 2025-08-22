@@ -1,8 +1,13 @@
+// tests/e2e/chat-mic-upload-seq.spec.ts
 import { test, expect } from "@playwright/test";
+// Con NodeNext/ESM hay que importar con extensión .js aunque el archivo sea .ts
+import { installMediaMocksInPage } from "../setup/mockMedia.js";
 
-const CHAT_PATH = process.env.CHAT_PATH || "/chat";
+const CHAT_PATH = process.env.CHAT_PATH || "/chat-old?embed=1";
 
-// Pequeña respuesta de bot inline (evitamos import JSON + assert)
+//const CHAT_PATH = process.env.CHAT_PATH || "/chat?persona=aprendiz&lang=es-CO"; // Se usa para tests de chat en modo embed
+// Si no tienes CHAT_PATH definido, puedes usar el valor por defecto "/chat-old?embed=1"
+// Respuesta mínima del bot (evitamos importar JSON)
 const ok = [
     { text: "¡Claro! Empecemos con un ejemplo de fracciones." },
     { buttons: [{ title: "1/2 + 1/3", payload: "/resolver_12_13" }] }
@@ -10,53 +15,31 @@ const ok = [
 
 test.describe("Chat – Mic (grabar → parar → subir) con mock secuencial 200→413", () => {
     test.beforeEach(async ({ page }) => {
-        // Mock de getUserMedia + MediaRecorder
-        await page.addInitScript(() => {
-            // @ts-ignore
-            navigator.mediaDevices = {
-                getUserMedia: async () => ({
-                    getTracks: () => [{ stop() { } }]
-                })
-            };
+        // 1) Mocks de audio correctos (sin reasignar mediaDevices)
+        await installMediaMocksInPage(page);
 
-            // @ts-ignore
-            window.MediaRecorder = class {
-                ondataavailable = null;
-                onstop = null;
-                state = "inactive";
-                constructor(_stream, _opts) { }
-                start() {
-                    this.state = "recording";
-                    setTimeout(() => {
-                        const blob = new Blob(["dummy audio"], { type: "audio/webm" });
-                        this.ondataavailable && this.ondataavailable({ data: blob });
-                    }, 40);
-                }
-                stop() {
-                    this.state = "inactive";
-                    this.onstop && this.onstop();
-                }
-                static isTypeSupported() {
-                    return true;
-                }
-            };
-        });
-
-        // Evitar hits reales de texto al backend
-        await page.route("**/api/chat", (route) => {
-            if (route.request().method() === "POST") {
+        // 2) Intercepta toda la API del chat:
+        await page.route("**/api/chat**", (route) => {
+            const req = route.request();
+            // POST de texto → eco controlado
+            if (req.method() === "POST") {
                 return route.fulfill({
                     status: 200,
                     contentType: "application/json",
                     body: JSON.stringify([{ text: "Texto interceptado (mock)" }])
                 });
             }
-            route.continue();
+            // GET/HEAD/OPTIONS (incluye /api/chat/health) → 200 vacío
+            return route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: "{}"
+            });
         });
     });
 
     test("1ª subida OK (200) y 2ª subida 413 muestra error", async ({ page }) => {
-        // Mock secuencial para /api/chat/audio
+        // 3) Mock secuencial solo para /api/chat/audio
         let calls = 0;
         await page.route("**/api/chat/audio", async (route) => {
             calls++;
@@ -71,6 +54,7 @@ test.describe("Chat – Mic (grabar → parar → subir) con mock secuencial 200
                     })
                 });
             }
+            // Segunda subida → simulamos 413
             return route.fulfill({
                 status: 413,
                 contentType: "application/json",
@@ -78,13 +62,22 @@ test.describe("Chat – Mic (grabar → parar → subir) con mock secuencial 200
             });
         });
 
-        // Abre el chat (Harness en /chat)
-        await page.goto(`${CHAT_PATH}?persona=aprendiz&lang=es-CO`);
+        // 4) Abre ChatPage en modo embed (o tu Harness si prefieres /chat)
+        await page.goto(CHAT_PATH);
+
+        // 5) Espera robusta: si aparece "Reintentar", haz click y sigue esperando
+        const retryButton = page.getByRole("button", { name: /reintentar/i });
+        if (await retryButton.isVisible().catch(() => false)) {
+            await retryButton.click();
+        }
+
+        // 6) Ahora espera al composer
+        await page.getByTestId("chat-composer").waitFor({ state: "visible" });
 
         // ——— Ciclo 1: grabar → parar → subir (OK) ———
-        await page.getByRole("button", { name: "Grabar audio" }).click();
-        await page.getByRole("button", { name: "Detener grabación" }).click();
-        await page.getByRole("button", { name: "Enviar audio" }).click();
+        await page.getByTestId("mic-button").click(); // grabar
+        await page.getByTestId("mic-stop").click();   // detener
+        await page.getByTestId("mic-upload").click(); // subir
 
         // Ver transcript del usuario
         await expect(
@@ -95,12 +88,13 @@ test.describe("Chat – Mic (grabar → parar → subir) con mock secuencial 200
         await expect(page.getByText(/fracciones/i)).toBeVisible();
 
         // ——— Ciclo 2: nuevo audio → 413 ———
-        await page.getByRole("button", { name: "Grabar audio" }).click();
-        await page.getByRole("button", { name: "Detener grabación" }).click();
-        await page.getByRole("button", { name: "Enviar audio" }).click();
+        await page.getByTestId("mic-button").click();
+        await page.getByTestId("mic-stop").click();
+        await page.getByTestId("mic-upload").click();
 
-        // Debe mostrarse el error (usa aria-labels o data-testid si ya lo agregaste)
-        await expect(page.getByText(/Archivo demasiado grande|413|Error/i)).toBeVisible();
+        // Error inline del MicButton
+        await expect(page.getByTestId("mic-error")).toBeVisible();
+        await expect(page.getByTestId("mic-error")).toContainText(/demasiado grande|413|error/i);
 
         // Screenshot del estado final del chat
         await expect(page).toHaveScreenshot("chat-mic-upload-seq.png", { fullPage: true });

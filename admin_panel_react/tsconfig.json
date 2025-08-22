@@ -18,7 +18,13 @@
     "composite": true,
     "incremental": true,
 
-    "types": [ "vite/client" ]
+    "types": [ "vite/client" ],
+
+    /* 👇 Para que TS resuelva @/… igual que Vite */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [ "src/*" ]
+    }
   },
   "include": [
     "src",
