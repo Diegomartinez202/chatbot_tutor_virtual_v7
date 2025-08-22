@@ -2,13 +2,50 @@
 import { API_BASE_URL } from "@/lib/constants";
 
 /**
- * Une la base de la API con un path sin duplicar / ni romper si el path viene vacío.
+ * Obtiene el objeto de variables de entorno según el runtime.
+ * - En frontend (Vite): import.meta.env
+ * - En Node / tests: process.env
+ */
+export function getEnv() {
+    try {
+        // En Vite existe import.meta.env
+        return typeof import.meta !== "undefined" && import.meta?.env ? import.meta.env : {};
+    } catch {
+        // Fallback para Node/tests
+        return typeof process !== "undefined" ? process.env ?? {} : {};
+    }
+}
+
+/**
+ * Devuelve la base normalizada (sin slash final).
+ * Prioridad:
+ *  1) API_BASE_URL desde constants (tu lógica de negocio original)
+ *  2) VITE_API_BASE_URL | VITE_API_URL | VITE_CHAT_REST_URL (entornos)
+ *  3) "/api" (fallback seguro)
+ */
+export function apiBase() {
+    const env = getEnv();
+
+    // Respeta tu constante primero (no rompemos tu lógica)
+    const fromConstants = (API_BASE_URL || "").trim();
+    const base =
+        fromConstants ||
+        env.VITE_API_BASE_URL ||
+        env.VITE_API_URL ||
+        env.VITE_CHAT_REST_URL ||
+        "/api";
+
+    return String(base).replace(/\/+$/, ""); // sin slash final
+}
+
+/**
+ * Une base + path, quitando/añadiendo slashes donde toque.
  * - apiUrl() -> "https://api.tuapp.com"
  * - apiUrl("/auth/refresh") -> "https://api.tuapp.com/auth/refresh"
  * - apiUrl("auth/refresh")  -> "https://api.tuapp.com/auth/refresh"
  */
 export function apiUrl(path = "") {
-    const base = String(API_BASE_URL || "").replace(/\/+$/, "");
+    const base = apiBase();
     const p = String(path || "").replace(/^\/+/, "");
     return p ? `${base}/${p}` : base;
 }
@@ -20,10 +57,11 @@ export function apiUrl(path = "") {
  */
 export function buildUrl(path = "", params = {}) {
     const url = apiUrl(path);
-    const qs = new URLSearchParams(
-        Object.fromEntries(
-            Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")
-        )
-    ).toString();
-    return qs ? `${url}?${qs}` : url;
+    const entries = Object.entries(params).filter(
+        ([, v]) => v !== undefined && v !== null && v !== ""
+    );
+    if (entries.length === 0) return url;
+
+    const qs = new URLSearchParams(Object.fromEntries(entries)).toString();
+    return `${url}?${qs}`;
 }

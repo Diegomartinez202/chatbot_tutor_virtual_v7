@@ -1,4 +1,5 @@
 import React from "react";
+// src/components/ui/Input.jsx
 export { default } from "../Ui/Input.jsx";
 const Input = ({
     label,

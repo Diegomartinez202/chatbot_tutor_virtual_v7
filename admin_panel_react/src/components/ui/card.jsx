@@ -52,7 +52,10 @@ export function CardTitle({
     ...props
 }) {
     const content = (
-        <h3 className={classNames("text-base font-semibold leading-none flex items-center gap-2", className)} {...props}>
+        <h3
+            className={classNames("text-base font-semibold leading-none flex items-center gap-2", className)}
+            {...props}
+        >
             {LeadingIcon ? <LeadingIcon className="w-4 h-4" /> : null}
             <span>{children}</span>
             {TrailingIcon ? <TrailingIcon className="w-4 h-4" /> : null}

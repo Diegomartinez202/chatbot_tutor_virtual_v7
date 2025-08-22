@@ -1,16 +1,12 @@
-// vite.config.ts
+// admin_panel_react/vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { resolve } from "node:path";
 
 export default defineConfig({
     plugins: [react()],
 
-    // Útil para despliegues en subdirectorios (GitHub Pages, rutas relativas, etc.)
+    // útil para despliegues en subdirectorios (GitHub Pages, etc.)
     base: "./",
 
     // Alias @ → src
@@ -23,7 +19,7 @@ export default defineConfig({
     server: {
         host: "localhost",
         port: Number(process.env.PORT) || 5173,
-        // Si el puerto está ocupado, permite que Vite elija otro (como 5174/5175/5176)
+        // si el puerto está ocupado, Vite elige otro (5174/5175/…)
         strictPort: false,
         open: true,
         // Si quieres ocultar el overlay de errores:
@@ -36,7 +32,7 @@ export default defineConfig({
         strictPort: false,
     },
 
-    // Evita "process is not defined" cuando algún código lee process.env
+    // Evita "process is not defined" si algún código lee process.env
     define: {
         "process.env": {},
     },

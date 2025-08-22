@@ -1,9 +1,14 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import axiosClient from "@/services/axiosClient";
 import { STORAGE_KEYS } from "@/lib/constants";
-// Opcional: si no existe este helper, no pasa nada.
-import { registerLogout } from "@/services/authHelper";
+import { registerLogout } from "@/services/authHelper"; // stub más abajo
 
 const AuthContext = createContext({
     token: null,
@@ -22,9 +27,7 @@ function setAxiosAuthHeader(token) {
         } else {
             delete axiosClient.defaults.headers.common.Authorization;
         }
-    } catch {
-        // ignora si axiosClient no está listo
-    }
+    } catch { }
 }
 
 export const AuthProvider = ({ children }) => {
@@ -41,12 +44,10 @@ export const AuthProvider = ({ children }) => {
     const role = user?.rol || user?.role || "usuario";
     const isAuthenticated = Boolean(token && user);
 
-    // Mantén el header Authorization en sync con el token
     useEffect(() => {
         setAxiosAuthHeader(token);
     }, [token]);
 
-    // Sincronización multi-pestaña (login/logout)
     useEffect(() => {
         const onStorage = (e) => {
             if (e.key === STORAGE_KEYS.accessToken) {
@@ -61,7 +62,6 @@ export const AuthProvider = ({ children }) => {
         () =>
             async () => {
                 try {
-                    // Intenta cerrar en backend, pero no bloquea el flujo si falla.
                     await axiosClient.post("/auth/logout").catch(() => { });
                 } finally {
                     try {
@@ -75,19 +75,14 @@ export const AuthProvider = ({ children }) => {
         []
     );
 
-    // Permite que otros módulos registren/llamen a logout de forma centralizada
     useEffect(() => {
         try {
             registerLogout?.(logout);
-        } catch {
-            // helper opcional
-        }
+        } catch { }
     }, [logout]);
 
-    // Carga el perfil cuando hay token
     useEffect(() => {
         let alive = true;
-
         (async () => {
             if (!token) {
                 setLoading(false);
@@ -106,13 +101,11 @@ export const AuthProvider = ({ children }) => {
                 if (alive) setLoading(false);
             }
         })();
-
         return () => {
             alive = false;
         };
     }, [token, logout]);
 
-    // Realiza login, guarda el token y refresca el perfil
     const login = useMemo(
         () =>
             async (newToken) => {
