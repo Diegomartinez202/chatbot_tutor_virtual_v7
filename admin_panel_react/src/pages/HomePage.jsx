@@ -1,7 +1,6 @@
 // src/pages/HomePage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui"; // si tienes barrel de ui, si no usa un <button> simple
+import { useNavigate, Link } from "react-router-dom";
 
 export default function HomePage() {
     const navigate = useNavigate();
@@ -35,9 +34,7 @@ export default function HomePage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">
                     ¡Bienvenido al <span className="text-indigo-600">Chatbot Tutor Virtual</span>!
                 </h1>
-                <p className="text-gray-600 mb-8">
-                    Elige cómo deseas entrar:
-                </p>
+                <p className="text-gray-600 mb-8">Elige cómo deseas entrar:</p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     {/* Entrar sin login */}
@@ -59,7 +56,14 @@ export default function HomePage() {
                     </button>
                 </div>
 
-                <p className="text-xs text-gray-400 mt-6">
+                {/* Link pequeño adicional */}
+                <div className="mt-6 text-xs text-gray-500">
+                    <Link to="/dashboard" className="hover:underline">
+                        Ir al panel (requiere login)
+                    </Link>
+                </div>
+
+                <p className="text-[11px] text-gray-400 mt-3">
                     Consejo: si tienes SSO Zajuna, define <code>VITE_ZAJUNA_SSO_URL</code> en tu <code>.env</code>.
                 </p>
             </div>

@@ -1,6 +1,6 @@
 // src/components/Header.jsx
 import React from "react";
-import { NavLink, useNavigate, Link } from "react-router-dom";
+import { NavLink, useNavigate, Link, useLocation } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -15,12 +15,58 @@ import {
     Users as UsersIcon,
     Cog,
     Bell,
-    Home as HomeIcon, // 👈 añadido
+    Home as HomeIcon,
+    ChevronRight,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge"; // ✅ Unificado (modo chat)
+
+/* ──────────────────────────────────────────────────────────
+   Helpers breadcrumb: convierte "/a/b/c" en items clicables
+   sin romper rutas dinámicas. Puedes ajustar el mapa LABELS.
+   ────────────────────────────────────────────────────────── */
+function humanize(seg) {
+    const map = {
+        "": "Inicio",
+        dashboard: "Dashboard",
+        logs: "Logs",
+        intents: "Intents",
+        users: "Usuarios",
+        chat: "Chat",
+        "intentos-fallidos": "Intentos fallidos",
+        "stadisticas-logs": "Estadísticas",
+        admin: "Admin",
+        diagnostico: "Pruebas",
+          logs: "Exportar logs",
+            exportaciones: "Exportaciones",
+                "intents-page": "Intents (página)",
+                    buscar: "Buscar",
+                        list: "Listado",
+                            new: "Nuevo",
+                                edit: "Editar",
+                                    unauthorized: "Acceso denegado",
+                                        login: "Login",
+  };
+return map[seg] || seg.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function useBreadcrumbs() {
+    const { pathname } = useLocation();
+    const segments = pathname.split("/").filter(Boolean);
+    const crumbs = [];
+    let acc = "";
+    for (let i = 0; i < segments.length; i++) {
+        acc += `/${segments[i]}`;
+        crumbs.push({
+            to: acc,
+            label: humanize(segments[i]),
+            last: i === segments.length - 1,
+        });
+    }
+    return crumbs;
+}
 
 const Header = () => {
     const { user, logout: doLogout } = useAuth();
@@ -45,6 +91,7 @@ const Header = () => {
         }
     };
 
+    // 🔁 Menú lateral
     const navLinks = [
         // 🏠 Inicio (nuevo)
         { to: "/", label: "Inicio", icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: "Página de bienvenida" },
@@ -53,28 +100,74 @@ const Header = () => {
         { to: "/logs", label: "Logs", icon: FileText, roles: ["admin", "soporte"], tip: "Historial de conversaciones" },
         { to: "/intents", label: "Intents", icon: MessageSquareText, roles: ["admin"], tip: "Gestión de intents" },
 
-        // Nota: si tu ruta real es /stadisticas-logs, puedes ajustar aquí.
-        { to: "/stats", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
+        // ✅ Ajustado a tu ruta real
+        { to: "/stadisticas-logs", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
 
-        // Nota: si tu ruta real es /admin/diagnostico, puedes ajustar aquí.
-        { to: "/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
+        // ✅ Ajustado a tu ruta real
+        { to: "/admin/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
 
         { to: "/users", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
 
         // 📌 Compatibilidad /chat: deja el alias y además intenta abrir el widget al click
         { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
 
-        // Nuevo pedido histórico
+        // Histórico
         { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
     ];
 
     const canSee = (l) => !l.roles || l.roles.includes(role);
 
+    // Breadcrumbs top bar
+    const crumbs = useBreadcrumbs();
+
     return (
         <>
+            {/* 🔷 Top header bar (nuevo): botón Home + breadcrumbs + avatar mini */}
+            <header className="sticky top-0 z-40 h-12 bg-white/80 backdrop-blur border-b flex items-center justify-between px-3">
+                <div className="flex items-center gap-2">
+                    <Link
+                        to="/"
+                        className="inline-flex items-center gap-2 px-2 py-1 rounded hover:bg-black/5"
+                        aria-label="Ir a inicio"
+                        title="Ir a inicio"
+                    >
+                        <HomeIcon size={18} />
+                        <span className="text-sm font-medium hidden sm:inline">Inicio</span>
+                    </Link>
+
+                    {/* Separador visual */}
+                    <div className="mx-1 h-5 w-px bg-black/10" />
+
+                    {/* Breadcrumbs */}
+                    <nav aria-label="Breadcrumb" className="flex items-center text-sm text-gray-600">
+                        <Link to="/" className="hover:underline">Inicio</Link>
+                        {crumbs.map((c, idx) => (
+                            <React.Fragment key={c.to}>
+                                <ChevronRight size={14} className="mx-1 text-gray-400" />
+                                {c.last ? (
+                                    <span className="font-semibold text-gray-900 truncate max-w-[30vw] sm:max-w-none">{c.label}</span>
+                                ) : (
+                                    <Link to={c.to} className="hover:underline">{c.label}</Link>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </nav>
+                </div>
+
+                <Link to="/" className="shrink-0" title="Ir al inicio">
+                    <img
+                        src="/bot-avatar.png"
+                        alt="Home"
+                        className="w-8 h-8 rounded-md object-contain"
+                        loading="eager"
+                    />
+                </Link>
+            </header>
+
+            {/* 🔳 Sidebar existente (se conserva intacto y funcional) */}
             <aside className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between">
                 <div className="p-6">
-                    {/* 🔷 Brand / Home: avatar mini + título clicable al inicio */}
+                    {/* Brand / Home: avatar mini + título clicable al inicio */}
                     <div className="flex items-center gap-3 mb-6">
                         <Link to="/" className="shrink-0">
                             <img
@@ -173,7 +266,7 @@ const Header = () => {
                 </div>
             </aside>
 
-            {/* Panel de Configuración */}
+            {/* Panel de Configuración (se mantiene) */}
             <SettingsPanel
                 open={openSettings}
                 onClose={() => setOpenSettings(false)}

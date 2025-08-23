@@ -1,14 +1,18 @@
 // src/routes/AppRoutes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 
+// 🌐 Públicas
+import HomePage from "@/pages/HomePage";
+import LoginPage from "@/pages/LoginPage";
+import Unauthorized from "@/pages/Unauthorized";
+import AuthCallback from "@/pages/AuthCallback";
+
+// Páginas
 import Dashboard from "@/pages/Dashboard";
 import LogsPage from "@/pages/LogsPage";
 import IntentsPage from "@/pages/IntentsPage";
 import UserManagement from "@/pages/UserManagement";
 import TestPage from "@/pages/TestPage";
-import LoginPage from "@/pages/LoginPage";
-import Unauthorized from "@/pages/Unauthorized";
-
 import CrearIntentPage from "@/pages/CrearIntentPage";
 import BuscarIntentPage from "@/pages/BuscarIntentPage";
 import StadisticasLogsPage from "@/pages/StadisticasLogsPage";
@@ -16,30 +20,28 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ExportarLogsPage from "@/pages/ExportarLogsPage";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import TrainBotPage from "@/pages/TrainBotPage";
-
-// Nota: en tu código original DiagnosticoPage apuntaba a TestPage.
-// Conservo esa compat aquí para no romper navegación existente.
-import DiagnosticoPage from "@/pages/TestPage";
-
 import ChatPage from "@/pages/ChatPage"; // página contenedora de ChatUI
 
-// 🆕 Intents: crear / editar / detalle
+// 🆕 Intents CRUD
 import IntentEdit from "@/pages/IntentEdit";
 import IntentDetail from "@/pages/IntentDetail";
+import ListIntents from "@/pages/ListIntents"; // Consolidado (única fuente)
 
 // Autorización
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
-// Consolidado: solo una fuente de ListIntents
-import ListIntents from "@/pages/ListIntents";
+// Nota: DiagnosticoPage apuntaba a TestPage; conservo compat.
+import DiagnosticoPage from "@/pages/TestPage";
 
 const AppRoutes = () => {
     return (
         <Routes>
             {/* 🌐 Públicas */}
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* ✅ Chat públicas */}
             <Route path="/chat" element={<ChatPage />} />
@@ -239,8 +241,8 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Catch-all → Home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
 };
