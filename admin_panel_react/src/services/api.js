@@ -44,20 +44,24 @@ export const fetchIntents = () =>
 // Alias retro
 export const getIntents = fetchIntents;
 
-// Filtro simple por querystring
+// Filtro por querystring
 export const fetchIntentsByFilters = ({ intent, example, response }) => {
     const query = new URLSearchParams();
     if (intent) query.append("intent", intent);
     if (example) query.append("example", example);
     if (response) query.append("response", response);
-    return axiosClient.get(`/admin/intents?${query.toString()}`).then((r) => r.data);
+    return axiosClient
+        .get(`/admin/intents?${query.toString()}`)
+        .then((r) => r.data);
 };
 
-// ✅ NUEVO: obtener un intent por id/nombre
+// ✅ obtener un intent por id/nombre
 export const getIntentById = (intentName) =>
-    axiosClient.get(`/admin/intents/${encodeURIComponent(intentName)}`).then((r) => r.data);
+    axiosClient
+        .get(`/admin/intents/${encodeURIComponent(intentName)}`)
+        .then((r) => r.data);
 
-// ✅ NUEVO: crear/actualizar/eliminar con nombres consistentes
+// ✅ crear/actualizar/eliminar
 export const createIntent = (intentData) =>
     axiosClient.post("/admin/intents", intentData);
 
@@ -84,7 +88,9 @@ export const uploadIntentsCSV = (file) => {
 };
 
 export const exportIntentsCSV = async () => {
-    const res = await axiosClient.get("/admin/intents/export", { responseType: "blob" });
+    const res = await axiosClient.get("/admin/intents/export", {
+        responseType: "blob",
+    });
     const filename = getFilenameFromCD(res.headers, "intents.csv");
     const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, filename, /* addBom */ true);
@@ -114,7 +120,9 @@ export const createUser = (userData) =>
     axiosClient.post("/admin/users", userData);
 
 export const exportUsersCSV = async () => {
-    const res = await axiosClient.get("/admin/users/export", { responseType: "blob" });
+    const res = await axiosClient.get("/admin/users/export", {
+        responseType: "blob",
+    });
     const filename = getFilenameFromCD(
         res.headers,
         `usuarios_exportados_${new Date().toISOString().slice(0, 10)}.csv`
@@ -126,7 +134,8 @@ export const exportUsersCSV = async () => {
 /* =========================
    📁 AUTENTICACIÓN
    ========================= */
-export const login = (credentials) => axiosClient.post("/auth/login", credentials);
+export const login = (credentials) =>
+    axiosClient.post("/auth/login", credentials);
 export const refreshToken = () => axiosClient.post("/auth/refresh");
 export const register = (userData) => axiosClient.post("/auth/register", userData);
 
@@ -143,22 +152,27 @@ export const getLogsList = () =>
     axiosClient.get("/admin/logs").then((res) => res.data);
 
 export const downloadLogFile = async (filename) => {
-    const res = await axiosClient.get(`/admin/logs/${encodeURIComponent(filename)}`, {
-        responseType: "blob",
-    });
+    const res = await axiosClient.get(
+        `/admin/logs/${encodeURIComponent(filename)}`,
+        { responseType: "blob" }
+    );
     const blob = new Blob([res.data], { type: "text/plain;charset=utf-8" });
     downloadBlob(blob, filename || "log.txt", /* addBom */ false);
 };
 
 export const exportLogsCSV = async () => {
-    const res = await axiosClient.get("/admin/logs/export", { responseType: "blob" });
+    const res = await axiosClient.get("/admin/logs/export", {
+        responseType: "blob",
+    });
     const filename = getFilenameFromCD(res.headers, "logs.csv");
     const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, filename, /* addBom */ true);
 };
 
 export const getSystemLogs = async () => {
-    const res = await axiosClient.get("/admin/logs-file", { responseType: "text" });
+    const res = await axiosClient.get("/admin/logs-file", {
+        responseType: "text",
+    });
     return res.data;
 };
 
@@ -195,9 +209,10 @@ export const exportarCSV = async (desde, hasta) => {
         params,
         responseType: "blob",
     });
-    const nameRange = (d ? `_${d}` : "") + (h ? `_${h}` : "");
-    const fallbackName = `exportacion_logs${nameRange || `_${new Date().toISOString().slice(0, 10)}`
-        }.csv`;
+    const nameRange =
+        (d ? `_${d}` : "") + (h ? `_${h}` : "");
+    const fallbackName =
+        `exportacion_logs${nameRange || `_${new Date().toISOString().slice(0, 10)}`}.csv`;
     const filename = getFilenameFromCD(res.headers, fallbackName);
     const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, filename, /* addBom */ true);
@@ -222,14 +237,12 @@ export const exportTestResults = async () => {
    ========================= */
 export const restartServer = () => axiosClient.post("/admin/restart");
 
-// Default export opcional
+// (alias opcional)
 export { default as axios } from "@/services/axiosClient";
 
 /* =========================
    ❌ INTENTOS FALLIDOS
    ========================= */
-
-// Top intents fallidos: [{ intent, count }]
 export const getTopFailedIntents = ({ desde, hasta, limit } = {}) =>
     axiosClient
         .get("/admin/intentos-fallidos/top", {
@@ -237,7 +250,6 @@ export const getTopFailedIntents = ({ desde, hasta, limit } = {}) =>
         })
         .then((r) => r.data);
 
-// Logs de fallos (lista paginada)
 export const getFailedLogs = ({
     desde,
     hasta,
@@ -251,15 +263,9 @@ export const getFailedLogs = ({
         })
         .then((r) => r.data);
 
-// Alias simple usado por FallbackLogsTable (sin filtros)
 export const getFallbackLogs = () => getFailedLogs({ page: 1, page_size: 50 });
 
-// Exportar CSV de intentos fallidos
-export const exportFailedIntentsCSV = async ({
-    desde,
-    hasta,
-    intent,
-} = {}) => {
+export const exportFailedIntentsCSV = async ({ desde, hasta, intent } = {}) => {
     const res = await axiosClient.get("/admin/intentos-fallidos/export", {
         params: { desde, hasta, intent },
         responseType: "blob",
@@ -271,18 +277,20 @@ export const exportFailedIntentsCSV = async ({
     const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, filename, /* addBom */ true);
 };
-// Búsqueda/paginación server-side de intents
-// Dev esperado del backend:
-// { items: [{intent, examples, responses, ...}], total: 123, page: 1, page_size: 20 }
-export async function fetchIntentsPaged({
+
+/* =========================
+   🔎 BÚSQUEDAS PAGINADAS
+   ========================= */
+// ⬇️ VERSIÓN LEGACY (con /admin/intents y filtros básicos)
+export async function fetchIntentsPagedLegacy({
     intent,
     example,
     response,
-    q,            // búsqueda libre opcional
+    q,
     page = 1,
     page_size = 10,
     sort_by,
-    sort_dir,     // "asc" | "desc"
+    sort_dir,
 } = {}) {
     const params = new URLSearchParams();
     if (intent) params.append("intent", intent);
@@ -294,10 +302,7 @@ export async function fetchIntentsPaged({
     if (sort_by) params.append("sort_by", sort_by);
     if (sort_dir) params.append("sort_dir", sort_dir);
 
-    // Si tu backend usa otra ruta (p.ej. /admin/intents/search), cámbiala aquí:
     const res = await axiosClient.get(`/admin/intents?${params.toString()}`);
-
-    // Normalizamos por si el backend aún devuelve un array “plano”
     const data = res.data;
     if (Array.isArray(data)) {
         return {
@@ -314,7 +319,8 @@ export async function fetchIntentsPaged({
         page_size: data?.page_size ?? Number(page_size) ?? 10,
     };
 }
-// Lista paginada con filtros y ordenamiento
+
+// ⬇️ VERSIÓN NUEVA (endpoint dedicado /admin/intents/paged)
 export async function fetchIntentsPaged({
     page = 1,
     page_size = 10,
@@ -336,7 +342,6 @@ export async function fetchIntentsPaged({
     if (sort_dir) params.set("sort_dir", sort_dir);
 
     const { data } = await axiosClient.get(`/admin/intents/paged?${params.toString()}`);
-    // Normaliza respuesta esperada: { items, total, page, page_size }
     return {
         items: data?.items ?? [],
         total: Number(data?.total ?? 0),
@@ -344,3 +349,70 @@ export async function fetchIntentsPaged({
         page_size: Number(data?.page_size ?? page_size),
     };
 }
+
+/* =========================
+   📦 DEFAULT EXPORT (comodidad)
+   ========================= */
+const api = {
+    // intents
+    fetchIntents,
+    getIntents,
+    fetchIntentsByFilters,
+    getIntentById,
+    createIntent,
+    updateIntent,
+    deleteIntent,
+    addIntent,
+    removeIntent,
+    uploadIntentJSON,
+    uploadIntentsCSV,
+    exportIntentsCSV,
+
+    // entrenamiento
+    trainBot,
+
+    // users
+    fetchUsers,
+    getUsers,
+    deleteUser,
+    updateUser,
+    createUser,
+    exportUsersCSV,
+
+    // auth
+    login,
+    refreshToken,
+    register,
+
+    // diagnóstico
+    ping,
+    testIntents,
+
+    // logs
+    getLogsList,
+    downloadLogFile,
+    exportLogsCSV,
+    getSystemLogs,
+
+    // stats
+    getStats,
+
+    // exportaciones
+    exportarCSV,
+    fetchHistorialExportaciones,
+    exportTestResults,
+
+    // misc
+    restartServer,
+
+    // fallidos
+    getTopFailedIntents,
+    getFailedLogs,
+    getFallbackLogs,
+
+    // paginadas
+    fetchIntentsPaged,
+    fetchIntentsPagedLegacy,
+};
+
+export default api;

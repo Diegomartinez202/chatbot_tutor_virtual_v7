@@ -1,4 +1,4 @@
-// src/pages/TestPage.jsx
+// src/pages/TestPage.jsx (imports actualizados)
 import { useState } from "react";
 import { Button } from "@/components/ui"; // ✅ barrel unificado
 import Header from "@/components/Header";
@@ -6,14 +6,28 @@ import axiosClient from "@/services/axiosClient";
 import { useAdminActions } from "@/services/useAdminActions";
 import FiltrosFecha from "@/components/FiltrosFecha";
 import { toast } from "react-hot-toast";
-import { Badge } from "@/components/ui/Badge"; // ✅ CORRECTO
+
+// ✅ Opción B (default): usamos el proxy de ui/Badge que reexporta el Badge real
+import Badge from "@/components/ui/Badge";
+
 import {
-    TestTube, Server, Bot, ListChecks, TimerReset,
-    RefreshCw, Download, Search, Loader2, ClipboardList, Cloud, CheckCircle, Rocket
+    TestTube,
+    Server,
+    Bot,
+    ListChecks,
+    TimerReset,
+    RefreshCw,
+    Download,
+    Search,
+    Loader2,
+    ClipboardList,
+    Cloud,
+    CheckCircle,
+    Rocket,
 } from "lucide-react";
+
 import ResumenSistema from "@/components/ResumenSistema";
 import IconTooltip from "@/components/ui/IconTooltip"; // ✅ tooltips reutilizables
-
 function TestPage() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);

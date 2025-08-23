@@ -9,7 +9,6 @@ import TestPage from "@/pages/TestPage";
 import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
 
-import ListIntents from "@/components/ListIntents";
 import CrearIntentPage from "@/pages/CrearIntentPage";
 import BuscarIntentPage from "@/pages/BuscarIntentPage";
 import StadisticasLogsPage from "@/pages/StadisticasLogsPage";
@@ -17,35 +16,38 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ExportarLogsPage from "@/pages/ExportarLogsPage";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import TrainBotPage from "@/pages/TrainBotPage";
+
+// Nota: en tu código original DiagnosticoPage apuntaba a TestPage.
+// Conservo esa compat aquí para no romper navegación existente.
 import DiagnosticoPage from "@/pages/TestPage";
 
-import ChatPage from "@/pages/ChatPage"; // Página contenedora de ChatUI
+import ChatPage from "@/pages/ChatPage"; // página contenedora de ChatUI
 
-// ✅ Páginas nuevas de intents (activadas)
+// 🆕 Intents: crear / editar / detalle
 import IntentEdit from "@/pages/IntentEdit";
 import IntentDetail from "@/pages/IntentDetail";
 
+// Autorización
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
+
+// Consolidado: solo una fuente de ListIntents
 import ListIntents from "@/pages/ListIntents";
+
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* 🌐 Rutas públicas */}
+            {/* 🌐 Públicas */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* ✅ Rutas de chat públicas (compat y embebido) */}
-            {/* Alias clásico */}
+            {/* ✅ Chat públicas */}
             <Route path="/chat" element={<ChatPage />} />
-            {/* Embebido SPA directa (iframe moderno) */}
             <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
-            {/* Alias histórico */}
             <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
-            {/* Compat extra: /chat-embed.html?embed=1 → redirige */}
             <Route path="/chat-embed.html" element={<Navigate to="/chat-embed" replace />} />
 
-            {/* 🔐 Rutas protegidas con roles */}
+            {/* 🔐 Protegidas */}
             <Route
                 path="/dashboard"
                 element={
@@ -68,6 +70,7 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Intents */}
             <Route
                 path="/intents"
                 element={
@@ -112,7 +115,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* 🆕 Intents: crear / editar / detalle */}
+            {/* 🆕 Intents CRUD */}
             <Route
                 path="/intents/new"
                 element={
@@ -146,6 +149,7 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Usuarios */}
             <Route
                 path="/user-management"
                 element={
@@ -157,6 +161,7 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Herramientas / Tests */}
             <Route
                 path="/test"
                 element={
@@ -179,7 +184,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ✅ Estadísticas correctas */}
             <Route
                 path="/stadisticas-logs"
                 element={
@@ -191,7 +195,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* (Opcional) Exportar logs explícito */}
             <Route
                 path="/exportar-logs"
                 element={
@@ -236,17 +239,8 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Catch-all protegido */}
-            <Route
-                path="*"
-                element={
-                    <ProtectedRoute>
-                        <RequireRole allowedRoles={["admin", "soporte"]}>
-                            <LoginPage />
-                        </RequireRole>
-                    </ProtectedRoute>
-                }
-            />
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
     );
 };
