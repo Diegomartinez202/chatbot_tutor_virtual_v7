@@ -1,5 +1,6 @@
+// src/components/Header.jsx
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, Link } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -14,6 +15,7 @@ import {
     Users as UsersIcon,
     Cog,
     Bell,
+    Home as HomeIcon, // 👈 añadido
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -44,15 +46,25 @@ const Header = () => {
     };
 
     const navLinks = [
+        // 🏠 Inicio (nuevo)
+        { to: "/", label: "Inicio", icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: "Página de bienvenida" },
+
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: "Vista general del sistema" },
         { to: "/logs", label: "Logs", icon: FileText, roles: ["admin", "soporte"], tip: "Historial de conversaciones" },
         { to: "/intents", label: "Intents", icon: MessageSquareText, roles: ["admin"], tip: "Gestión de intents" },
+
+        // Nota: si tu ruta real es /stadisticas-logs, puedes ajustar aquí.
         { to: "/stats", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
+
+        // Nota: si tu ruta real es /admin/diagnostico, puedes ajustar aquí.
         { to: "/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
+
         { to: "/users", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
+
         // 📌 Compatibilidad /chat: deja el alias y además intenta abrir el widget al click
         { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
-        // Nuevo pedido
+
+        // Nuevo pedido histórico
         { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
     ];
 
@@ -62,16 +74,34 @@ const Header = () => {
         <>
             <aside className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between">
                 <div className="p-6">
-                    {/* 🧑 Encabezado */}
-                    <div className="flex items-center gap-2 mb-4">
-                        <UserCircle className="w-5 h-5" />
-                        <h2 className="text-lg font-bold">Bienvenido</h2>
+                    {/* 🔷 Brand / Home: avatar mini + título clicable al inicio */}
+                    <div className="flex items-center gap-3 mb-6">
+                        <Link to="/" className="shrink-0">
+                            <img
+                                src="/bot-avatar.png"
+                                alt="Home"
+                                className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
+                                loading="eager"
+                            />
+                        </Link>
+                        <div className="flex-1">
+                            <Link to="/" className="text-lg font-bold hover:underline">
+                                Chatbot Tutor Virtual
+                            </Link>
+                            <div className="text-xs text-white/70">Panel de administración</div>
+                        </div>
 
                         {/* 🔔 Badge global (opcional) al lado del título */}
                         <div className="ml-auto flex items-center gap-2">
                             <Bell className="w-5 h-5" />
                             <Badge mode="chat" size="xs" /> {/* ✅ escucha postMessage automáticamente */}
                         </div>
+                    </div>
+
+                    {/* 🧑 Encabezado secundario */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <UserCircle className="w-5 h-5" />
+                        <h2 className="text-sm font-semibold">Bienvenido</h2>
                     </div>
 
                     {/* 📧 Info de usuario */}

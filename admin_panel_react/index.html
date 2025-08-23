@@ -35,10 +35,9 @@
     <meta property="og:image:height" content="512" />
     <meta property="og:url" content="/" id="og-url" />
 
-    <!-- (Opcional) Preload de imágenes del chatbot: ahora se inyectan dinámicamente en /chat -->
-    <!-- Deja estos como 'prefetch' base por si navegan rápido -->
-    <link rel="prefetch" href="/bot-avatar.png" as="image" data-base-href="bot-avatar.png" />
-    <link rel="prefetch" href="/bot-loading.png" as="image" data-base-href="bot-loading.png" />
+    <!-- Prefetch (evita warning de preload no usado) -->
+    <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
+    <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
 
     <!-- Ajustes dinámicos: og:url + reescritura BASE_URL + preloads condicionales -->
     <script type="module">
@@ -71,9 +70,9 @@
 
         if (shouldPreloadBot) {
             const ensurePreload = (href) => {
-                if ([...document.querySelectorAll('link[rel="preload"]')].some((l) => l.getAttribute("href") === href)) {
-                    return;
-                }
+                const found = Array.from(document.querySelectorAll('link[rel="preload"]'))
+                    .some((l) => l.getAttribute("href") === href);
+                if (found) return;
                 const l = document.createElement("link");
                 l.rel = "preload";
                 l.as = "image";
@@ -81,8 +80,13 @@
                 document.head.appendChild(l);
             };
 
-            const avatar = document.querySelector('link[data-base-href="bot-avatar.png"]')?.getAttribute("href") || "/bot-avatar.png";
-            const loading = document.querySelector('link[data-base-href="bot-loading.png"]')?.getAttribute("href") || "/bot-loading.png";
+            const avatar =
+                document.querySelector('link[data-base-href="bot-avatar.png"]')?.getAttribute("href") ||
+                "/bot-avatar.png";
+            const loading =
+                document.querySelector('link[data-base-href="bot-loading.png"]')?.getAttribute("href") ||
+                "/bot-loading.png";
+
             ensurePreload(avatar);
             ensurePreload(loading);
         }
@@ -90,7 +94,7 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Vite reemplaza este import en build. En dev sirve /src/main.jsx -->
+    <!-- Vite reemplaza esto en build; en dev sirve /src/main.jsx -->
     <script type="module" src="/src/main.jsx"></script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
 </body>
