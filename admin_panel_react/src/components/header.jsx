@@ -33,7 +33,12 @@ const Header = () => {
 
     const [openSettings, setOpenSettings] = React.useState(false);
 
-    // Abrir widget de chat o navegar a /chat
+    // Avatar configurable + fallback local seguro
+    const AVATAR =
+        import.meta.env.VITE_BOT_AVATAR ||
+        "/bot-avatar.png";
+
+    // Abrir el widget de chat si está presente; si no, navegar a /chat
     const openChat = (e) => {
         try {
             if (window.ChatWidget?.open) {
@@ -47,9 +52,6 @@ const Header = () => {
         }
     };
 
-    // Avatar configurable + fallback local
-    const AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
-
     // ────────────────────────────────────────────────────────────
     // Breadcrumb simple (sin claves duplicadas)
     // ────────────────────────────────────────────────────────────
@@ -59,9 +61,9 @@ const Header = () => {
         logs: "Logs",
         intents: "Intents",
         "intents-page": "Intents (página)",
-        "intentos-fallidos": "Intentos fallidos",
+        "intents-fallidos": "Intentos fallidos",
         "stadisticas-logs": "Estadísticas",
-        "exportar-logs": "Exportar logs", // clave única
+        "exportar-logs": "Exportar logs",
         exportaciones: "Exportaciones",
         users: "Usuarios",
         "user-management": "Usuarios",
@@ -76,40 +78,26 @@ const Header = () => {
     const path = location.pathname.replace(/^\/+|\/+$/g, "");
     const segments = path ? path.split("/") : [];
     const crumbs = [{ to: "/", label: labelMap[""], icon: HomeIcon }];
-
     let acc = "";
     for (const seg of segments) {
         acc += `/${seg}`;
-        crumbs.push({
-            to: acc,
-            label: labelMap[seg] || seg,
-        });
+        crumbs.push({ to: acc, label: labelMap[seg] || seg });
     }
 
     // ────────────────────────────────────────────────────────────
-    // Navegación lateral
+    // Navegación lateral (no se tocó tu lógica)
     // ────────────────────────────────────────────────────────────
     const navLinks = [
         { to: "/", label: "Inicio", icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: "Página de bienvenida" },
-
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: "Vista general del sistema" },
         { to: "/logs", label: "Logs", icon: FileText, roles: ["admin", "soporte"], tip: "Historial de conversaciones" },
         { to: "/intents", label: "Intents", icon: MessageSquareText, roles: ["admin"], tip: "Gestión de intents" },
-
-        // Alineado a tu ruta real
         { to: "/stadisticas-logs", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
-
-        // Alineado a tu ruta real
         { to: "/admin/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
-
         { to: "/user-management", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
-
-        // Compatibilidad /chat
         { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
-
         { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
     ];
-
     const canSee = (l) => !l.roles || l.roles.includes(role);
 
     return (
@@ -121,9 +109,7 @@ const Header = () => {
                         <Link to="/" className="shrink-0" aria-label="Ir a inicio">
                             <img
                                 src={AVATAR}
-                                onError={(e) => {
-                                    e.currentTarget.src = "/bot-avatar.png";
-                                }}
+                                onError={(e) => { e.currentTarget.src = "/bot-avatar.png"; }}
                                 alt="Inicio"
                                 className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
                                 loading="eager"
