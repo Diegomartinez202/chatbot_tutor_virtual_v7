@@ -41,7 +41,9 @@ const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
 // Avatares configurables (public/… o ENV)
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK =
-    import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
+    import.meta.env.VITE_USER_AVATAR ||
+    import.meta.env.VITE_USER_AVATAR_DEFAULT ||
+    "/user-avatar.png";
 
 // ————————————————————————————————
 // Componentes de avatar
@@ -322,7 +324,7 @@ export default function ChatUI({
 
     const appendBotMessages = useCallback(
         (rasaItemsArray) => {
-            const botMsgs = normalizeRasaItems(rasaItemsArray);
+            const botMsgs = normalizeRasaItems(rspToArray(rasaItemsArray));
             setMessages((m) => [...m, ...botMsgs]);
             const inc = botMsgs.length || 1;
             unreadRef.current = Math.max(0, unreadRef.current + inc);
@@ -330,6 +332,11 @@ export default function ChatUI({
         },
         [postBadge]
     );
+
+    // Nota: acepta tanto array como respuesta simple
+    function rspToArray(rsp) {
+        return Array.isArray(rsp) ? rsp : rsp ? [rsp] : [];
+    }
 
     // Pipeline → Rasa (con gate de auth)
     const sendToRasa = async ({ text, displayAs }) => {
@@ -357,7 +364,7 @@ export default function ChatUI({
                 metadata: { url: typeof location !== "undefined" ? location.href : undefined },
                 token: authToken || undefined, // ← inyecta token si existe
             });
-            const botMsgs = normalizeRasaItems(rsp);
+            const botMsgs = normalizeRasaItems(rspToArray(rsp));
             setMessages((m) => [...m, ...botMsgs]);
 
             // 🔔 incrementar no leídos (el parent lo verá en el badge)
@@ -422,6 +429,17 @@ export default function ChatUI({
     );
     const personaFromQS = qs.get("persona") || null;
     const langFromQS = qs.get("lang") || "es";
+
+    // ✅ NUEVO: onSubmit para el form del composer (mantiene Enter + botón submit)
+    const onSubmitComposer = useCallback(
+        (e) => {
+            e.preventDefault();
+            if (!sending && input.trim()) {
+                handleSend();
+            }
+        },
+        [sending, input] // handleSend ya usa input actual
+    );
 
     return (
         <div
@@ -628,14 +646,18 @@ export default function ChatUI({
                 </div>
             ) : null}
 
-            {/* Composer (input + avatar + mic + enviar) */}
-            <div className={"border-t " + (embed ? "p-2" : "p-3 bg-white")}>
+            {/* ✅ Composer (input + avatar + mic + enviar) con layout en línea */}
+            <form
+                onSubmit={onSubmitComposer}
+                className={"border-t " + (embed ? "p-2" : "p-3 bg-white")}
+                noValidate
+            >
                 <div
-                    className="max-w-3xl mx-auto flex items-end gap-2"
+                    className="max-w-3xl mx-auto flex items-center gap-2"
                     data-testid="chat-composer"
                 >
                     <textarea
-                        className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                        className="flex-1 min-w-0 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                         placeholder={placeholder}
                         rows={2}
                         value={input}
@@ -648,12 +670,12 @@ export default function ChatUI({
 
                     {/* 👤 Avatar del usuario en la barra de entrada */}
                     <IconTooltip label={meLabel} side="top">
-                        <div className="pb-1">
+                        <div className="shrink-0">
                             <UserAvatar user={user} size={28} />
                         </div>
                     </IconTooltip>
 
-                    {/* 🎤 Mic (audio → /api/chat/audio), justo antes de Enviar */}
+                    {/* 🎤 Mic (audio) */}
                     <MicButton
                         disabled={sending}
                         onPushUser={appendUserMessage}
@@ -661,15 +683,15 @@ export default function ChatUI({
                         userId={userId || undefined}
                         persona={personaFromQS || undefined}
                         lang={langFromQS || "es"}
+                        className="shrink-0"
                     />
 
                     {/* Botón Enviar */}
                     <IconTooltip label="Enviar (Enter)">
                         <button
-                            type="button"
-                            onClick={handleSend}
+                            type="submit"
                             disabled={sending || !input.trim()}
-                            className="inline-flex items-center justify-center rounded-md bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="shrink-0 inline-flex items-center justify-center rounded-md bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Enviar"
                             data-testid="chat-send"
                         >
@@ -681,7 +703,7 @@ export default function ChatUI({
                         </button>
                     </IconTooltip>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import axiosClient from "@/services/axiosClient";
 
 /** Extrae token desde query o hash: ?access_token=... o #access_token=... */
 function getTokenFromLocation(location) {
@@ -31,15 +32,28 @@ export default function AuthCallback() {
         const token = getTokenFromLocation(location);
 
         (async () => {
-            if (token) {
+            if (!token) {
+                navigate("/login", { replace: true });
+                return;
+            }
+
+            try {
+                await login(token); // AuthContext persiste y hace /auth/me
+                // Aseguramos rol:
+                let role = "usuario";
                 try {
-                    // tu AuthContext persiste token y hace /auth/me
-                    await login(token);
-                    navigate("/dashboard", { replace: true });
+                    const me = await axiosClient.get("/auth/me");
+                    role = me?.data?.rol || me?.data?.role || "usuario";
                 } catch {
-                    navigate("/login", { replace: true });
+                    // sigue como 'usuario'
                 }
-            } else {
+
+                if (role === "admin" || role === "soporte") {
+                    navigate("/dashboard", { replace: true });
+                } else {
+                    navigate("/chat", { replace: true });
+                }
+            } catch {
                 navigate("/login", { replace: true });
             }
         })();

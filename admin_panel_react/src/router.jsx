@@ -2,7 +2,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "@/App";
 
-// Passthrough: monta <App /> y dentro sigues usando <Routes> como hoy
 export const router = createBrowserRouter(
     [
         { path: "*", element: <App /> },

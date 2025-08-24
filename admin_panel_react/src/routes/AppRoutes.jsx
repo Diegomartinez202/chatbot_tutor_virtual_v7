@@ -1,13 +1,13 @@
 // src/routes/AppRoutes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// 🌐 Públicas
+// Páginas públicas
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
 import AuthCallback from "@/pages/AuthCallback";
 
-// Páginas
+// Páginas protegidas
 import Dashboard from "@/pages/Dashboard";
 import LogsPage from "@/pages/LogsPage";
 import IntentsPage from "@/pages/IntentsPage";
@@ -20,19 +20,23 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ExportarLogsPage from "@/pages/ExportarLogsPage";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import TrainBotPage from "@/pages/TrainBotPage";
-import ChatPage from "@/pages/ChatPage"; // página contenedora de ChatUI
 
-// 🆕 Intents CRUD
+// Nota: compat → DiagnosticoPage apunta a TestPage
+import DiagnosticoPage from "@/pages/TestPage";
+
+// Chat contenedor
+import ChatPage from "@/pages/ChatPage";
+
+// Intents CRUD
 import IntentEdit from "@/pages/IntentEdit";
 import IntentDetail from "@/pages/IntentDetail";
-import ListIntents from "@/pages/ListIntents"; // Consolidado (única fuente)
 
 // Autorización
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
-// Nota: DiagnosticoPage apuntaba a TestPage; conservo compat.
-import DiagnosticoPage from "@/pages/TestPage";
+// Consolidado: una sola fuente de ListIntents
+import ListIntents from "@/pages/ListIntents";
 
 const AppRoutes = () => {
     return (
@@ -83,7 +87,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents/buscar"
                 element={
@@ -94,7 +97,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents/list"
                 element={
@@ -105,7 +107,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents-page"
                 element={
@@ -117,7 +118,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* 🆕 Intents CRUD */}
+            {/* Intents CRUD */}
             <Route
                 path="/intents/new"
                 element={
@@ -128,7 +129,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents/:id/edit"
                 element={
@@ -139,7 +139,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intents/:id"
                 element={
@@ -174,7 +173,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }
             />
-
             <Route
                 path="/intentos-fallidos"
                 element={
@@ -186,6 +184,7 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Estadísticas (ruta real) */}
             <Route
                 path="/stadisticas-logs"
                 element={
@@ -230,6 +229,7 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* Diagnóstico (ruta real) */}
             <Route
                 path="/admin/diagnostico"
                 element={

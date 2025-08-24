@@ -5,19 +5,22 @@ import { useNavigate, Link } from "react-router-dom";
 export default function HomePage() {
     const navigate = useNavigate();
 
+    // Avatar configurable por .env, con fallback al archivo en /public
+    const AVATAR =
+        import.meta.env.VITE_BOT_AVATAR ||
+        "/bot-avatar.png";
+
     const goGuest = () => {
         // Chat público sin login
         navigate("/chat");
     };
 
     const goZajuna = () => {
-        // Si tienes SSO/ OAuth externo de Zajuna, define esta ENV:
-        // VITE_ZAJUNA_SSO_URL = "https://zajuna.example.com/oauth/authorize?client_id=...&redirect_uri=..."
         const sso = import.meta.env.VITE_ZAJUNA_SSO_URL;
         if (sso) {
-            window.location.href = sso; // va al proveedor SSO
+            window.location.href = sso; // redirige al SSO
         } else {
-            // fallback: usa tu LoginPage local
+            // fallback: usa Login local
             navigate("/login");
         }
     };
@@ -26,7 +29,8 @@ export default function HomePage() {
         <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
             <div className="max-w-3xl w-full bg-white rounded-2xl shadow-lg p-8 text-center">
                 <img
-                    src="/bot-avatar.png"
+                    src={AVATAR}
+                    onError={(e) => { e.currentTarget.src = "/bot-avatar.png"; }}
                     alt="Avatar del Chatbot"
                     className="mx-auto mb-6 w-40 h-40 object-contain"
                     loading="eager"
