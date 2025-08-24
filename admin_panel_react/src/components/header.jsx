@@ -34,9 +34,7 @@ const Header = () => {
     const [openSettings, setOpenSettings] = React.useState(false);
 
     // Avatar configurable + fallback local seguro
-    const AVATAR =
-        import.meta.env.VITE_BOT_AVATAR ||
-        "/bot-avatar.png";
+    const AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 
     // Abrir el widget de chat si está presente; si no, navegar a /chat
     const openChat = (e) => {
@@ -85,7 +83,7 @@ const Header = () => {
     }
 
     // ────────────────────────────────────────────────────────────
-    // Navegación lateral (no se tocó tu lógica)
+    // Navegación lateral (mantiene tu lógica de negocio)
     // ────────────────────────────────────────────────────────────
     const navLinks = [
         { to: "/", label: "Inicio", icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: "Página de bienvenida" },
@@ -95,6 +93,7 @@ const Header = () => {
         { to: "/stadisticas-logs", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
         { to: "/admin/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
         { to: "/user-management", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
+        // Compatibilidad /chat
         { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
         { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
     ];
@@ -109,7 +108,9 @@ const Header = () => {
                         <Link to="/" className="shrink-0" aria-label="Ir a inicio">
                             <img
                                 src={AVATAR}
-                                onError={(e) => { e.currentTarget.src = "/bot-avatar.png"; }}
+                                onError={(e) => {
+                                    e.currentTarget.src = "/bot-avatar.png";
+                                }}
                                 alt="Inicio"
                                 className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
                                 loading="eager"

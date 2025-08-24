@@ -4,21 +4,22 @@ import { useNavigate, Link } from "react-router-dom";
 
 import Input from "@/components/Input";
 import { Button } from "@/components/ui/button";
-import { login as loginApi } from "@/services/api";
-import { useAuth } from "@/context/AuthContext";
-import { Lock } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
-import axiosClient from "@/services/axiosClient";
+import { Lock } from "lucide-react";
+
+import { useAuth } from "@/context/AuthContext";
+import { login as apiLogin, me as apiMe } from "@/services/authApi";
 
 function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
     const { login } = useAuth();
 
-    // URL del SSO de Zajuna (si existe en .env)
+    // Botón Zajuna visible solo si existe URL en .env
     const zajunaSSO =
         import.meta.env.VITE_ZAJUNA_SSO_URL ||
         import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
@@ -30,45 +31,32 @@ function LoginPage() {
         setError("");
 
         try {
-            // ⚠️ loginApi espera credenciales como objeto
-            const res = await loginApi({ email, password });
+            // 1) Login → token (vía authApi)
+            const { token } = await apiLogin({ email, password });
+            if (!token) throw new Error("Credenciales inválidas o error del servidor.");
 
-            // Acepta varios nombres de campo
-            const token =
-                res?.data?.access_token ??
-                res?.data?.token ??
-                res?.access_token ??
-                res?.token ??
-                null;
-
-            if (!token) {
-                setError("Credenciales inválidas o error del servidor.");
-                setLoading(false);
-                return;
-            }
-
-            // Persiste y obtiene perfil (AuthContext hace /auth/me internamente)
+            // 2) Persistir en tu AuthContext (mantiene tu lógica de negocio)
             await login(token);
 
-            // Aseguramos el rol consultando /auth/me (para decidir navegación)
+            // 3) Obtener perfil para decidir ruta por rol
             let role = "usuario";
             try {
-                const me = await axiosClient.get("/auth/me");
-                role = me?.data?.rol || me?.data?.role || "usuario";
+                const profile = await apiMe();
+                role = profile?.rol || profile?.role || "usuario";
             } catch {
-                // Si falla, asumimos "usuario" para no bloquear navegación
+                // si falla, seguimos como 'usuario'
             }
 
-            // Redirección por rol
             if (role === "admin" || role === "soporte") {
                 navigate("/dashboard", { replace: true });
             } else {
-                // Usuarios normales al chatbot
                 navigate("/chat", { replace: true });
             }
         } catch (err) {
             setError(
-                err?.response?.data?.message || err?.message || "Error de red, intenta nuevamente."
+                err?.response?.data?.message ||
+                err?.message ||
+                "Error de red, intenta nuevamente."
             );
         } finally {
             setLoading(false);
@@ -77,10 +65,9 @@ function LoginPage() {
 
     const handleZajuna = () => {
         if (zajunaSSO) {
-            // Te lleva al proveedor de SSO (debe redirigir luego a /auth/callback con el token)
+            // SSO debe redirigir a /auth/callback con ?access_token=... o #access_token=...
             window.location.href = zajunaSSO;
         } else {
-            // Fallback si no hay SSO configurado
             navigate("/login");
         }
     };
@@ -107,7 +94,6 @@ function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="username"
-                    // 👇 añadidos para tests
                     name="email"
                     placeholder="Correo"
                     data-testid="login-email"
@@ -120,7 +106,6 @@ function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
-                    // 👇 añadidos para tests
                     name="password"
                     placeholder="Contraseña"
                     data-testid="login-password"
@@ -136,7 +121,7 @@ function LoginPage() {
                         {loading ? "Ingresando..." : "Ingresar"}
                     </Button>
 
-                    {/* Botón para autenticación con Zajuna (SSO) — SOLO si hay SSO configurado */}
+                    {/* Botón SSO solo si hay URL configurada */}
                     {zajunaSSO && (
                         <Button
                             type="button"
@@ -149,7 +134,7 @@ function LoginPage() {
                         </Button>
                     )}
 
-                    {/* Entrar como invitado (sin registro) */}
+                    {/* Invitado (sin registro) */}
                     <Button
                         type="button"
                         variant="ghost"
@@ -181,7 +166,8 @@ function LoginPage() {
             {/* Pista de configuración */}
             {!zajunaSSO && (
                 <p className="text-[11px] text-gray-400 mt-4">
-                    Consejo: define <code>VITE_ZAJUNA_SSO_URL</code> en tu <code>.env.local</code> para habilitar el botón de Zajuna.
+                    Consejo: define <code>VITE_ZAJUNA_SSO_URL</code> en tu <code>.env</code>{" "}
+                    para habilitar el botón de Zajuna.
                 </p>
             )}
         </div>

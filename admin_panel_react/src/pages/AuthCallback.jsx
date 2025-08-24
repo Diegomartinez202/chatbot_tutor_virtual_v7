@@ -2,23 +2,17 @@
 import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import axiosClient from "@/services/axiosClient";
+import { loginWithToken, me as apiMe } from "@/services/authApi";
 
 /** Extrae token desde query o hash: ?access_token=... o #access_token=... */
 function getTokenFromLocation(location) {
     const search = new URLSearchParams(location.search || "");
-    let t =
-        search.get("access_token") ||
-        search.get("token") ||
-        search.get("t");
+    let t = search.get("access_token") || search.get("token") || search.get("t");
     if (t) return t;
 
     if (location.hash) {
         const hash = new URLSearchParams(String(location.hash).replace(/^#/, ""));
-        t =
-            hash.get("access_token") ||
-            hash.get("token") ||
-            hash.get("t");
+        t = hash.get("access_token") || hash.get("token") || hash.get("t");
     }
     return t || null;
 }
@@ -36,17 +30,19 @@ export default function AuthCallback() {
                 navigate("/login", { replace: true });
                 return;
             }
-
             try {
-                await login(token); // AuthContext persiste y hace /auth/me
-                // Aseguramos rol:
+                // Establece token en axios y valida perfil
+                await loginWithToken(token);
+
+                // Mantiene tu estado global (AuthContext) intacto
+                await login(token);
+
+                // Decide ruta por rol
                 let role = "usuario";
                 try {
-                    const me = await axiosClient.get("/auth/me");
-                    role = me?.data?.rol || me?.data?.role || "usuario";
-                } catch {
-                    // sigue como 'usuario'
-                }
+                    const profile = await apiMe();
+                    role = profile?.rol || profile?.role || "usuario";
+                } catch { }
 
                 if (role === "admin" || role === "soporte") {
                     navigate("/dashboard", { replace: true });

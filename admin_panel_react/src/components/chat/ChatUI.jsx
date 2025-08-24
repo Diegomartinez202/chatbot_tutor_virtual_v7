@@ -52,7 +52,7 @@ function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
         <div
-            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center shadow-sm"
             style={{ width: size, height: size }}
             aria-hidden="true"
         >
@@ -88,6 +88,9 @@ function getInitials(source) {
 
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
+
+    // Imagen del usuario si existe (mantiene tu lógica),
+    // pero el *fallback* NO muestra iniciales; usa un ícono genérico con fondo y sombra.
     const src =
         user?.avatarUrl ||
         user?.photoUrl ||
@@ -98,22 +101,21 @@ function UserAvatar({ user, size = 28 }) {
         "";
 
     if (!src || err) {
-        const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
             <div
-                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-600 flex items-center justify-center shadow-sm"
                 style={{ width: size, height: size }}
                 aria-hidden="true"
                 title={user?.email || user?.nombre || user?.name || "Usuario"}
             >
-                {initials?.trim() ? initials.slice(0, 2) : <UserIcon className="w-4 h-4" />}
+                <UserIcon className="w-4 h-4" />
             </div>
         );
     }
 
     return (
         <div
-            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center shadow-sm"
             style={{ width: size, height: size }}
             aria-hidden="true"
         >
@@ -668,7 +670,7 @@ export default function ChatUI({
                         data-testid="chat-input"
                     />
 
-                    {/* 👤 Avatar del usuario en la barra de entrada */}
+                    {/* 👤 Avatar del usuario en la barra de entrada (fallback con ícono, sin iniciales) */}
                     <IconTooltip label={meLabel} side="top">
                         <div className="shrink-0">
                             <UserAvatar user={user} size={28} />

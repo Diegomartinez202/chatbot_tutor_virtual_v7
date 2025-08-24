@@ -1,3 +1,4 @@
+// src/pages/ChatPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Bot, RefreshCw } from "lucide-react";
@@ -9,21 +10,26 @@ import { useAuth } from "@/context/AuthContext";
 import { connectRasaRest } from "@/services/chat/connectRasaRest";
 import { connectWS } from "@/services/chat/connectWS";
 
+// 👇 Importa el Harness para QA, pero solo se mostrará si el flag lo permite
+import Harness from "@/pages/Harness";
+
 /**
  * Página completa del chat.
- * - Ruta /chat (con login) y modo embed (?embed=1) sin chrome (no exige login)
+ * - Ruta /chat (con o sin login según VITE_CHAT_REQUIRE_AUTH) y modo embed (?embed=1)
  * - Estados: connecting | ready | error
  * - Si se pasa children, renderiza tu UI; si no, <ChatUI />
- *
- * NUEVO: prop opcional `embedHeight` para controlar la altura en modo embed
- *         sin depender de una clase fija. Por defecto "560px".
+ * - Prop opcional `embedHeight` para controlar la altura en modo embed
  */
+const DEFAULT_BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
+const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
+const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
+
 export default function ChatPage({
     forceEmbed = false,
-    avatarSrc = "/bot-avatar.png",
+    avatarSrc = DEFAULT_BOT_AVATAR,
     title = "Asistente",
     connectFn = connectRasaRest, // por defecto REST a /api/chat
-    embedHeight = "560px",       // ← NUEVO
+    embedHeight = "560px",
     children,
 }) {
     const [params] = useSearchParams();
@@ -52,19 +58,27 @@ export default function ChatPage({
         connect();
     }, [connect]);
 
-    // Si NO es embed y NO está autenticado → redirige a /login
+    // 🔒 Control de acceso:
+    // - Si ES embed → nunca exigimos login
+    // - Si NO es embed → exigimos login SOLO si VITE_CHAT_REQUIRE_AUTH === "true"
     useEffect(() => {
-        if (!isEmbed && !isAuthenticated) {
+        if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) {
             navigate("/login", { replace: true });
         }
     }, [isEmbed, isAuthenticated, navigate]);
 
-    if (!isEmbed && !isAuthenticated) return null;
+    if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) return null;
+
+    // Si el flag del Harness está activo y NO es embed → muestra la página de QA
+    if (SHOW_HARNESS && !isEmbed) {
+        return <Harness />;
+    }
 
     // Estilos/estructura del contenedor según modo
     const wrapperClass = isEmbed ? "p-0" : "p-6 min-h-[70vh] flex flex-col";
-    const bodyClass = isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden";
-    const wrapperStyle = isEmbed ? { height: embedHeight } : undefined; // ← usa el prop sin hacks
+    const bodyClass =
+        isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden";
+    const wrapperStyle = isEmbed ? { height: embedHeight } : undefined;
 
     return (
         <div className={wrapperClass} style={wrapperStyle}>
@@ -80,7 +94,7 @@ export default function ChatPage({
             )}
 
             {/* Body */}
-            <div className={bodyClass} data-testid="chat-root">{/* ← test anchor para Playwright */}
+            <div className={bodyClass} data-testid="chat-root">
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
                         <ChatbotLoading avatarSrc={avatarSrc} label="Conectando…" />
