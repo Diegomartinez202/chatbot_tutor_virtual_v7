@@ -1,89 +1,117 @@
 // src/services/authApi.js
-import axiosClient from "@/services/axiosClient";
+import axiosClient from "./axiosClient";
+import { setToken, clearToken, setRefreshToken } from "./tokenStorage";
 
-/**
- * Endpoints por defecto. Ajusta nombres si tu backend usa otros paths.
- * Ejemplos comunes:
- *  - /auth/login
- *  - /auth/me
- *  - /auth/register
- *  - /auth/forgot-password
- *  - /auth/reset-password
- */
-export const ENDPOINTS = {
-    login: "/auth/login",
-    me: "/auth/me",
-    register: "/auth/register",
-    forgotPassword: "/auth/forgot-password",
-    resetPassword: "/auth/reset-password",
+// Ajusta aquí si tu backend usa endpoints distintos
+const PATHS = {
+    login: ["/auth/login", "/login"],
+    me: ["/auth/me", "/me"],
+    refresh: [
+        // Prioridad: cookie httpOnly (GET)
+        { method: "GET", url: "/auth/refresh" },
+        // Alternativas POST (con refresh_token)
+        { method: "POST", url: "/auth/refresh" },
+        { method: "POST", url: "/auth/token/refresh" },
+    ],
+    logout: ["/auth/logout", "/logout"],
 };
 
-/** Persiste token en axios y localStorage (no interfiere con tu AuthContext). */
+function pickFirst(arr) {
+    return Array.isArray(arr) ? arr[0] : arr;
+}
+
+// ————————————————————————————————
+// Token helpers
+// ————————————————————————————————
 export function setAuthToken(token) {
     if (!token) return;
+    setToken(token);
     axiosClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-    try {
-        localStorage.setItem("auth_token", token);
-    } catch { }
 }
-
 export function clearAuthToken() {
+    clearToken();
     delete axiosClient.defaults.headers.common.Authorization;
-    try {
-        localStorage.removeItem("auth_token");
-    } catch { }
 }
 
-/** Login con credenciales. Devuelve { token, profile? } según backend. */
+// ————————————————————————————————
+// Auth API
+// ————————————————————————————————
 export async function login({ email, password }) {
-    const { data } = await axiosClient.post(ENDPOINTS.login, { email, password });
+    const url = pickFirst(PATHS.login);
+    const { data } = await axiosClient.post(url, { email, password });
     const token =
-        data?.access_token ?? data?.token ?? data?.jwt ?? data?.data?.access_token ?? null;
+        data?.access_token || data?.token || data?.jwt || null;
+    const refresh = data?.refresh_token || null;
+
     if (token) setAuthToken(token);
-    return { token, raw: data };
+    if (refresh) setRefreshToken(refresh);
+
+    return { token, refresh_token: refresh, raw: data };
 }
 
-/** SSO: ya tienes el token → set y valida con /auth/me. */
 export async function loginWithToken(token) {
-    if (!token) throw new Error("Token inválido");
     setAuthToken(token);
-    const profile = await me();
-    return { token, profile };
+    // Si quieres validar el token inmediatamente:
+    // await me();
+    return { ok: true };
 }
 
-/** Perfil de usuario. Estructura flexible: rol puede ser 'rol' o 'role'. */
 export async function me() {
-    const { data } = await axiosClient.get(ENDPOINTS.me);
-    return data; // { email, rol|role, ... }
+    for (const u of PATHS.me) {
+        try {
+            const { data } = await axiosClient.get(u);
+            return data;
+        } catch { }
+    }
+    throw new Error("No se pudo obtener el perfil.");
 }
 
-/** Registro. Cambia payload según tu API. */
-export async function register(payload) {
-    // payload { name, email, password } u otros campos
-    const { data } = await axiosClient.post(ENDPOINTS.register, payload);
-    return data;
+export async function refresh(refreshTokenMaybe) {
+    // 1) Cookie httpOnly (GET /auth/refresh)
+    try {
+        const { data } = await axiosClient.get(PATHS.refresh[0].url);
+        const newTk =
+            data?.access_token || data?.token || null;
+        if (newTk) {
+            setAuthToken(newTk);
+            return { token: newTk, raw: data };
+        }
+    } catch { }
+
+    // 2) POST con refresh_token si lo tienes
+    const candidates = PATHS.refresh.slice(1);
+    for (const cand of candidates) {
+        try {
+            const body = refreshTokenMaybe
+                ? { refresh_token: refreshTokenMaybe }
+                : {}; // si el backend también acepta cookie aquí
+            const { data } = await axiosClient.post(cand.url, body);
+            const newTk =
+                data?.access_token || data?.token || null;
+            const newRefresh = data?.refresh_token || null;
+
+            if (newTk) {
+                setAuthToken(newTk);
+                if (newRefresh) setRefreshToken(newRefresh);
+                return { token: newTk, raw: data };
+            }
+        } catch { }
+    }
+
+    // Si llegamos aquí, no hubo refresh
+    clearAuthToken();
+    throw new Error("Refresh inválido");
 }
 
-/** Enviar correo de recuperación. */
-export async function forgotPassword({ email }) {
-    const { data } = await axiosClient.post(ENDPOINTS.forgotPassword, { email });
-    return data;
+export async function logout() {
+    try {
+        const url = pickFirst(PATHS.logout);
+        await axiosClient.post(url);
+    } catch { }
+    clearAuthToken();
+    return { ok: true };
 }
 
-/** Resetear contraseña (si tu flujo lo usa). */
-export async function resetPassword({ token, password }) {
-    const { data } = await axiosClient.post(ENDPOINTS.resetPassword, { token, password });
-    return data;
-}
-
-export default {
-    ENDPOINTS,
-    setAuthToken,
-    clearAuthToken,
-    login,
-    loginWithToken,
-    me,
-    register,
-    forgotPassword,
-    resetPassword,
-};
+// Alias por compatibilidad con tu código actual
+export const apiLogin = login;
+export const apiMe = me;

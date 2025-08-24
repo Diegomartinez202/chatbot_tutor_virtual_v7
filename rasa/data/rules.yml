@@ -149,6 +149,15 @@ rules:
     - intent: enviar_correo
     - action: action_enviar_correo
 
+# ✅ ——— Enviar soporte DIRECTO (payload /enviar_soporte{...}) ———
+# Compatible con tu widget y la barra "Formulario de soporte" en React.
+# Dispara la action del backend y luego una confirmación corta.
+- rule: Enviar soporte directo
+  steps:
+    - intent: enviar_soporte
+    - action: action_enviar_soporte
+    - action: utter_soporte_confirm
+
 # ——— Fallback ———
 - rule: Fallback
   steps:

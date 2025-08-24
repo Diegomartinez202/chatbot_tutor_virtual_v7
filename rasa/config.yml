@@ -2,49 +2,76 @@ version: "3.1"
 
 language: "es"
 
+# ─────────────────────────────────────────────────────────────
+# NLU PIPELINE (robusta para ES + regex de emails)
+# ─────────────────────────────────────────────────────────────
 pipeline:
+  # Tokenización básica (mantiene signos y acentos en ES)
   - name: WhitespaceTokenizer
-  - name: RegexFeaturizer
+    case_sensitive: false
 
-  # Extrae la entidad "email" desde el regex del nlu.yml
+  # Patrones/regex (apoya el reconocimiento del email del NLU)
+  - name: RegexFeaturizer
+    use_lookup_tables: true
+    use_regexes: true
+    use_word_boundaries: true
+
+  # Extrae entidades basadas en regex (tu regex de email en data/nlu.yml)
   - name: RegexEntityExtractor
     case_sensitive: false
     use_lookup_tables: true
     use_regexes: true
     use_word_boundaries: true
 
+  # Rasgos léxicos/sintácticos
   - name: LexicalSyntacticFeaturizer
 
-  # Mejora comprensi�n en ES con n-gramas de caracteres
+  # Bolsa de palabras a nivel de tokens
   - name: CountVectorsFeaturizer
+    OOV_token: "[OOV]"
+    token_pattern: '(?u)\b\w+\b'   # conserva palabras en ES
+
+  # N-gramas de caracteres: mejora misspellings y morfología en ES
   - name: CountVectorsFeaturizer
     analyzer: "char_wb"
     min_ngram: 1
     max_ngram: 4
 
+  # Clasificador DIET (intents + entidades)
   - name: DIETClassifier
     epochs: 100
     constrain_similarities: true
+    entity_recognition: true
+    intent_classification: true
 
+  # Sinónimos de entidades
   - name: EntitySynonymMapper
 
+  # Respuestas de retrieval (si usas utterances tipo FAQ)
   - name: ResponseSelector
     epochs: 100
     constrain_similarities: true
 
+  # Fallback NLU cuando la confianza es baja
   - name: FallbackClassifier
-    threshold: 0.3
-    ambiguity_threshold: 0.1
+    threshold: 0.3            # si la predicción < 0.3 → fallback
+    ambiguity_threshold: 0.1   # si hay empate alto entre intents → fallback
 
+# ─────────────────────────────────────────────────────────────
+# POLICIES (forms + reglas + memoria + TED)
+# ─────────────────────────────────────────────────────────────
 policies:
+  # Reglas (maneja forms y transitions determinísticas)
   - name: RulePolicy
     core_fallback_threshold: 0.3
     core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
 
+  # Memorización (atajos si las historias coinciden)
   - name: MemoizationPolicy
     max_history: 5
 
+  # TED para diálogo general (aprende transiciones)
   - name: TEDPolicy
     max_history: 5
     epochs: 100

@@ -319,3 +319,12 @@ nlu:
     - escribe a [pruebas+qa@zajuna.edu](email)
     - mi correo es juan@ejemplo.com
     - puedes escribir a soporte@empresa.co
+
+# ✅ ————————— SOPORTE DIRECTO (para payload /enviar_soporte{...})
+- intent: enviar_soporte
+  examples: |
+    - quiero contactar soporte
+    - enviar ticket a soporte
+    - necesito ayuda con el acceso
+    - deseo enviar un ticket de soporte
+    - reportar un incidente técnico

@@ -18,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import IconTooltip from "@/components/ui/IconTooltip";
 import MicButton from "./MicButton";
+import QuickActions from "./QuickActions";
 
 // ————————————————————————————————
 // Helpers de origen seguro (parentOrigin + normalización)
@@ -27,7 +28,6 @@ function getParentOrigin() {
         const ref = document.referrer || "";
         if (ref) return new URL(ref).origin;
     } catch { }
-    // Fallback: si por alguna razón no hay referrer, usa origin local
     return window.location.origin;
 }
 function normalize(o) {
@@ -45,6 +45,10 @@ const USER_AVATAR_FALLBACK =
     import.meta.env.VITE_USER_AVATAR_DEFAULT ||
     "/user-avatar.png";
 
+// Flag para mostrar/ocultar Acciones rápidas
+const SHOW_QUICK_ACTIONS =
+    String(import.meta.env.VITE_SHOW_QUICK_ACTIONS ?? "true") === "true";
+
 // ————————————————————————————————
 // Componentes de avatar
 // ————————————————————————————————
@@ -52,7 +56,7 @@ function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
         <div
-            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center shadow-sm"
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
             style={{ width: size, height: size }}
             aria-hidden="true"
         >
@@ -88,9 +92,6 @@ function getInitials(source) {
 
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
-
-    // Imagen del usuario si existe (mantiene tu lógica),
-    // pero el *fallback* NO muestra iniciales; usa un ícono genérico con fondo y sombra.
     const src =
         user?.avatarUrl ||
         user?.photoUrl ||
@@ -101,21 +102,22 @@ function UserAvatar({ user, size = 28 }) {
         "";
 
     if (!src || err) {
+        const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
             <div
-                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-600 flex items-center justify-center shadow-sm"
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
                 style={{ width: size, height: size }}
                 aria-hidden="true"
                 title={user?.email || user?.nombre || user?.name || "Usuario"}
             >
-                <UserIcon className="w-4 h-4" />
+                {initials?.trim() ? initials.slice(0, 2) : <UserIcon className="w-4 h-4" />}
             </div>
         );
     }
 
     return (
         <div
-            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center shadow-sm"
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
             style={{ width: size, height: size }}
             aria-hidden="true"
         >
@@ -183,7 +185,7 @@ export default function ChatUI({
         scrollToBottom();
     }, [messages, sending, scrollToBottom]);
 
-    // 🔔 avisar al host (launcher) del conteo de no leídos (usando parentOrigin real)
+    // 🔔 avisar al host (launcher) del conteo de no leídos
     const postBadge = useCallback(
         (count) => {
             try {
@@ -201,7 +203,7 @@ export default function ChatUI({
         postBadge(0);
     }, [postBadge]);
 
-    // Resetear a 0 cuando el host abre el panel + recibir token seguro
+    // Resetear a 0 cuando el host abre el panel + recibir token
     useEffect(() => {
         const onMsg = (ev) => {
             if (!isAllowed(ev.origin)) return;
@@ -210,14 +212,12 @@ export default function ChatUI({
                 unreadRef.current = 0;
                 postBadge(0);
             }
-            // 🔐 recibe token del launcher
             if (
                 data.type === "auth:token" &&
                 typeof data.token === "string" &&
                 data.token.length > 0
             ) {
                 setAuthToken(data.token);
-                // borra mensaje de error si existía
                 setError("");
             }
         };
@@ -312,8 +312,12 @@ export default function ChatUI({
         return out;
     };
 
-    // 🔐 Política profesional:
-    // - Exigir token en embed (origen externo) o cuando no hay user autenticado en el contexto React.
+    // Acepta array o objeto
+    function rspToArray(rsp) {
+        return Array.isArray(rsp) ? rsp : rsp ? [rsp] : [];
+    }
+
+    // 🔐 Política:
     const needAuth = embed || !user;
 
     // Helpers expuestos al MicButton
@@ -335,16 +339,10 @@ export default function ChatUI({
         [postBadge]
     );
 
-    // Nota: acepta tanto array como respuesta simple
-    function rspToArray(rsp) {
-        return Array.isArray(rsp) ? rsp : rsp ? [rsp] : [];
-    }
-
     // Pipeline → Rasa (con gate de auth)
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
 
-        // 🔐 Gate: si requiere auth y no hay token, pedirlo al launcher antes de enviar
         if (needAuth && !authToken && window.parent && window.parent !== window) {
             try {
                 window.parent.postMessage({ type: "auth:needed" }, parentOrigin);
@@ -364,16 +362,16 @@ export default function ChatUI({
                 text,
                 sender: userId || undefined,
                 metadata: { url: typeof location !== "undefined" ? location.href : undefined },
-                token: authToken || undefined, // ← inyecta token si existe
+                token: authToken || undefined,
             });
             const botMsgs = normalizeRasaItems(rspToArray(rsp));
             setMessages((m) => [...m, ...botMsgs]);
 
-            // 🔔 incrementar no leídos (el parent lo verá en el badge)
             const inc = botMsgs.length || 1;
             unreadRef.current = Math.max(0, unreadRef.current + inc);
             postBadge(unreadRef.current);
         } catch (e) {
+            // eslint-disable-next-line no-console
             console.error(e);
             setError(e?.message || "Error al enviar el mensaje");
             setMessages((m) => [
@@ -425,14 +423,14 @@ export default function ChatUI({
 
     const meLabel = user?.email || user?.nombre || user?.name || "Tu cuenta";
 
-    // Lee persona/lang desde la URL para el MicButton (audio)
+    // persona/lang para el MicButton (audio)
     const qs = new URLSearchParams(
         typeof window !== "undefined" ? window.location.search : ""
     );
     const personaFromQS = qs.get("persona") || null;
     const langFromQS = qs.get("lang") || "es";
 
-    // ✅ NUEVO: onSubmit para el form del composer (mantiene Enter + botón submit)
+    // ✅ NUEVO: onSubmit para el form del composer
     const onSubmitComposer = useCallback(
         (e) => {
             e.preventDefault();
@@ -440,7 +438,17 @@ export default function ChatUI({
                 handleSend();
             }
         },
-        [sending, input] // handleSend ya usa input actual
+        [sending, input]
+    );
+
+    // Accionador para QuickActions → reusa pipeline del chat
+    const handleQuickAction = useCallback(
+        (payload, title) => {
+            if (!payload) return;
+            sendToRasa({ text: payload, displayAs: title });
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        []
     );
 
     return (
@@ -456,6 +464,11 @@ export default function ChatUI({
                 aria-live="polite"
             >
                 <div className="max-w-3xl mx-auto space-y-3">
+                    {/* Panel de acciones rápidas */}
+                    {SHOW_QUICK_ACTIONS && (
+                        <QuickActions onAction={handleQuickAction} show={true} />
+                    )}
+
                     {messages.map((m) => {
                         const isUser = m.role === "user";
                         const bubbleCls = isUser
@@ -670,7 +683,7 @@ export default function ChatUI({
                         data-testid="chat-input"
                     />
 
-                    {/* 👤 Avatar del usuario en la barra de entrada (fallback con ícono, sin iniciales) */}
+                    {/* 👤 Avatar del usuario en la barra de entrada */}
                     <IconTooltip label={meLabel} side="top">
                         <div className="shrink-0">
                             <UserAvatar user={user} size={28} />

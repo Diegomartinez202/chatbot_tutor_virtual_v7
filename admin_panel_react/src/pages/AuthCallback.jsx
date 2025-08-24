@@ -31,13 +31,18 @@ export default function AuthCallback() {
                 return;
             }
             try {
-                // Establece token en axios y valida perfil
+                // 1) Establece token en axios y storage
                 await loginWithToken(token);
 
-                // Mantiene tu estado global (AuthContext) intacto
+                // 2) Refleja token en AuthContext (tu estado global actual)
                 await login(token);
 
-                // Decide ruta por rol
+                // 3) Limpia el token del URL (seguridad/UX)
+                try {
+                    window.history.replaceState({}, "", "/auth/callback");
+                } catch { }
+
+                // 4) Decide ruta por rol
                 let role = "usuario";
                 try {
                     const profile = await apiMe();

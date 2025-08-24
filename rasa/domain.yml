@@ -27,6 +27,7 @@ intents:
   - affirm
   - deny
   - fallback
+  - enviar_soporte      # ← añadido para manejar /enviar_soporte{...}
 
 entities:
   - email
@@ -220,10 +221,11 @@ actions:
   - action_enviar_correo
   - action_conectar_humano
   - action_soporte_submit
-  - action_enviar_soporte     # ← añadida (implementada en actions.py)
+  - action_enviar_soporte       # ← ya contemplada
   - validate_soporte_form
   - validate_recovery_form
   - action_check_auth
+  - action_health_check         # ← NUEVA acción de health
 
 session_config:
   session_expiration_time: 60

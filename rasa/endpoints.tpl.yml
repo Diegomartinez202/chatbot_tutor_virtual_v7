@@ -1,2 +1,17 @@
+# endpoints.yml
+# Ubicación: raíz del proyecto Rasa
+
+# Servidor de acciones personalizadas (rasa/actions/actions.py)
 action_endpoint:
-  url: "${ACTION_SERVER_URL}"
+  # Valor por defecto local:
+  url: "http://localhost:5055/webhook"
+  # Si prefieres manejarlo por variable de entorno, puedes usar:
+  # url: ${ACTION_SERVER_URL}
+
+racker_store:
+  type: mongod
+  url: "mongodb://localhost:27017"  # o cadena completa (con usuario/clave si aplica)
+  db: "rasa"                        # base de datos
+  collection: "conversations"       # colección para los trackers
+  # username: "tu_usuario"          # si tu Mongo requiere auth
+  # password: "tu_password"

@@ -1,0 +1,9 @@
+version: "3.1"
+
+nlu:
+  - intent: enviar_soporte
+    examples: |
+      - Quiero contactar soporte
+      - Necesito ayuda con el acceso
+      - Enviar ticket a soporte
+      - Tengo un problema técnico y deseo reportarlo
