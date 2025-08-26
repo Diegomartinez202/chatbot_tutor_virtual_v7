@@ -35,6 +35,8 @@ from backend.routes import api_chat
 from app.routers import chat_audio
 # ✅ [NEW] Stats router (/api/stats/*)
 from backend.routes import stats  # <-- requiere backend/routes/stats.py
+from app.routes.media import router as media_router
+from backend.routes import auth_admin  
 
 # Redis opcional (rate limiting)
 try:
@@ -93,7 +95,8 @@ def create_app() -> FastAPI:
     app.include_router(exportaciones.router)
     app.include_router(helpdesk.router)
     app.include_router(api_chat.router)
-
+    app.include_router(media_router)
+    app.include_router(auth_admin.router)  
     # ✅ Chat router montado dos veces (compat): raíz y /api
     app.include_router(chat_router)                # /chat/*
     app.include_router(chat_router, prefix="/api") # /api/chat/*
@@ -345,3 +348,11 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
+
+@app.on_event("startup")
+async def _init_admin_indexes():
+    try:
+        from backend.routes.auth_admin import ensure_admin_indexes
+        await ensure_admin_indexes()
+    except Exception as e:
+        print(f"[admin] No se pudieron asegurar índices: {e}")

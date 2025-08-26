@@ -12,6 +12,8 @@ import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
 import AuthCallback from "@/pages/AuthCallback";
+import AdminRegisterPage from "@/pages/AdminRegisterPage";
+import AdminLoginPage from "@/pages/AdminLoginPage";
 
 // Páginas principales (protegidas)
 import Dashboard from "@/pages/Dashboard";
@@ -62,10 +64,8 @@ function PublicOnlyOrToken({ children }) {
     const search = new URLSearchParams(location.search || "");
     const hashParams = new URLSearchParams(String(location.hash || "").replace(/^#/, ""));
 
-    const tokenFromQuery =
-        search.get("access_token") || search.get("token") || search.get("t");
-    const tokenFromHash =
-        hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
+    const tokenFromQuery = search.get("access_token") || search.get("token") || search.get("t");
+    const tokenFromHash = hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
 
     const hasToken = Boolean(tokenFromQuery || tokenFromHash);
 
@@ -95,10 +95,7 @@ function lazyWithFallback(loader, name) {
 
 // Estas rutas son opcionales: si no tienes los archivos, el fallback evita errores.
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
-const ForgotPasswordPage = lazyWithFallback(
-    () => import("@/pages/ForgotPasswordPage"),
-    "Recuperar contraseña"
-);
+const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
 
 export default function App() {
     return (
@@ -146,9 +143,8 @@ export default function App() {
                     }
                 />
 
-                {/* 💬 Chat normal */}
+                {/* 💬 Chat normal y variantes embed/widget */}
                 <Route path="/chat" element={<ChatPage />} />
-                {/* Embed / widget (sin chrome) */}
                 <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
                 <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
                 <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
@@ -273,6 +269,24 @@ export default function App() {
                                 <IntentosFallidosPage />
                             </RequireRole>
                         </ProtectedRoute>
+                    }
+                />
+
+                {/* 🆕 Admin: rutas públicas de registro/login del panel */}
+                <Route
+                    path="/admin/register"
+                    element={
+                        <PublicOnlyRoute>
+                            <AdminRegisterPage />
+                        </PublicOnlyRoute>
+                    }
+                />
+                <Route
+                    path="/admin/login"
+                    element={
+                        <PublicOnlyRoute>
+                            <AdminLoginPage />
+                        </PublicOnlyRoute>
                     }
                 />
 

@@ -16,6 +16,9 @@ import { connectWS } from "@/services/chat/connectWS";
 // Harness QA (solo se muestra si el flag lo permite)
 import Harness from "@/pages/Harness";
 
+// ⚙️ Menú de configuración (accesibilidad: idioma/tema, salir, accesos admin/SSO, etc.)
+import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
+
 /**
  * Página completa del chat.
  * - Ruta /chat (con o sin login según VITE_CHAT_REQUIRE_AUTH) y modo embed (?embed=1)
@@ -66,7 +69,10 @@ export default function ChatPage({
             // Log suave para ayudar a depurar 404/URLs en desarrollo
             if (import.meta.env.MODE !== "production") {
                 const restUrl = import.meta.env.VITE_CHAT_REST_URL || "(no definido)";
-                const rasaRest = import.meta.env.VITE_RASA_REST_URL || "(no definido)";
+                const rasaRest =
+                    import.meta.env.VITE_RASA_REST_URL ||
+                    import.meta.env.VITE_RASA_REST ||
+                    "(no definido)";
                 const wsUrl = import.meta.env.VITE_RASA_WS_URL || "(no definido)";
                 // eslint-disable-next-line no-console
                 console.info(
@@ -127,7 +133,11 @@ export default function ChatPage({
                         <Bot className="w-6 h-6 text-indigo-600" />
                         <h1 className="text-2xl font-bold">{title}</h1>
                     </div>
-                    <ChatbotStatusMini status={status} />
+                    <div className="flex items-center gap-2">
+                        <ChatbotStatusMini status={status} />
+                        {/* ⚙️ Menú de configuración */}
+                        <ChatConfigMenu />
+                    </div>
                 </div>
             )}
 
