@@ -29,25 +29,26 @@ from backend.routes import router as api_router
 from backend.routes import exportaciones
 from app.routers import admin_failed
 from backend.routes import helpdesk
-from backend.routes.chat import chat_router  # expone /chat, /chat/health, /chat/debug
+from backend.routes.chat import chat_router  # /chat, /chat/health, /chat/debug
 from backend.routes import api_chat
-# ✅ [NEW] Audio → Rasa + logs (Mongo)
 from app.routers import chat_audio
-# ✅ [NEW] Stats router (/api/stats/*)
-from backend.routes import stats  # <-- requiere backend/routes/stats.py
+from backend.routes import stats
 from app.routes.media import router as media_router
-from backend.routes import auth_admin  
 
-# Redis opcional (rate limiting)
+# ✅ Tu router legacy (se mantiene)
+from backend.routes import auth_admin          # /api/admin (legacy)
+
+# ✅ Nuevos routers v2 (no chocan con legacy)
+from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
+from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
+
+# Redis opcional
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
 except Exception:
     aioredis = None
 
-# === Paths útiles (solo por si aún usas estáticos del backend para descargas) ===
 STATIC_DIR = Path(settings.static_dir).resolve()
-
-# === Logger de módulo ===
 setup_logging()
 log = get_logger(__name__)
 
@@ -80,36 +81,37 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 🔎 Request-ID para trazabilidad
+    # 🔎 Request-ID
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
 
-    # ➕ Middleware IP/UA centralizado
+    # ➕ Middleware IP/UA
     app.middleware("http")(request_meta_middleware)
 
-    # 📁 Estáticos propios del backend (descargas/exportaciones, si las tienes)
+    # 📁 Estáticos
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # 🔀 Rutas API agregadas
+    # 🔀 Rutas API principales
     app.include_router(api_router, prefix="/api")
     app.include_router(admin_failed.router)
     app.include_router(exportaciones.router)
     app.include_router(helpdesk.router)
     app.include_router(api_chat.router)
     app.include_router(media_router)
-    app.include_router(auth_admin.router)  
-    # ✅ Chat router montado dos veces (compat): raíz y /api
-    app.include_router(chat_router)                # /chat/*
-    app.include_router(chat_router, prefix="/api") # /api/chat/*
+    app.include_router(stats.router)          # solo una vez
 
-    # ✅ [NEW] Audio → Rasa + logs (Mongo)
-    app.include_router(chat_audio.router)          # /api/chat/audio
+    # 🔐 Admin (legacy y v2 conviven)
+    app.include_router(auth_admin.router)     # ⬅️ /api/admin  (NO TOCAR)
+    app.include_router(admin_auth.router)     # ⬅️ /api/admin2 (MEJORAS)
+    app.include_router(admin_users.router)    # ⬅️ /api/admin/users (gestión)
 
-    # ✅ [NEW] Exponer /api/stats (summary/series/confusion/latency)
-    app.include_router(stats.router)
+    # 💬 Chat doble montaje (compat)
+    app.include_router(chat_router)                 # /chat/*
+    app.include_router(chat_router, prefix="/api")  # /api/chat/*
 
-    # ─────────────────────────────────────────
-    # 🔒 CSP (embebidos) — override por EMBED_ALLOWED_ORIGINS, fallback a settings.frame_ancestors
-    # ─────────────────────────────────────────
+    # 🎙️ Audio
+    app.include_router(chat_audio.router)           # /api/chat/audio
+
+    # 🔒 CSP (embebidos)
     @app.middleware("http")
     async def csp_headers(request: Request, call_next):
         resp: Response = await call_next(request)
@@ -117,18 +119,18 @@ def create_app() -> FastAPI:
         env_anc = _parse_csv_or_space(raw_env)
         ancestors = env_anc if env_anc else (settings.frame_ancestors or ["'self'"])
         resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(ancestors)};"
-        resp.headers["X-Frame-Options"] = "SAMEORIGIN"  # compat
+        resp.headers["X-Frame-Options"] = "SAMEORIGIN"
         return resp
 
-    # 🧠 Middlewares personalizados (orden conservado)
+    # 🧠 Middlewares personalizados
     app.add_middleware(AccessLogMiddleware)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(AuthMiddleware)
 
-    # 🌐 Base pública del frontend (donde vive Vite/public)
+    # 🌐 Base pública frontend
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
 
-    # 🖼️ Redirecciones de iconos/manifest → frontend (assets en public/)
+    # 🔁 Redirects de assets al frontend
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
         if FRONT_BASE:
@@ -165,12 +167,19 @@ def create_app() -> FastAPI:
             return RedirectResponse(url=f"{FRONT_BASE}/bot-loading.png", status_code=302)
         return Response(status_code=404)
 
+    # ✅ Startup: índices de admin v2 (no interfiere con legacy)
+    @app.on_event("startup")
+    async def _ensure_admin2_idx():
+        try:
+            await admin_auth.ensure_admin_indexes()
+        except Exception as e:
+            log.error(f"No se pudo asegurar índice de usuarios (v2): {e}")
+
     # 📄 Manifest → frontend
     @app.get("/site.webmanifest", include_in_schema=False)
     async def manifest():
         if FRONT_BASE:
             return RedirectResponse(url=f"{FRONT_BASE}/site.webmanifest", status_code=302)
-        # Fallback mínimo si no hay FRONT_BASE
         data = {
             "name": "Chatbot Tutor Virtual",
             "short_name": "TutorBot",
@@ -188,17 +197,13 @@ def create_app() -> FastAPI:
         }
         return JSONResponse(data, media_type="application/manifest+json")
 
-    # ✅ /chat-embed.html ahora lo sirve el frontend → redirige acá
+    # Legacy → frontend
     @app.get("/chat-embed.html", include_in_schema=False)
     async def chat_embed_alias():
         if FRONT_BASE:
             return RedirectResponse(url=f"{FRONT_BASE}/chat-embed.html", status_code=302)
-        return JSONResponse(
-            {"detail": "chat-embed vive en el frontend (public/chat-embed.html). Configura FRONTEND_SITE_URL."},
-            status_code=501,
-        )
+        return JSONResponse({"detail": "chat-embed vive en el frontend"}, status_code=501)
 
-    # ✅ Redirects 301 legacy → launcher moderno del frontend
     @app.get("/widget.html", include_in_schema=False)
     async def legacy_widget_alias():
         if FRONT_BASE:
@@ -238,7 +243,7 @@ def create_app() -> FastAPI:
     async def health():
         return {"ok": True}
 
-    # 🚨 Logs de arranque
+    # Logs de arranque
     if settings.debug:
         log.warning("🛠️ MODO DEBUG ACTIVADO. No recomendado para producción.")
     else:
@@ -247,11 +252,9 @@ def create_app() -> FastAPI:
     if not settings.secret_key or len(settings.secret_key) < 32:
         log.warning('⚠️ SECRET_KEY es débil o inexistente. Genera una con: python -c "import secrets; print(secrets.token_urlsafe(64))"')
 
-    log.info("🚀 FastAPI montado correctamente. Rutas disponibles en /api y /chat")
+    log.info("🚀 FastAPI montado correctamente. Rutas en /api, /chat y /api/admin2")
 
-    # ─────────────────────────────────────────
-    # 🚦 Rate limiting: memory | redis (por ENV)
-    # ─────────────────────────────────────────
+    # 🚦 Rate limiting
     _RATE_BUCKETS: DefaultDict[str, Deque[float]] = defaultdict(deque)
     redis_client = None
 
@@ -259,25 +262,24 @@ def create_app() -> FastAPI:
     async def _init_rate_limiter():
         nonlocal redis_client
         if settings.app_env == "test":
-            # Desactiva RL en tests
             object.__setattr__(settings, "rate_limit_enabled", False)
         if not settings.rate_limit_enabled:
             return
         if settings.rate_limit_backend == "redis":
             if aioredis is None:
-                log.error("RateLimit: 'redis' seleccionado pero falta librería 'redis'. Usando 'memory'.")
+                log.error("RateLimit: falta librería 'redis'. Usando 'memory'.")
                 object.__setattr__(settings, "rate_limit_backend", "memory")
                 return
             if not settings.redis_url:
-                log.error("RateLimit: 'redis' seleccionado pero REDIS_URL no está configurada. Usando 'memory'.")
+                log.error("RateLimit: falta REDIS_URL. Usando 'memory'.")
                 object.__setattr__(settings, "rate_limit_backend", "memory")
                 return
             try:
                 redis_client = aioredis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
                 await redis_client.ping()
-                log.info("RateLimit: backend Redis inicializado correctamente.")
+                log.info("RateLimit: backend Redis OK.")
             except Exception as e:
-                log.error(f"RateLimit: no se pudo conectar a Redis ({e}). Usando 'memory'.")
+                log.error(f"RateLimit Redis error: {e}. Fallback 'memory'.")
                 object.__setattr__(settings, "rate_limit_backend", "memory")
 
     @app.on_event("shutdown")
@@ -289,7 +291,7 @@ def create_app() -> FastAPI:
             except Exception:
                 pass
 
-    # ✅ [NEW] Startup: asegurar índices de voice_logs/voice_audio_refs
+    # Índices de voz
     @app.on_event("startup")
     async def _init_voice_indexes():
         try:
@@ -348,11 +350,3 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
-
-@app.on_event("startup")
-async def _init_admin_indexes():
-    try:
-        from backend.routes.auth_admin import ensure_admin_indexes
-        await ensure_admin_indexes()
-    except Exception as e:
-        print(f"[admin] No se pudieron asegurar índices: {e}")

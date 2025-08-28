@@ -1,5 +1,8 @@
+# backend/db/mongodb.py
+from __future__ import annotations
+
 from pymongo import MongoClient, errors
-from backend.config.settings import settings  # ✅ Importar desde settings.py centralizado
+from backend.config.settings import settings  # ✅ Config centralizada
 
 # === Configuración de conexión ===
 MONGO_URI = settings.mongo_uri
@@ -16,9 +19,12 @@ try:
     client.admin.command("ping")
     print(f"✅ Conexión exitosa a MongoDB: {MONGO_URI}")
 
-    # 🟩 Crear índice único en email
-    client[MONGO_DB_NAME]["users"].create_index("email", unique=True)
-    print("✅ Índice único en 'email' creado/verificado")
+    # 🟩 Índice único en email (users)
+    try:
+        client[MONGO_DB_NAME]["users"].create_index("email", unique=True)
+        print("✅ Índice único en 'email' creado/verificado")
+    except Exception as idx_e:
+        print(f"⚠️ No se pudo crear/verificar índice de email: {idx_e}")
 
 except errors.ServerSelectionTimeoutError as e:
     print("❌ Error: No se pudo conectar a MongoDB (timeout)")
@@ -29,7 +35,8 @@ except Exception as e:
     print(e)
     client = None
 
-# 📦 Función para obtener la base de datos
+
+# 📦 DB handle
 def get_database():
     if client is None:
         raise RuntimeError("❌ Conexión a la base de datos fallida.")
