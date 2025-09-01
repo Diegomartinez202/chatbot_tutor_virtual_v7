@@ -1,8 +1,34 @@
 # backend/config/settings.py
-from pydantic import BaseSettings, Field, EmailStr, validator
-from pydantic_settings import SettingsConfigDict
-from typing import List, Optional, Literal
+from __future__ import annotations
+
+import os
+import os.path
 import json
+import logging
+from typing import List, Optional, Literal
+
+from pydantic import Field, EmailStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _resolve_env_file() -> str:
+    """
+    Permite usar:
+      - ENV_FILE=/ruta/custom.env  (toma prioridad)
+      - .env (si existe)
+      - .env.<APP_ENV>  (fallback: .env.dev)
+    """
+    explicit = os.getenv("ENV_FILE")
+    if explicit and os.path.exists(explicit):
+        return explicit
+
+    if os.path.exists(".env"):
+        return ".env"
+
+    app_env = (os.getenv("APP_ENV") or "dev").strip()
+    candidate = f".env.{app_env}"
+    return candidate
+
 
 class Settings(BaseSettings):
     """
@@ -10,8 +36,12 @@ class Settings(BaseSettings):
     Incluye soporte para JWT (HS y RS), MongoDB, Rasa, SMTP, S3,
     CSP/embebido, rate limiting, helpdesk, etc.
     """
-    # === Configuración general de pydantic-settings ===
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
+    # === Configuración general (pydantic-settings v2) ===
+    model_config = SettingsConfigDict(
+        env_file=_resolve_env_file(),
+        case_sensitive=False,
+    )
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")
@@ -85,8 +115,11 @@ class Settings(BaseSettings):
     helpdesk_webhook: Optional[str] = Field(None, alias="HELPDESK_WEBHOOK")
     helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
-    # ───── Normalizadores CSV/JSON ─────
-    @validator("allowed_origins", "frame_ancestors", pre=True)
+    # ─────────────────────────────────────────────────────────────
+    # Normalizadores CSV/JSON → lista (para allowed_origins, frame_ancestors)
+    # ─────────────────────────────────────────────────────────────
+    @field_validator("allowed_origins", "frame_ancestors", mode="before")
+    @classmethod
     def _csv_or_json(cls, v):
         if v is None:
             return v
@@ -106,25 +139,90 @@ class Settings(BaseSettings):
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
 
+    # ─────────────────────────────────────────────────────────────
+    # Validaciones condicionales (desacoples de infraestructura)
+    # ─────────────────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def _validate_conditional_requirements(self):
+        # Rate limit: si se usa Redis, REDIS_URL es obligatorio
+        if (self.rate_limit_enabled and self.rate_limit_backend == "redis" and not self.redis_url):
+            raise ValueError("Se requiere REDIS_URL cuando RATE_LIMIT_BACKEND='redis'")
+
+        # JWT: si alg es RS*, exigir JWT_PUBLIC_KEY; si HS*, exigir SECRET_KEY
+        alg = (self.jwt_algorithm or "").upper().strip()
+        if alg.startswith("RS"):
+            if not (self.jwt_public_key and self.jwt_public_key.strip()):
+                raise ValueError("Se requiere JWT_PUBLIC_KEY cuando JWT_ALGORITHM es RS* (p.ej., RS256)")
+        elif alg.startswith("HS"):
+            if not (self.secret_key and self.secret_key.strip()):
+                raise ValueError("Se requiere SECRET_KEY cuando JWT_ALGORITHM es HS* (p.ej., HS256)")
+        else:
+            raise ValueError(f"JWT_ALGORITHM no soportado: {self.jwt_algorithm!r}. Usa HS* o RS*.")
+
+        return self
+
+    # ─────────────────────────────────────────────────────────────
+    # Helpers/Compat
+    # ─────────────────────────────────────────────────────────────
     @property
     def s3_enabled(self) -> bool:
         return bool(
             self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key
         )
 
-    # ⚙️ [ADDED] Compat: algunos módulos esperan 'rasa_rest_base'
+    # Compat: algunos módulos esperan 'rasa_rest_base'
     @property
     def rasa_rest_base(self) -> str:
-        """
-        Compatibilidad con módulos que usen settings.rasa_rest_base.
-        En este proyecto, es equivalente a RASA_URL (REST API de Rasa).
-        """
+        """Equivalente a RASA_URL en este proyecto."""
         return self.rasa_url
 
-    # ⚙️ [ADDED] Por si algún middleware requiere lista garantizada
+    # Lista garantizada para middlewares CORS
     @property
     def allowed_origins_list(self) -> List[str]:
         return list(self.allowed_origins or [])
 
+    # CSP básico sugerido (puede ajustarse desde Nginx/Middleware)
+    def build_csp(self) -> str:
+        """
+        Devuelve una string CSP con frame-ancestors calculado desde settings.
+        Ajusta connect-src/img-src/script-src según necesidad del proyecto.
+        """
+        fa = " ".join(self.frame_ancestors or ["'self'"])
+        # Nota: completa connect-src con tus orígenes reales (API, Rasa, S3, etc.)
+        return (
+            "default-src 'self'; "
+            f"frame-ancestors {fa}; "
+            "img-src 'self' data: blob:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-eval'; "
+            "connect-src 'self' *; "
+            "frame-src 'self' *; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self' *;"
+        )
+
+
 # Instancia global de settings
 settings = Settings()
+
+
+# ─────────────────────────────────────────────────────────────
+# Logging centralizado (helper opcional)
+# ─────────────────────────────────────────────────────────────
+def configure_logging(level: Optional[int] = None) -> None:
+    """
+    Configura logging con archivo + consola usando settings.log_dir.
+    Si no se pasa nivel, usa DEBUG en dev y INFO en test/prod.
+    """
+    os.makedirs(settings.log_dir, exist_ok=True)
+    log_level = level if level is not None else (logging.DEBUG if settings.debug else logging.INFO)
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(settings.log_dir, "app.log")),
+            logging.StreamHandler()
+        ],
+    )

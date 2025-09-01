@@ -1,51 +1,64 @@
-# backend/db/mongodb.py
+import os
+from dotenv import load_dotenv
 
-from pymongo import MongoClient, errors
-from backend.config.settings import settings  # ✅ Configuración centralizada
+# Cargar variables desde el archivo .env
+load_dotenv()
 
-MONGO_URI = settings.mongo_uri
-MONGO_DB_NAME = settings.mongo_db_name
+# URI de conexión a MongoDB
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 
-try:
-    client = MongoClient(
-        MONGO_URI,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
-        socketTimeoutMS=5000,
-        retryWrites=True,
-    )
-    client.admin.command("ping")
-    print(f"✅ Conexión exitosa a MongoDB: {MONGO_URI}")
+# Nombre de la base de datos
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "chatbot_tutor")
 
-    # 🟩 Crear índice único en email
-    client[MONGO_DB_NAME]["users"].create_index("email", unique=True)
-    print("✅ Índice único en 'email' creado/verificado")
+# Secreto para generar y validar tokens JWT
+JWT_SECRET = os.getenv("JWT_SECRET", "clave-super-secreta")
 
-except errors.ServerSelectionTimeoutError as e:
-    print("❌ Error: No se pudo conectar a MongoDB (timeout)")
-    print(e)
-    client = None
-except Exception as e:
-    print("⚠️ Error general al conectar con MongoDB:")
-    print(e)
-    client = None
+# Duración del token en minutos
+JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", 60))
 
-def get_database():
-    if client is None:
-        raise RuntimeError("❌ Conexión a la base de datos fallida.")
-    return client[MONGO_DB_NAME]
+# Carpeta donde se encuentran los archivos de entrenamiento de Rasa
+RASA_DATA_PATH = os.getenv("RASA_DATA_PATH", "../rasa/data/nlu.yml")
+RASA_DOMAIN_PATH = os.getenv("RASA_DOMAIN_PATH", "../rasa/domain.yml")
 
-def get_users_collection():
-    return get_database()["users"]
+# Comando para entrenar el bot con Rasa
+RASA_TRAIN_COMMAND = os.getenv("RASA_TRAIN_COMMAND", "rasa train")
 
-def get_logs_collection():
-    return get_database()["logs"]
+# Ruta del archivo de salida del modelo entrenado
+RASA_MODEL_PATH = os.getenv("RASA_MODEL_PATH", "../rasa/models")
 
-def get_stats_collection():
-    return get_database()["statistics"]
+# URL del servidor de Rasa para enviar mensajes
+RASA_SERVER_URL = os.getenv("RASA_SERVER_URL", "http://localhost:5005/webhooks/rest/webhook")
 
-def get_intents_collection():
-    return get_database()["intents"]
 
-def get_test_logs_collection():
-    return get_database()["test_logs"]
+# 🔁 Cargar variables desde el archivo .env
+load_dotenv()
+
+# ================================
+# ⚙️ Variables de configuración
+# ================================
+
+# 📦 MongoDB
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "chatbot_tutor")
+
+# 🔐 JWT
+JWT_SECRET = os.getenv("JWT_SECRET", "clave-super-secreta")
+JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", 60))
+
+# 🤖 Rasa Bot
+RASA_DATA_PATH = os.getenv("RASA_DATA_PATH", "../rasa/data/nlu.yml")
+RASA_DOMAIN_PATH = os.getenv("RASA_DOMAIN_PATH", "../rasa/domain.yml")
+RASA_TRAIN_COMMAND = os.getenv("RASA_TRAIN_COMMAND", "rasa train")
+RASA_MODEL_PATH = os.getenv("RASA_MODEL_PATH", "../rasa/models")
+RASA_SERVER_URL = os.getenv("RASA_SERVER_URL", "http://localhost:5005/webhooks/rest/webhook")
+
+# 📧 Configuración de correo SMTP
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+EMAIL_TO = os.getenv("EMAIL_TO")
+
+# 👤 Correo del administrador
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
