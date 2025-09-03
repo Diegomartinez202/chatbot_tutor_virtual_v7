@@ -81,3 +81,67 @@ upload:
 all-tests:
 	@echo "🧪 Ejecutando test_all.sh completo..."
 	bash test_all.sh
+
+# ====== Config ======
+DC := docker compose
+PROJECT := tutorbot-local
+
+# Archivos compose (ajusta si cambias nombres)
+BASE := -f docker-compose.yml
+DEV  := -f docker-compose.override.yml
+NGINX:= -f docker-compose.nginx.yml
+REDIS:= -f docker-compose.redis.yml
+
+# ====== Ayuda ======
+.PHONY: help
+help:
+	@echo "Targets disponibles:"
+	@echo "  build-dev        - Build de servicios (con override DEV)"
+	@echo "  up-dev           - Levanta stack DEV (hot-reload) [backend/rasa/actions]"
+	@echo "  build-prod       - Build de servicios (base + nginx)"
+	@echo "  up-prod          - Levanta stack PROD (base + nginx)"
+	@echo "  up-redis         - Suma Redis y reinicia backend con RATE_LIMIT_BACKEND=redis"
+	@echo "  up-nginx         - (re)levanta sólo nginx sobre el stack base"
+	@echo "  logs             - Logs en vivo de todos los servicios"
+	@echo "  ps               - Estado de servicios"
+	@echo "  down             - Baja todo (incl. nginx/redis si están cargados)"
+	@echo "  prune            - Limpieza de recursos dangling"
+
+# ====== DEV ======
+.PHONY: build-dev up-dev
+build-dev:
+	$(DC) $(BASE) $(DEV) build
+
+up-dev:
+	$(DC) $(BASE) $(DEV) up -d
+
+# ====== PROD ======
+.PHONY: build-prod up-prod
+build-prod:
+	$(DC) $(BASE) $(NGINX) build
+
+up-prod:
+	$(DC) $(BASE) $(NGINX) up -d
+
+# ====== Extras ======
+.PHONY: up-redis up-nginx
+up-redis:
+	$(DC) $(BASE) $(REDIS) up -d redis backend
+
+up-nginx:
+	$(DC) $(BASE) $(NGINX) up -d nginx
+
+# ====== Utilidades ======
+.PHONY: logs ps down prune
+logs:
+	$(DC) $(BASE) logs -f --tail=100
+
+ps:
+	$(DC) $(BASE) ps
+
+down:
+	# Intenta bajar todo: base + dev + nginx + redis (si existen)
+	-$(DC) $(BASE) $(DEV) $(NGINX) $(REDIS) down
+
+prune:
+	docker system prune -f

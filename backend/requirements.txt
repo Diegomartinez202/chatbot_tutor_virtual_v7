@@ -24,3 +24,9 @@ redis>=5.0
 # --- (Opcional) STT real ---
 # faster-whisper==1.0.0
 # NOTA: para faster-whisper suele requerirse ffmpeg instalado en el sistema.
+
+python-dotenv==1.0.1
+redis>=5.0
+# (opcional si vas a manipular imágenes/logs PDF)
+pdf2image==1.17.0
+pillow==11.1.0

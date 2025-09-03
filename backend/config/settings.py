@@ -7,8 +7,20 @@ import json
 import logging
 from typing import List, Optional, Literal
 
-from pydantic import Field, EmailStr, field_validator, model_validator
+from pydantic import Field, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:
+    # pydantic v2
+    from pydantic import field_validator, model_validator
+    _V2 = True
+except Exception:
+    # compat v1 (no debería pasar en tu stack, pero no rompemos)
+    from pydantic import validator as field_validator  # type: ignore
+    def model_validator(*args, **kwargs):  # type: ignore
+        def _decor(f): return f
+        return _decor
+    _V2 = False
 
 
 def _resolve_env_file() -> str:
@@ -37,7 +49,7 @@ class Settings(BaseSettings):
     CSP/embebido, rate limiting, helpdesk, etc.
     """
 
-    # === Configuración general (pydantic-settings v2) ===
+    # === Configuración general ===
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
@@ -116,7 +128,7 @@ class Settings(BaseSettings):
     helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
     # ─────────────────────────────────────────────────────────────
-    # Normalizadores CSV/JSON → lista (para allowed_origins, frame_ancestors)
+    # Normalizadores CSV/JSON → lista
     # ─────────────────────────────────────────────────────────────
     @field_validator("allowed_origins", "frame_ancestors", mode="before")
     @classmethod
@@ -140,7 +152,7 @@ class Settings(BaseSettings):
         return v
 
     # ─────────────────────────────────────────────────────────────
-    # Validaciones condicionales (desacoples de infraestructura)
+    # Validaciones condicionales
     # ─────────────────────────────────────────────────────────────
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
@@ -181,14 +193,9 @@ class Settings(BaseSettings):
     def allowed_origins_list(self) -> List[str]:
         return list(self.allowed_origins or [])
 
-    # CSP básico sugerido (puede ajustarse desde Nginx/Middleware)
+    # CSP básico sugerido (si lo quieres usar desde código)
     def build_csp(self) -> str:
-        """
-        Devuelve una string CSP con frame-ancestors calculado desde settings.
-        Ajusta connect-src/img-src/script-src según necesidad del proyecto.
-        """
         fa = " ".join(self.frame_ancestors or ["'self'"])
-        # Nota: completa connect-src con tus orígenes reales (API, Rasa, S3, etc.)
         return (
             "default-src 'self'; "
             f"frame-ancestors {fa}; "
@@ -208,7 +215,7 @@ settings = Settings()
 
 
 # ─────────────────────────────────────────────────────────────
-# Logging centralizado (helper opcional)
+# Logging centralizado (helper)
 # ─────────────────────────────────────────────────────────────
 def configure_logging(level: Optional[int] = None) -> None:
     """
@@ -222,7 +229,7 @@ def configure_logging(level: Optional[int] = None) -> None:
         level=log_level,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
-            logging.FileHandler(os.path.join(settings.log_dir, "app.log")),
+            logging.FileHandler(os.path.join(settings.log_dir, "app.log"), encoding="utf-8"),
             logging.StreamHandler()
         ],
     )

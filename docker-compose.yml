@@ -22,7 +22,7 @@ services:
   rasa:
     build:
       context: ./rasa
-      dockerfile: Dockerfile   # (ok) ./rasa/Dockerfile
+      dockerfile: Dockerfile
     container_name: rasa
     restart: unless-stopped
     environment:
@@ -41,7 +41,7 @@ services:
   action-server:
     build:
       context: ./rasa_action_server
-      dockerfile: Dockerfile   # (ok) ./rasa_action_server/Dockerfile
+      dockerfile: Dockerfile
     container_name: action-server
     restart: unless-stopped
     ports:
@@ -55,22 +55,23 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile   # (ok) ./backend/Dockerfile
+      dockerfile: Dockerfile
+      # Si tu Dockerfile es multi-stage, puedes forzar:
+      # target: prod   # (usa override para dev con --reload)
     container_name: backend
     restart: unless-stopped
-    # Cargamos primero .env raíz (recomendado) y conservamos ./backend/.env (si lo tenías)
+    # Carga .env raíz (frontend/SSO) + .env específico del backend (si existe)
     env_file:
       - ./.env
       - ./backend/.env
     environment:
-      # 👉 Forzamos las URLs internas de Compose (no cambian tu lógica)
+      # 👉 URLs internas de la red de Compose (no cambian tu lógica)
       MONGO_URI: mongodb://mongo:27017/tutor_virtual
       MONGO_DB_NAME: tutor_virtual
       RASA_URL: http://rasa:5005
-      # Frontend (desde navegador) seguirá en http://localhost:8080
-      FRONTEND_SITE_URL: http://localhost:8080
-      # En backend se parsea CSV o JSON; dejamos JSON para evitar dudas
+      # Orígenes de frontend (panel/SPA). JSON válido (tu Settings acepta CSV/JSON)
       ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
+      FRONTEND_SITE_URL: http://localhost:8080
       APP_ENV: dev
       DEBUG: "true"
     depends_on:
@@ -80,7 +81,7 @@ services:
       - "8000:8000"
     networks:
       - app-net
-    # Si querés ver logs en host, descomenta y ajustá ruta de tu proyecto:
+    # (Opcional) Montar logs en host:
     # volumes:
     #   - ./backend/logs:/app/logs
 
@@ -90,13 +91,9 @@ services:
   admin:
     build:
       context: ./admin_panel_react
-      dockerfile: Dockerfile   # (ok) ./admin_panel_react/Dockerfile
+      dockerfile: Dockerfile
     container_name: admin
     restart: unless-stopped
-    # Si tu imagen del panel necesita variables de build/runtime, podés
-    # agregarlas aquí o en .env (Vite/ENV inyectadas en build).
-    # env_file:
-    #   - ./.env
     ports:
       - "8080:80"
     depends_on:
@@ -104,181 +101,37 @@ services:
     networks:
       - app-net
 
-  # ----------------------------------------------------------
-  # (Opcional) Redis para RATE_LIMIT_BACKEND=redis en backend
-  # ----------------------------------------------------------
-  # redis:
-  #   image: redis:7
-  #   container_name: redis
-  #   restart: unless-stopped
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     - app-net
-
-networks:
-  app-net:
-    driver: bridge
-
-volumes:
-  mongo-data:
-  
-services:
+  # ----------------------------------------
+  # 🌐 Nginx reverse proxy (/: Admin, /api: FastAPI, /rasa y /ws: Rasa)
+  # ----------------------------------------
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx
+    restart: unless-stopped
     depends_on:
       - backend
       - rasa
       - admin
     ports:
       - "80:80"
-      # - "443:443"  # si agregas TLS
+      # - "443:443"   # si agregas TLS
     volumes:
       - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
       # - ./ops/nginx/certs:/etc/nginx/certs:ro   # si usas TLS
     networks:
       - app-net
-- 
-
-version: "3.9"
-
-services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: dev          # ← usa el stage DEV del Dockerfile
-    environment:
-      APP_ENV: dev
-      DEBUG: "true"
-    command: sh -c "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
-    volumes:
-      - ./backend:/app/backend            # hot-reload del código
-      - ./backend/requirements.txt:/app/requirements.txt
-
-  rasa:
-    # Si tu imagen ya tiene entrypoint, no toques 'command'.
-    # Para correr Rasa "crudo" en local descomenta:
-    # command: sh -c "rasa run --enable-api --cors '*' --port 5005"
-    volumes:
-      - ./rasa:/app/rasa
-
-  action-server:
-    volumes:
-      - ./rasa:/app/rasa
-- 
-
-name: tutorbot-local
-version: "3.9"
-
-services:
-  # -------------------------
-  # 📦 MongoDB (persistente)
-  # -------------------------
-  mongo:
-    image: mongo:6
-    container_name: mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - app-net
-
-  # ------------------------------------
-  # 🧠 Rasa (Core/NLU) + REST en :5005
-  # ------------------------------------
-  rasa:
-    build:
-      context: ./rasa
-      dockerfile: Dockerfile
-    container_name: rasa
-    restart: unless-stopped
-    environment:
-      ACTION_SERVER_URL: http://action-server:5055/webhook
-      RASA_AUTOTRAIN: "true"
-    ports:
-      - "5005:5005"
-    depends_on:
-      - action-server
-    networks:
-      - app-net
-
-  # ---------------------------------------
-  # ⚙️ Rasa Action Server (custom actions)
-  # ---------------------------------------
-  action-server:
-    build:
-      context: ./rasa_action_server
-    container_name: action-server
-    restart: unless-stopped
-    ports:
-      - "5055:5055"
-    networks:
-      - app-net
-
-  # -------------------------------------
-  # 🐍 Backend FastAPI (API + Admin2)
-  # -------------------------------------
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: prod          # ← usa el stage PROD del Dockerfile
-    container_name: backend
-    restart: unless-stopped
-    # Carga .env raíz (frontend/SSO) + .env backend (si lo usas)
-    env_file:
-      - ./.env
-      - ./backend/.env
-    environment:
-      # 👉 Forzamos URLs internas del cluster Docker (no rompen tu lógica)
-      MONGO_URI: mongodb://mongo:27017/tutor_virtual
-      MONGO_DB_NAME: tutor_virtual
-      RASA_URL: http://rasa:5005
-      # Orígenes de frontend (panel/SPA). Usa JSON (tu settings lo parsea CSV/JSON).
-      ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
-      FRONTEND_SITE_URL: http://localhost:8080
-      APP_ENV: prod
-      DEBUG: "false"
-    depends_on:
-      - mongo
-      - rasa
-    ports:
-      - "8000:8000"
-    networks:
-      - app-net
-    # (Opcional) montar logs a host:
-    # volumes:
-    #   - ./backend/logs:/app/logs
-
-  # ----------------------------------------
-  # 🖥️ Admin Panel (React/Nginx) en :8080
-  # ----------------------------------------
-  admin:
-    build:
-      context: ./admin_panel_react
-      dockerfile: Dockerfile
-    container_name: admin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
-    networks:
-      - app-net
 
   # ----------------------------------------------------------
-  # (Opcional) Redis para RATE_LIMIT_BACKEND=redis en backend
+  # (Opcional) Redis si activas RATE_LIMIT_BACKEND=redis
   # ----------------------------------------------------------
   # redis:
-  #   image: redis:7
+  #   image: redis:7-alpine
   #   container_name: redis
-  #   restart: unless-stopped
+  #   command: ["redis-server","--appendonly","yes"]
   #   ports:
   #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
   #   networks:
   #     - app-net
 
@@ -288,4 +141,4 @@ networks:
 
 volumes:
   mongo-data:
-   
+  # redis-data:

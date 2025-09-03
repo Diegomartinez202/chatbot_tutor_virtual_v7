@@ -41,12 +41,24 @@ from backend.routes import auth_admin          # /api/admin (legacy)
 # ✅ Nuevos routers v2 (no chocan con legacy)
 from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
 from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
-
-# Redis opcional
+from backend.rate_limit import set_limiter 
+# Redis opcional (para rate-limit prod en builtin o SlowAPI)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
 except Exception:
     aioredis = None
+
+# (Opcional) SlowAPI para rate limiting por endpoint
+USE_SLOWAPI = (os.getenv("RATE_LIMIT_PROVIDER", "builtin").lower() == "slowapi")
+if USE_SLOWAPI:
+    try:
+        from slowapi import Limiter
+        from slowapi.util import get_remote_address
+        from slowapi.errors import RateLimitExceeded
+        from slowapi.middleware import SlowAPIMiddleware
+    except Exception as e:
+        # Si no está instalada, caemos a builtin sin romper el arranque
+        USE_SLOWAPI = False
 
 STATIC_DIR = Path(settings.static_dir).resolve()
 setup_logging()
@@ -54,12 +66,13 @@ log = get_logger(__name__)
 
 
 def _parse_csv_or_space(v: str):
+    """Convierte 'a,b' o 'a b' → ['a','b'] (limpiando vacíos)."""
     s = (v or "").strip()
     if not s:
         return []
     if "," in s:
         return [x.strip() for x in s.split(",") if x.strip()]
-    return s.split()
+    return [x.strip() for x in s.split() if x.strip()]
 
 
 def create_app() -> FastAPI:
@@ -72,10 +85,10 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # 🌐 CORS
+    # 🌐 CORS (una sola vez)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.allowed_origins,
+        allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -97,7 +110,7 @@ def create_app() -> FastAPI:
     app.include_router(helpdesk.router)
     app.include_router(api_chat.router)
     app.include_router(media_router)
-    app.include_router(stats.router)          # solo una vez
+    app.include_router(stats.router)  # solo una vez
 
     # 🔐 Admin (legacy y v2 conviven)
     app.include_router(auth_admin.router)     # ⬅️ /api/admin  (NO TOCAR)
@@ -111,9 +124,9 @@ def create_app() -> FastAPI:
     # 🎙️ Audio
     app.include_router(chat_audio.router)           # /api/chat/audio
 
-    # 🔒 CSP (embebidos)
+    # 🔒 CSP (embebidos) — configurable por ENV `EMBED_ALLOWED_ORIGINS`
     @app.middleware("http")
-    async def csp_headers(request: Request, call_next):
+    async def _csp_headers(request: Request, call_next):
         resp: Response = await call_next(request)
         raw_env = os.getenv("EMBED_ALLOWED_ORIGINS", "")
         env_anc = _parse_csv_or_space(raw_env)
@@ -254,7 +267,52 @@ def create_app() -> FastAPI:
 
     log.info("🚀 FastAPI montado correctamente. Rutas en /api, /chat y /api/admin2")
 
-    # 🚦 Rate limiting
+    # ─────────────────────────────────────────────────────────────
+    # Rate limiting: SlowAPI (opcional) o builtin (memoria/Redis)
+    # ─────────────────────────────────────────────────────────────
+    if settings.rate_limit_enabled and USE_SLOWAPI:
+        try:
+            storage_uri = settings.redis_url if settings.rate_limit_backend == "redis" else None
+            limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri)
+            app.state.limiter = limiter
+            app.add_middleware(SlowAPIMiddleware)
+            set_limiter(limiter) 
+            @app.exception_handler(RateLimitExceeded)
+            async def _slowapi_handler(request: Request, exc: RateLimitExceeded):
+                return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
+
+            # Ejemplo no invasivo (no toca tu negocio):
+            # Limite general de “max_requests / window_sec” en un endpoint de prueba
+            burst = max(1, int(settings.rate_limit_max_requests))
+            window = max(1, int(settings.rate_limit_window_sec))
+            @app.get("/api/_rate_test")
+            @limiter.limit(f"{burst}/{window} seconds")
+            def _rate_test():
+                return {"ok": True, "provider": "slowapi"}
+
+            log.info("RateLimit: SlowAPI activo.")
+        except Exception as e:
+            log.error(f"SlowAPI no disponible ({e}). Se usará builtin.")
+            # caemos a builtin
+            _activate_builtin_rate_limit(app)
+    else:
+        _activate_builtin_rate_limit(app)
+
+    return app
+
+
+def _activate_builtin_rate_limit(app: FastAPI) -> None:
+    """
+    Tu rate-limit original (memoria/Redis) aplicado solo a POST /chat y /api/chat.
+    Conservado íntegro y protegido contra doble registro.
+    """
+    if not settings.rate_limit_enabled:
+        return
+
+    # Evitar doble registro si ya existe el middleware
+    if any(getattr(m, "name", "") == "builtin_rate_limit" for m in getattr(app, "user_middleware", [])):
+        return
+
     _RATE_BUCKETS: DefaultDict[str, Deque[float]] = defaultdict(deque)
     redis_client = None
 
@@ -266,18 +324,14 @@ def create_app() -> FastAPI:
         if not settings.rate_limit_enabled:
             return
         if settings.rate_limit_backend == "redis":
-            if aioredis is None:
-                log.error("RateLimit: falta librería 'redis'. Usando 'memory'.")
+            if aioredis is None or not settings.redis_url:
                 object.__setattr__(settings, "rate_limit_backend", "memory")
-                return
-            if not settings.redis_url:
-                log.error("RateLimit: falta REDIS_URL. Usando 'memory'.")
-                object.__setattr__(settings, "rate_limit_backend", "memory")
+                log.error("RateLimit: Redis no disponible o sin REDIS_URL. Usando 'memory'.")
                 return
             try:
                 redis_client = aioredis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
                 await redis_client.ping()
-                log.info("RateLimit: backend Redis OK.")
+                log.info("RateLimit: backend Redis OK (builtin).")
             except Exception as e:
                 log.error(f"RateLimit Redis error: {e}. Fallback 'memory'.")
                 object.__setattr__(settings, "rate_limit_backend", "memory")
@@ -291,18 +345,8 @@ def create_app() -> FastAPI:
             except Exception:
                 pass
 
-    # Índices de voz
-    @app.on_event("startup")
-    async def _init_voice_indexes():
-        try:
-            from app.routers.chat_audio import ensure_indexes as _ensure_voice_indexes
-            await _ensure_voice_indexes()
-            log.info("voice_logs/voice_audio_refs: índices verificados.")
-        except Exception as e:
-            log.error(f"No se pudieron asegurar los índices de voz: {e}")
-
     @app.middleware("http")
-    async def rate_limit_middleware(request: Request, call_next):
+    async def builtin_rate_limit(request: Request, call_next):
         if not settings.rate_limit_enabled:
             return await call_next(request)
 
@@ -317,7 +361,7 @@ def create_app() -> FastAPI:
         max_req = settings.rate_limit_max_requests
 
         # Redis
-        if settings.rate_limit_backend == "redis" and 'redis_client' in locals() and redis_client:
+        if settings.rate_limit_backend == "redis" and redis_client:
             key = f"rl:{ip}"
             try:
                 async with redis_client.pipeline(transaction=True) as pipe:
@@ -326,22 +370,19 @@ def create_app() -> FastAPI:
                     count, _ = await pipe.execute()
                 if int(count) > max_req:
                     return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
+                return await call_next(request)
             except Exception as e:
-                log.error(f"RateLimit Redis error: {e}. Fallback a 'memory'.")
+                log.error(f"RateLimit Redis error: {e}. Fallback 'memory'.")
                 object.__setattr__(settings, "rate_limit_backend", "memory")
 
-        # Memory
-        if settings.rate_limit_backend == "memory":
-            dq = _RATE_BUCKETS[ip]
-            while dq and (now - dq[0]) > window:
-                dq.popleft()
-            if len(dq) >= max_req:
-                return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
-            dq.append(now)
-
+        # Memoria
+        dq = _RATE_BUCKETS[ip]
+        while dq and (now - dq[0]) > window:
+            dq.popleft()
+        if len(dq) >= max_req:
+            return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
+        dq.append(now)
         return await call_next(request)
-
-    return app
 
 
 app = create_app()
