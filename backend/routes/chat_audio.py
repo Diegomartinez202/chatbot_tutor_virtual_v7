@@ -7,13 +7,20 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from pydantic import BaseModel
 
 import aiohttp
 import motor.motor_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
+
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
+# ✅ Request-ID para trazabilidad extremo a extremo
+from backend.middleware.request_id import get_request_id
+# ✅ JWT → claims para adjuntar en metadata.auth (si tu middleware/SSO está activo)
+from backend.services.jwt_service import decode_token
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -124,17 +131,27 @@ async def _transcribe(blob: bytes, mime: str, lang: str, tmp_path: Optional[str]
 # ─────────────────────────────────────────────────────────────
 # Rasa REST: usa cliente si existe, si no HTTP directo
 # ─────────────────────────────────────────────────────────────
-async def _send_to_rasa(sender: str, message: str, metadata: Dict[str, Any]) -> Any:
+async def _send_to_rasa(sender: str, message: str, metadata: Dict[str, Any], request_id: Optional[str] = None) -> Any:
     # 1) Cliente propio si existe
     try:
         from app.services.rasa_client import send_to_rasa  # type: ignore
+        # Idealmente tu cliente ya propaga X-Request-ID internamente
         return await send_to_rasa(sender=sender, message=message, metadata=metadata)
     except Exception:
         pass
 
     # 2) Fallback HTTP directo
+    headers = {"Content-Type": "application/json"}
+    if request_id:
+        headers["X-Request-ID"] = request_id
+
     async with aiohttp.ClientSession() as s:
-        async with s.post(RASA_REST_URL, json={"sender": sender, "message": message, "metadata": metadata}, timeout=30) as r:
+        async with s.post(
+            RASA_REST_URL,
+            json={"sender": sender, "message": message, "metadata": metadata},
+            headers=headers,
+            timeout=30,
+        ) as r:
             r.raise_for_status()
             return await r.json()
 
@@ -159,7 +176,9 @@ class ChatAudioResponse(BaseModel):
 # Endpoint principal
 # ─────────────────────────────────────────────────────────────
 @router.post("/audio", response_model=ChatAudioResponse)
+@limit("15/minute")  # subidas de audio controladas
 async def post_chat_audio(
+    request: Request,
     # Soportamos ambos nombres: file | audio (para compatibilidad con clientes)
     file: UploadFile | None = File(None),
     audio: UploadFile | None = File(None),
@@ -209,20 +228,35 @@ async def post_chat_audio(
             audio_id_str = None
             audio_url = None
 
-    # ── 3) Enviar a Rasa ─────────────────────────────────────
+    # ── 3) Auth → claims para metadata.auth ──────────────────
+    auth_header = request.headers.get("Authorization")
+    is_valid, claims = decode_token(auth_header)
+
+    # ── 4) Enviar a Rasa ─────────────────────────────────────
     sender = user_id or session_id or "anon"
+    rid = get_request_id()  # trazabilidad
     metadata = {
         "persona": persona,
         "lang": lang,
         "via": "audio",
         "audio": {"id": audio_id_str, "url": audio_url, "mime": mime, "size_bytes": size_bytes},
         "stt": stt,
-        # Nota: auth.hasToken lo puede insertar tu proxy cuando uses SSO real.
-        "auth": {"hasToken": False},
+        "auth": {"hasToken": bool(is_valid), "claims": claims if is_valid else {}},
+        # contexto útil de red
+        "net": {
+            "ip": getattr(request.state, "ip", None) or (request.client.host if request.client else None),
+            "user_agent": getattr(request.state, "user_agent", None) or request.headers.get("user-agent"),
+            "request_id": rid,
+        },
     }
-    rasa_resp = await _send_to_rasa(sender=sender, message=transcript or "[audio sin transcripción]", metadata=metadata)
+    rasa_resp = await _send_to_rasa(
+        sender=sender,
+        message=transcript or "[audio sin transcripción]",
+        metadata=metadata,
+        request_id=rid
+    )
 
-    # ── 4) Logs Mongo ────────────────────────────────────────
+    # ── 5) Logs Mongo ────────────────────────────────────────
     await ensure_indexes()
     now = datetime.now(timezone.utc)
 
@@ -237,6 +271,10 @@ async def post_chat_audio(
             "created_at": now,
             "rasa_preview": rasa_resp[0] if isinstance(rasa_resp, list) and rasa_resp else rasa_resp,
             "error": None,
+            # enriquecimiento de auditoría
+            "ip": getattr(request.state, "ip", None) or (request.client.host if request.client else None),
+            "user_agent": getattr(request.state, "user_agent", None) or request.headers.get("user-agent"),
+            "request_id": rid,
         })
     except Exception:
         pass
@@ -270,6 +308,7 @@ async def post_chat_audio(
             "audio": {"id": audio_id_str, "url": audio_url, "mime": mime, "size_bytes": size_bytes},
             "stt": stt,
             "created_at": datetime.utcnow(),
+            "request_id": rid,
         })
     except Exception:
         pass

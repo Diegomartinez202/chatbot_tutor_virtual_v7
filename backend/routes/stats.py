@@ -1,15 +1,23 @@
+# backend/routes/stats.py
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, Request, Query
 from backend.dependencies.auth import require_role
 from backend.services import stats_service
 from backend.services.log_service import log_access
 from models.stats_model import EstadisticasChatbotResponse
-router = APIRouter()
+
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
+
+router = APIRouter(tags=["stats"])
 
 @router.get(
     "/admin/stats",
     summary="📊 Obtener estadísticas del chatbot",
     response_model=EstadisticasChatbotResponse
 )
+@limit("30/minute")  # consultas de métricas (moderado)
 async def get_stats(
     request: Request,
     desde: str = Query(None, description="Fecha inicio (YYYY-MM-DD)"),

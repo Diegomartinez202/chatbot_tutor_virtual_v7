@@ -8,11 +8,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
 from fastapi import (
-    APIRouter, HTTPException, Depends, Request, Header, Body, Response, Query
+    APIRouter, HTTPException, Depends, Request, Header, Body, Response
 )
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 import jwt
+
+# ✅ Rate limiting por endpoint (no-op si SlowAPI no está activo)
+from backend.rate_limit import limit
 
 # ─────────────────────────────────────────────────────────────
 # Hashing: bcrypt → passlib → error (en ese orden)
@@ -343,9 +346,10 @@ async def ensure_admin_indexes():
         pass
 
 # ─────────────────────────────────────────────────────────────
-# Endpoints
+# Endpoints (con rate limits por endpoint)
 # ─────────────────────────────────────────────────────────────
 @router.post("/register")
+@limit("5/minute")  # evitar abuso de registro
 def admin_register(payload: AdminRegisterIn, request: Request):
     """Crea un usuario para el panel admin/soporte (controlado por ADMIN_REGISTRATION_OPEN)."""
     if not ADMIN_REGISTRATION_OPEN:
@@ -380,6 +384,7 @@ def admin_register(payload: AdminRegisterIn, request: Request):
     return {"ok": True, "id": str(ins.inserted_id), "message": f"Usuario creado con rol {rol}"}
 
 @router.post("/login", response_model=TokenOut)
+@limit("10/minute")  # mitiga fuerza bruta (además de lockouts)
 def admin_login(payload: AdminLoginIn, request: Request, response: Response):
     email = payload.email.lower().strip()
     ip = getattr(getattr(request, "state", None), "ip", "") or (request.client.host if request.client else "")
@@ -405,7 +410,7 @@ def admin_login(payload: AdminLoginIn, request: Request, response: Response):
 
     # tokens
     access = _create_access_token({"sub": str(doc["_id"]), "email": email, "rol": rol})
-    refresh = _issue_refresh(str(doc["_id"])))
+    refresh = _issue_refresh(str(doc["_id"]))  # ← corregido paréntesis
     _set_refresh_cookie(response, refresh)
 
     try:
@@ -416,6 +421,7 @@ def admin_login(payload: AdminLoginIn, request: Request, response: Response):
     return TokenOut(access_token=access, refresh_token=refresh)
 
 @router.post("/logout")
+@limit("60/minute")
 def admin_logout(response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
     """Revoca el refresh actual (cookie o body) y limpia cookie."""
     cookie_rt = None
@@ -428,6 +434,7 @@ def admin_logout(response: Response, refresh_token: Optional[str] = Body(None, e
 
 @router.get("/refresh", response_model=TokenOut)
 @router.post("/refresh", response_model=TokenOut)
+@limit("120/minute")  # clientes pueden refrescar token con frecuencia
 def admin_refresh(request: Request, response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
     """Entrega nuevo access token; acepta refresh en cookie httpOnly o en body. Rotación activada."""
     token = refresh_token or request.cookies.get(REFRESH_COOKIE_NAME)
@@ -453,6 +460,7 @@ def admin_refresh(request: Request, response: Response, refresh_token: Optional[
     return TokenOut(access_token=access, refresh_token=new_refresh)
 
 @router.get("/me", response_model=AdminMeOut)
+@limit("120/minute")
 async def admin_me(request: Request, user: Dict[str, Any] = Depends(_current_admin_user)):
     """ Devuelve el perfil del usuario autenticado (admin/soporte). """
     try:
@@ -462,6 +470,7 @@ async def admin_me(request: Request, user: Dict[str, Any] = Depends(_current_adm
     return _doc_to_out(user)
 
 @router.post("/change-password")
+@limit("10/minute")
 def admin_change_password(
     payload: ChangePasswordIn,
     user: Dict[str, Any] = Depends(_current_admin_user)
@@ -475,6 +484,7 @@ def admin_change_password(
     return {"ok": True, "message": "Contraseña actualizada"}
 
 @router.post("/forgot-password")
+@limit("5/minute")
 def admin_forgot_password(payload: ForgotPasswordIn):
     """Genera un token de recuperación (placeholder: retornamos el token; en prod → enviar por email)."""
     u = _users().find_one({"email": payload.email.lower().strip()})
@@ -494,6 +504,7 @@ def admin_forgot_password(payload: ForgotPasswordIn):
     return {"ok": True, "reset_token": raw}
 
 @router.post("/reset-password")
+@limit("5/minute")
 def admin_reset_password(payload: ResetPasswordIn):
     rec = _col_resets().find_one({"token_hash": _sha256(payload.token), "used": False})
     if not rec or rec["expires_at"] < datetime.now(timezone.utc):
@@ -510,6 +521,7 @@ def admin_reset_password(payload: ResetPasswordIn):
     return {"ok": True, "message": "Contraseña restablecida"}
 
 @router.get("/password-policy")
+@limit("120/minute")
 def get_policy():
     # snapshot mínimo si no existe el servicio
     try:
@@ -519,6 +531,7 @@ def get_policy():
         return {"min_length": 8, "requires": ["uppercase", "lowercase", "digit", "special"]}
 
 @router.post("/password-policy/check")
+@limit("120/minute")
 def check_policy(password: str = Body(..., embed=True), email: Optional[str] = Body(None), name: Optional[str] = Body(None)):
     ok, errors = validate_password(password, email=email, name=name)
     return {"ok": ok, "errors": errors}

@@ -41,9 +41,13 @@ from backend.routes import auth_admin          # /api/admin (legacy)
 # ✅ Nuevos routers v2 (no chocan con legacy)
 from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
 from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
-from backend.routes import intent_controller
-from backend.routes import intent_legacy_controller
+
+# ✅ Intents (moderno + legacy aislado)
 from backend.routes import intent_controller, intent_legacy_controller
+
+# ✅ Router alterno de usuarios (convive con admin_users bajo prefijo)
+from backend.routes import user as user_routes
+
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
 
@@ -116,21 +120,26 @@ def create_app() -> FastAPI:
     app.include_router(helpdesk.router)
     app.include_router(api_chat.router)
     app.include_router(media_router)
-    app.include_router(stats.router) 
-    app.include_router(intent_controller.router)  # moderno: conserva rutas /admin/intents...
-    app.include_router(intent_controller.router)  # moderno
-app.include_router(intent_legacy_controller.router, prefix="/api/legacy", tags=["intents-legacy"])
-# El legacy lo montamos bajo un prefijo para evitar colisiones:
-app.include_router(
-    intent_legacy_controller.router,
-    prefix="/api/legacy",
-    tags=["intents-legacy"]
-)
+    app.include_router(stats.router)
+
+    # ✅ Intents: moderno sin prefijo; legacy aislado bajo /api/legacy
+    app.include_router(intent_controller.router)  # moderno: /admin/intents*
+    app.include_router(
+        intent_legacy_controller.router,
+        prefix="/api/legacy",
+        tags=["intents-legacy"]
+    )
 
     # 🔐 Admin (legacy y v2 conviven)
-    app.include_router(auth_admin.router)     # ⬅️ /api/admin  (NO TOCAR)
-    app.include_router(admin_auth.router)     # ⬅️ /api/admin2 (MEJORAS)
-    app.include_router(admin_users.router)    # ⬅️ /api/admin/users (gestión)
+    app.include_router(auth_admin.router)     # /api/admin  (NO TOCAR)
+    app.include_router(admin_auth.router)     # /api/admin2 (MEJORAS)
+    app.include_router(admin_users.router)    # /api/admin/users (gestión)
+
+    # ⤵️ NUEVO: Montar user.py con prefijo para NO chocar con admin_users
+    app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
+    # Quedan rutas:
+    #   - /api/admin/users/*       (admin_users.py existente)
+    #   - /api/admin2/admin/*      (user.py alterno)
 
     # 💬 Chat doble montaje (compat)
     app.include_router(chat_router)                 # /chat/*
@@ -357,7 +366,7 @@ app.include_router(
     if not settings.secret_key or len(settings.secret_key) < 32:
         log.warning('⚠️ SECRET_KEY es débil o inexistente. Genera una con: python -c "import secrets; print(secrets.token_urlsafe(64))"')
 
-    log.info("🚀 FastAPI montado correctamente. Rutas en /api, /chat y /api/admin2")
+    log.info("🚀 FastAPI montado correctamente. Rutas en /api, /chat, /api/admin y /api/admin2")
     return app
 
 
