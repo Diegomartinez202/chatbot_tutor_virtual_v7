@@ -15,7 +15,7 @@ try:
     from pydantic import field_validator, model_validator
     _V2 = True
 except Exception:
-    # compat v1 (no debería pasar en tu stack, pero no rompemos)
+    # compat v1 (no debería pasar en tu stack, pero mantenemos compat)
     from pydantic import validator as field_validator  # type: ignore
     def model_validator(*args, **kwargs):  # type: ignore
         def _decor(f): return f
@@ -113,12 +113,21 @@ class Settings(BaseSettings):
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="APP_ENV")
 
-    # 🚦 Rate limiting
+    # 🚦 Rate limiting (compat + mejoras)
     rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
     rate_limit_backend: Literal["memory", "redis"] = Field(default="memory", alias="RATE_LIMIT_BACKEND")
     rate_limit_window_sec: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SEC")
     rate_limit_max_requests: int = Field(default=60, alias="RATE_LIMIT_MAX_REQUESTS")
     redis_url: Optional[str] = Field(None, alias="REDIS_URL")
+
+    # ✅ NUEVO: permite definir directamente el storage URI (prioritario)
+    rate_limit_storage_uri: Optional[str] = Field(default=None, alias="RATE_LIMIT_STORAGE_URI")
+
+    # ✅ NUEVO: estrategia de clave para SlowAPI (híbrida, exención admin, IP)
+    #    Valores: "user_or_ip" | "skip_admin" | "ip"
+    rate_limit_key_strategy: Literal["user_or_ip", "skip_admin", "ip"] = Field(
+        default="user_or_ip", alias="RATE_LIMIT_KEY_STRATEGY"
+    )
 
     # 📞 Helpdesk / Escalada a humano
     helpdesk_kind: Literal["webhook", "zendesk", "freshdesk", "jira", "zoho"] = Field(
@@ -156,9 +165,18 @@ class Settings(BaseSettings):
     # ─────────────────────────────────────────────────────────────
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
-        # Rate limit: si se usa Redis, REDIS_URL es obligatorio
-        if (self.rate_limit_enabled and self.rate_limit_backend == "redis" and not self.redis_url):
-            raise ValueError("Se requiere REDIS_URL cuando RATE_LIMIT_BACKEND='redis'")
+        # Rate limit:
+        # - Si backend=redis y NO has definido RATE_LIMIT_STORAGE_URI explícito,
+        #   REDIS_URL es obligatorio (para mantener compat).
+        if (
+            self.rate_limit_enabled
+            and self.rate_limit_backend == "redis"
+            and not (self.rate_limit_storage_uri and str(self.rate_limit_storage_uri).strip())
+            and not (self.redis_url and str(self.redis_url).strip())
+        ):
+            raise ValueError(
+                "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
+            )
 
         # JWT: si alg es RS*, exigir JWT_PUBLIC_KEY; si HS*, exigir SECRET_KEY
         alg = (self.jwt_algorithm or "").upper().strip()
@@ -209,6 +227,21 @@ class Settings(BaseSettings):
             "form-action 'self' *;"
         )
 
+    # ✅ NUEVO helper: URI efectivo para rate limit (SlowAPI)
+    @property
+    def rate_limit_storage_uri_effective(self) -> str:
+        """
+        Regresa el storage_uri a usar por SlowAPI:
+          1) Si RATE_LIMIT_STORAGE_URI está definido → úsalo tal cual.
+          2) Si backend=redis y REDIS_URL está definido → usa REDIS_URL.
+          3) En cualquier otro caso → memory:// (por defecto).
+        """
+        if self.rate_limit_storage_uri and str(self.rate_limit_storage_uri).strip():
+            return str(self.rate_limit_storage_uri).strip()
+        if self.rate_limit_backend == "redis" and self.redis_url and str(self.redis_url).strip():
+            return str(self.redis_url).strip()
+        return "memory://"
+
 
 # Instancia global de settings
 settings = Settings()
@@ -230,6 +263,6 @@ def configure_logging(level: Optional[int] = None) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
             logging.FileHandler(os.path.join(settings.log_dir, "app.log"), encoding="utf-8"),
-            logging.StreamHandler()
+            logging.StreamHandler(),
         ],
     )

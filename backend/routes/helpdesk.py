@@ -8,7 +8,11 @@ from pymongo import MongoClient
 
 from backend.config.settings import settings
 
+# ✅ Rate limiting por endpoint
+from backend.rate_limit import limit
+
 router = APIRouter(prefix="/api/helpdesk", tags=["helpdesk"])
+
 
 # --- Modelos de entrada/salida ---
 class TicketIn(BaseModel):
@@ -44,6 +48,7 @@ async def helpdesk_health():
 
 
 @router.post("/tickets")
+@limit("5/minute")  # ⛳ evita spam de creación de tickets
 async def create_ticket(payload: TicketIn, request: Request):
     _check_auth(request)
 

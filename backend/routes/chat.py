@@ -12,6 +12,9 @@ from backend.services.jwt_service import decode_token
 from backend.db.mongodb import get_logs_collection
 from backend.services.chat_service import process_user_message
 
+# ✅ Rate limiting por endpoint
+from backend.rate_limit import limit
+
 # Mantén este nombre: main.py hace `from backend.routes.chat import chat_router`
 chat_router = APIRouter(tags=["Chat"])
 
@@ -63,6 +66,7 @@ async def chat_debug(request: Request):
 
 
 @chat_router.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
+@limit("60/minute")  # ⛳ límite de envío al bot
 async def send_message_to_bot(data: ChatRequest, request: Request):
     # Metadata de red (del middleware) con fallback
     ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") \

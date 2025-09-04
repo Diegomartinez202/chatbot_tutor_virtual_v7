@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from pathlib import Path
-from typing import Deque, DefaultDict
+from typing import Deque, DefaultDict, Any, Dict
 from time import time
 from collections import defaultdict, deque
 import os
@@ -41,24 +41,30 @@ from backend.routes import auth_admin          # /api/admin (legacy)
 # ✅ Nuevos routers v2 (no chocan con legacy)
 from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
 from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
-from backend.rate_limit import set_limiter 
-# Redis opcional (para rate-limit prod en builtin o SlowAPI)
+from backend.routes import intent_controller
+from backend.routes import intent_legacy_controller
+from backend.routes import intent_controller, intent_legacy_controller
+# Publica el limiter para decoradores @limit(...) sin imports circulares
+from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
+
+# Redis opcional (para rate-limit builtin en producción)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
 except Exception:
     aioredis = None
 
 # (Opcional) SlowAPI para rate limiting por endpoint
-USE_SLOWAPI = (os.getenv("RATE_LIMIT_PROVIDER", "builtin").lower() == "slowapi")
-if USE_SLOWAPI:
-    try:
-        from slowapi import Limiter
-        from slowapi.util import get_remote_address
-        from slowapi.errors import RateLimitExceeded
-        from slowapi.middleware import SlowAPIMiddleware
-    except Exception as e:
-        # Si no está instalada, caemos a builtin sin romper el arranque
-        USE_SLOWAPI = False
+try:
+    from slowapi import Limiter  # type: ignore
+    from slowapi.util import get_remote_address  # type: ignore
+    from slowapi.errors import RateLimitExceeded  # type: ignore
+    from slowapi.middleware import SlowAPIMiddleware  # type: ignore
+    _SLOWAPI_OK = True
+except Exception:
+    _SLOWAPI_OK = False
+
+# Selección del proveedor (por ENV). Default: builtin para evitar depender de SlowAPI si no está instalado.
+USE_SLOWAPI = (os.getenv("RATE_LIMIT_PROVIDER", "builtin").lower().strip() == "slowapi")
 
 STATIC_DIR = Path(settings.static_dir).resolve()
 setup_logging()
@@ -110,7 +116,16 @@ def create_app() -> FastAPI:
     app.include_router(helpdesk.router)
     app.include_router(api_chat.router)
     app.include_router(media_router)
-    app.include_router(stats.router)  # solo una vez
+    app.include_router(stats.router) 
+    app.include_router(intent_controller.router)  # moderno: conserva rutas /admin/intents...
+    app.include_router(intent_controller.router)  # moderno
+app.include_router(intent_legacy_controller.router, prefix="/api/legacy", tags=["intents-legacy"])
+# El legacy lo montamos bajo un prefijo para evitar colisiones:
+app.include_router(
+    intent_legacy_controller.router,
+    prefix="/api/legacy",
+    tags=["intents-legacy"]
+)
 
     # 🔐 Admin (legacy y v2 conviven)
     app.include_router(auth_admin.router)     # ⬅️ /api/admin  (NO TOCAR)
@@ -142,6 +157,83 @@ def create_app() -> FastAPI:
 
     # 🌐 Base pública frontend
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
+
+    # ─────────────────────────────────────────────────────────────
+    # Rate limiting: SlowAPI (opcional) o builtin (memoria/Redis)
+    # ─────────────────────────────────────────────────────────────
+    if settings.rate_limit_enabled and USE_SLOWAPI and _SLOWAPI_OK and not getattr(app.state, "limiter", None):
+        try:
+            # Estrategia de clave configurable
+            key_strategy = (getattr(settings, "rate_limit_key_strategy", "user_or_ip") or "user_or_ip").lower().strip()
+            if key_strategy not in {"user_or_ip", "skip_admin", "ip"}:
+                key_strategy = "user_or_ip"
+
+            def key_user_or_ip(request) -> str:
+                """Híbrida: JWT.sub si existe, si no, IP."""
+                try:
+                    claims: Dict[str, Any] = {}
+                    if hasattr(request.state, "auth") and isinstance(getattr(request.state, "auth"), dict):
+                        claims = request.state.auth.get("claims") or {}
+                    uid = claims.get("sub")
+                    if uid:
+                        return f"user:{uid}"
+                except Exception:
+                    pass
+                return f"ip:{get_remote_address(request)}"
+
+            def key_skip_admin(request) -> str:
+                """Exime admin (rol == 'admin'); resto como híbrida."""
+                try:
+                    claims: Dict[str, Any] = {}
+                    if hasattr(request.state, "auth") and isinstance(getattr(request.state, "auth"), dict):
+                        claims = request.state.auth.get("claims") or {}
+                    if claims.get("rol") == "admin":
+                        return f"bypass:{get_remote_address(request)}"
+                    uid = claims.get("sub")
+                    if uid:
+                        return f"user:{uid}"
+                except Exception:
+                    pass
+                return f"ip:{get_remote_address(request)}"
+
+            key_func = {
+                "user_or_ip": key_user_or_ip,
+                "skip_admin": key_skip_admin,
+                "ip": lambda request: f"ip:{get_remote_address(request)}",
+            }[key_strategy]
+
+            storage_uri = settings.rate_limit_storage_uri_effective  # soporta RATE_LIMIT_STORAGE_URI o REDIS_URL
+            limiter = Limiter(key_func=key_func, storage_uri=storage_uri)
+            app.state.limiter = limiter
+            app.add_middleware(SlowAPIMiddleware)
+
+            # Handler 429 JSON (limpio y estable)
+            @app.exception_handler(RateLimitExceeded)
+            async def _slowapi_handler(request: Request, exc: RateLimitExceeded):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too Many Requests", "policy": str(exc)},
+                )
+
+            # Publica el limiter para decoradores @limit(...) en routers
+            set_limiter(limiter)
+
+            # Endpoint de prueba no invasivo (opcional)
+            burst = max(1, int(settings.rate_limit_max_requests))
+            window = max(1, int(settings.rate_limit_window_sec))
+
+            @app.get("/api/_rate_test")
+            @limiter.limit(f"{burst}/{window} seconds")
+            def _rate_test():
+                return {"ok": True, "provider": "slowapi"}
+
+            log.info(f"RateLimit: SlowAPI activo (strategy={key_strategy}, storage={storage_uri}).")
+
+        except Exception as e:
+            log.error(f"SlowAPI no disponible ({e}). Se usará builtin.")
+            _activate_builtin_rate_limit(app)
+    else:
+        _activate_builtin_rate_limit(app)
 
     # 🔁 Redirects de assets al frontend
     @app.get("/favicon.ico", include_in_schema=False)
@@ -188,7 +280,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             log.error(f"No se pudo asegurar índice de usuarios (v2): {e}")
 
-    # 📄 Manifest → frontend
+    # 📄 Manifest → frontend o fallback
     @app.get("/site.webmanifest", include_in_schema=False)
     async def manifest():
         if FRONT_BASE:
@@ -266,45 +358,13 @@ def create_app() -> FastAPI:
         log.warning('⚠️ SECRET_KEY es débil o inexistente. Genera una con: python -c "import secrets; print(secrets.token_urlsafe(64))"')
 
     log.info("🚀 FastAPI montado correctamente. Rutas en /api, /chat y /api/admin2")
-
-    # ─────────────────────────────────────────────────────────────
-    # Rate limiting: SlowAPI (opcional) o builtin (memoria/Redis)
-    # ─────────────────────────────────────────────────────────────
-    if settings.rate_limit_enabled and USE_SLOWAPI:
-        try:
-            storage_uri = settings.redis_url if settings.rate_limit_backend == "redis" else None
-            limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri)
-            app.state.limiter = limiter
-            app.add_middleware(SlowAPIMiddleware)
-            set_limiter(limiter) 
-            @app.exception_handler(RateLimitExceeded)
-            async def _slowapi_handler(request: Request, exc: RateLimitExceeded):
-                return JSONResponse({"detail": "Rate limit exceeded. Intenta nuevamente en un momento."}, status_code=429)
-
-            # Ejemplo no invasivo (no toca tu negocio):
-            # Limite general de “max_requests / window_sec” en un endpoint de prueba
-            burst = max(1, int(settings.rate_limit_max_requests))
-            window = max(1, int(settings.rate_limit_window_sec))
-            @app.get("/api/_rate_test")
-            @limiter.limit(f"{burst}/{window} seconds")
-            def _rate_test():
-                return {"ok": True, "provider": "slowapi"}
-
-            log.info("RateLimit: SlowAPI activo.")
-        except Exception as e:
-            log.error(f"SlowAPI no disponible ({e}). Se usará builtin.")
-            # caemos a builtin
-            _activate_builtin_rate_limit(app)
-    else:
-        _activate_builtin_rate_limit(app)
-
     return app
 
 
 def _activate_builtin_rate_limit(app: FastAPI) -> None:
     """
-    Tu rate-limit original (memoria/Redis) aplicado solo a POST /chat y /api/chat.
-    Conservado íntegro y protegido contra doble registro.
+    Rate-limit builtin (memoria/Redis) aplicado solo a POST /chat y /api/chat.
+    Conserva tu lógica original y está protegido contra doble registro.
     """
     if not settings.rate_limit_enabled:
         return
@@ -323,7 +383,7 @@ def _activate_builtin_rate_limit(app: FastAPI) -> None:
             object.__setattr__(settings, "rate_limit_enabled", False)
         if not settings.rate_limit_enabled:
             return
-        if settings.rate_limit_backend == "redis":
+        if getattr(settings, "rate_limit_backend", "memory") == "redis":
             if aioredis is None or not settings.redis_url:
                 object.__setattr__(settings, "rate_limit_backend", "memory")
                 log.error("RateLimit: Redis no disponible o sin REDIS_URL. Usando 'memory'.")
@@ -345,7 +405,7 @@ def _activate_builtin_rate_limit(app: FastAPI) -> None:
             except Exception:
                 pass
 
-    @app.middleware("http")
+    @app.middleware("http", name="builtin_rate_limit")
     async def builtin_rate_limit(request: Request, call_next):
         if not settings.rate_limit_enabled:
             return await call_next(request)
@@ -361,7 +421,7 @@ def _activate_builtin_rate_limit(app: FastAPI) -> None:
         max_req = settings.rate_limit_max_requests
 
         # Redis
-        if settings.rate_limit_backend == "redis" and redis_client:
+        if getattr(settings, "rate_limit_backend", "memory") == "redis" and redis_client:
             key = f"rl:{ip}"
             try:
                 async with redis_client.pipeline(transaction=True) as pipe:
@@ -385,6 +445,7 @@ def _activate_builtin_rate_limit(app: FastAPI) -> None:
         return await call_next(request)
 
 
+# Instancia de la app
 app = create_app()
 
 # 🔥 Standalone (dev)

@@ -9,6 +9,9 @@ from datetime import datetime
 from io import StringIO
 import csv
 
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
+
 router = APIRouter()
 
 
@@ -17,6 +20,7 @@ router = APIRouter()
     summary="📤 Exportar logs en formato CSV (tipo: descarga)",
     response_class=StreamingResponse
 )
+@limit("10/minute")  # ⛳ 10 descargas/min por IP/usuario (según estrategia)
 def exportar_logs_csv(
     request: Request,
     desde: str = Query(None, description="Fecha inicio YYYY-MM-DD"),
@@ -61,6 +65,7 @@ def exportar_logs_csv(
     "/admin/exportaciones/lista",
     summary="📄 Lista de exportaciones registradas"
 )
+@limit("30/minute")  # ⛳ Listado puede ser consultado con más frecuencia
 def listar_exportaciones(
     desde: str = Query(None),
     hasta: str = Query(None),
@@ -96,6 +101,7 @@ def listar_exportaciones(
 
 
 @router.get("/admin/exportaciones/stats", summary="📊 Exportar estadísticas del chatbot (CSV)")
+@limit("6/minute")  # ⛳ Export de estadísticas es más costoso
 async def exportar_estadisticas_csv(
     request: Request,
     desde: str = Query(None),

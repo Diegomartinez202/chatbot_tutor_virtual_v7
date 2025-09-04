@@ -1,4 +1,3 @@
-# backend/routes/admin_users.py
 from __future__ import annotations
 
 from typing import Optional, Dict, Any, List
@@ -18,6 +17,9 @@ try:
 except Exception:
     require_role = None
 
+# âœ… Rate limiting por endpoint
+from backend.rate_limit import limit
+
 router = APIRouter(prefix="/api/admin/users", tags=["admin-users"])
 
 def _users():
@@ -27,7 +29,7 @@ def _objid(uid: str) -> ObjectId:
     try:
         return ObjectId(uid)
     except Exception:
-        raise HTTPException(status_code=400, detail="ID inválido")
+        raise HTTPException(status_code=400, detail="ID invÃ¡lido")
 
 def _out(doc: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -46,8 +48,7 @@ def _out(doc: Dict[str, Any]) -> Dict[str, Any]:
 async def _admin_only(request: Request):
     if require_role:
         return await require_role(["admin"])(request)
-    # fallback sencillo (requiere middleware previo que añada user a request.state si lo tuvieras)
-    # si no existe, asumimos que ya proteges por gateway: mantener simple
+    # fallback sencillo
     return True
 
 class RoleIn(BaseModel):
@@ -57,14 +58,16 @@ class StatusIn(BaseModel):
     active: bool
 
 class ResetPasswordIn(BaseModel):
-    new_password: Optional[str] = None  # si no viene, generarías una aleatoria (no implementamos envío email aquí)
+    new_password: Optional[str] = None  # si no viene, generarÃ­as una aleatoria (no implementamos envÃ­o email aquÃ­)
 
 @router.get("", dependencies=[Depends(_admin_only)])
+@limit("30/minute")  # listado
 def list_users(limit: int = 100, offset: int = 0):
     cur = _users().find({}).sort("_id", -1).skip(offset).limit(min(limit, 500))
     return [_out(d) for d in cur]
 
 @router.get("/{user_id}", dependencies=[Depends(_admin_only)])
+@limit("30/minute")  # consulta puntual
 def get_user(user_id: str):
     d = _users().find_one({"_id": _objid(user_id)})
     if not d:
@@ -72,6 +75,7 @@ def get_user(user_id: str):
     return _out(d)
 
 @router.patch("/{user_id}/role", dependencies=[Depends(_admin_only)])
+@limit("10/minute")  # cambio de rol
 def change_role(user_id: str, body: RoleIn):
     res = _users().update_one({"_id": _objid(user_id)}, {"$set": {"rol": body.rol, "role": body.rol, "updated_at": now_utc()}})
     if res.matched_count == 0:
@@ -79,6 +83,7 @@ def change_role(user_id: str, body: RoleIn):
     return {"ok": True}
 
 @router.patch("/{user_id}/status", dependencies=[Depends(_admin_only)])
+@limit("10/minute")  # activar/desactivar
 def change_status(user_id: str, body: StatusIn):
     res = _users().update_one({"_id": _objid(user_id)}, {"$set": {"active": bool(body.active), "updated_at": now_utc()}})
     if res.matched_count == 0:
@@ -86,8 +91,9 @@ def change_status(user_id: str, body: StatusIn):
     return {"ok": True}
 
 @router.post("/{user_id}/reset-password", dependencies=[Depends(_admin_only)])
+@limit("5/minute")  # sensible
 def reset_password(user_id: str, body: ResetPasswordIn):
-    from backend.routes.admin_auth import _hash_password  # reutilizamos implementación
+    from backend.routes.admin_auth import _hash_password  # reutilizamos implementaciÃ³n
     new_pw = (body.new_password or "Cambiar123!")
     ok, errors = validate_password(new_pw)
     if not ok:
@@ -102,6 +108,7 @@ def reset_password(user_id: str, body: ResetPasswordIn):
     return {"ok": True, "temporary_password": new_pw}
 
 @router.post("/{user_id}/revoke", dependencies=[Depends(_admin_only)])
+@limit("10/minute")  # revocar sesiones
 def revoke_sessions(user_id: str):
     res = _users().update_one({"_id": _objid(user_id)}, {"$inc": {"token_version": 1}, "$set": {"updated_at": now_utc()}})
     if res.matched_count == 0:

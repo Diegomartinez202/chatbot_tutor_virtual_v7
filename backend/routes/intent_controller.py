@@ -1,202 +1,194 @@
-# backend/routes/intent_controller.py
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Query, Request
+    # backend/routes/intent_controller.py
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi.responses import StreamingResponse
+from typing import List
+import io, json, csv
+
 from backend.dependencies.auth import require_role
-from backend.services import intent_manager
 from backend.services.log_service import log_access
+from backend.services.intent_manager import (
+    obtener_intents,
+    guardar_intent,
+    eliminar_intent,
+    intent_ya_existe,
+    cargar_intents,
+    guardar_intent_csv,
+    cargar_intents_automaticamente
+)
+from backend.services.train_service import entrenar_chatbot as entrenar_rasa
+from backend.services.user_service import export_users_csv
+
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
 
 router = APIRouter()
 
-# ============================
-# 🔍 Buscar intents con filtros
-# ============================
-@router.get("/admin/intents/buscar", summary="Buscar intents por nombre o ejemplo")
-def buscar_intents(
-    request: Request,
-    intent: str = Query(None),
-    example: str = Query(None),
-    payload=Depends(require_role(["admin", "soporte"]))
-):
-    filters = {
-        "intent": intent or "",
-        "example": example or ""
-    }
+def _ip(request: Request) -> str:
+    return getattr(request.state, "ip", None) or (request.client.host if request.client else "unknown")
 
-    result = intent_manager.get_intents_by_filters(filters)
+def _ua(request: Request) -> str:
+    return getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
 
+# 🔹 1. Listar intents existentes
+@router.get("/admin/intents", summary="🧠 Obtener lista de intents")
+@limit("30/minute")  # consultas frecuentes
+def listar_intents(request: Request, payload=Depends(require_role(["admin"]))):
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200 if result else 204,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
-    )
-
-    return result
-
-
-# ============================
-# 📄 Obtener todos los intents
-# ============================
-@router.get("/admin/intents", summary="Listar todos los intents")
-def listar_intents(request: Request, payload=Depends(require_role(["admin", "soporte"]))):
-    data = intent_manager.obtener_intents()
-
-    log_access(
-        user_id=payload["_id"],
-        email=payload["email"],
-        rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200 if data else 204,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
-    )
-
-    return data
-
-
-# ============================
-# ➕ Agregar un intent manualmente
-# ============================
-@router.post("/admin/add-intent", summary="Crear nuevo intent")
-def agregar_intent(request: Request, data: dict = Body(...), payload=Depends(require_role(["admin"]))):
-    if intent_manager.intent_ya_existe(data["intent"]):
-        raise HTTPException(status_code=409, detail="❗ Ya existe un intent con ese nombre")
-
-    result = intent_manager.guardar_intent(data)
-    intent_manager.entrenar_rasa()
-
-    log_access(
-        user_id=payload["_id"],
-        email=payload["email"],
-        rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
+        endpoint="/admin/intents",
+        method="GET",
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
     )
+    return obtener_intents()
 
-    return result
+# 🔹 2. Crear nuevo intent desde panel
+@router.post("/admin/intents", summary="📥 Crear nuevo intent manualmente")
+@limit("10/minute")  # creación controlada
+def crear_intent(request: Request, data: dict, payload=Depends(require_role(["admin"]))):
+    if intent_ya_existe(data.get("intent")):
+        log_access(
+            user_id=payload["_id"],
+            email=payload["email"],
+            rol=payload["rol"],
+            endpoint="/admin/intents",
+            method="POST",
+            status=400,
+            extra={"ip": _ip(request), "user_agent": _ua(request)}
+        )
+        raise HTTPException(status_code=400, detail="⚠️ El intent ya existe")
 
-
-# ============================
-# 🗑️ Eliminar un intent
-# ============================
-@router.delete("/admin/delete-intent/{intent_name}", summary="Eliminar intent por nombre")
-def eliminar_intent(intent_name: str, request: Request, payload=Depends(require_role(["admin"]))):
-    result = intent_manager.eliminar_intent(intent_name)
-    intent_manager.entrenar_rasa()
+    resultado = guardar_intent(data)
+    entrenar_rasa()
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        endpoint="/admin/intents",
+        method="POST",
+        status=201,
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
     )
 
-    return result
+    return resultado
 
-
-# ============================
-# 🔁 Cargar intents automáticamente
-# ============================
-@router.post("/admin/cargar_intent", summary="Recargar intents desde disco")
-def cargar_intents(request: Request, payload=Depends(require_role(["admin"]))):
-    result = intent_manager.cargar_intents_automaticamente()
+# 🔹 3. Eliminar intent por nombre
+@router.delete("/admin/intents/{intent_name}", summary="🗑️ Eliminar intent")
+@limit("10/minute")
+def eliminar_intent_por_nombre(intent_name: str, request: Request, payload=Depends(require_role(["admin"]))):
+    resultado = eliminar_intent(intent_name)
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
+        endpoint=f"/admin/intents/{intent_name}",
+        method="DELETE",
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
     )
 
-    return result
+    return resultado
 
-
-# ============================
-# ✏️ Actualizar un intent existente (sin nombre en URL)
-# ============================
-@router.put("/admin/update-intent", summary="Actualizar intent existente")
-def actualizar_intent(request: Request, data: dict = Body(...), payload=Depends(require_role(["admin"]))):
-    intent_name = data.get("intent")
-    if not intent_name:
-        raise HTTPException(status_code=400, detail="El campo 'intent' es obligatorio")
-
-    if not intent_manager.intent_ya_existe(intent_name):
-        raise HTTPException(status_code=404, detail="El intent no existe")
-
-    intent_manager.eliminar_intent(intent_name)
-    result = intent_manager.guardar_intent(data)
-    intent_manager.entrenar_rasa()
+# 🔹 4. Recargar intents desde archivo local y reentrenar
+@router.post("/admin/intents/recargar", summary="♻️ Recargar intents automáticamente desde archivo")
+@limit("3/minute")  # reentreno costoso
+def recargar_intents(request: Request, payload=Depends(require_role(["admin"]))):
+    resultado = cargar_intents_automaticamente()
+    entrenar_rasa()
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
+        endpoint="/admin/intents/recargar",
+        method="POST",
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
     )
 
-    return {"message": f"✏️ Intent '{intent_name}' actualizado correctamente"}
+    return resultado
 
+# 🔹 5. Subir archivo CSV/JSON para cargar intents
+@router.post("/admin/intents/upload", summary="📂 Subir intents desde archivo CSV o JSON")
+@limit("5/minute")  # subida moderada
+async def subir_archivo_intents(request: Request, file: UploadFile = File(...), payload=Depends(require_role(["admin"]))):
+    content = await file.read()
 
-# ============================
-# ✏️ Actualizar intent por nombre (en URL)
-# ============================
-@router.put("/admin/update-intent/{intent_name}", summary="Actualizar intent existente")
-def actualizar_intent_url(
-    intent_name: str,
-    request: Request,
-    data: dict = Body(...),
-    payload=Depends(require_role(["admin"]))
-):
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=400, detail="El cuerpo debe ser un diccionario JSON")
+    if file.filename.endswith(".json"):
+        data = json.loads(content)
+    elif file.filename.endswith(".csv"):
+        decoded = content.decode("utf-8").splitlines()
+        reader = csv.DictReader(decoded)
+        data = list(reader)
+    else:
+        log_access(
+            user_id=payload["_id"],
+            email=payload["email"],
+            rol=payload["rol"],
+            endpoint="/admin/intents/upload",
+            method="POST",
+            status=400,
+            extra={"ip": _ip(request), "user_agent": _ua(request)}
+        )
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado")
 
-    if "examples" not in data or not isinstance(data["examples"], list) or not data["examples"]:
-        raise HTTPException(status_code=422, detail="Debe incluir una lista no vacía de 'examples'")
-
-    if "responses" not in data or not isinstance(data["responses"], list) or not data["responses"]:
-        raise HTTPException(status_code=422, detail="Debe incluir una lista no vacía de 'responses'")
-
-    if any(not e.strip() for e in data["examples"]):
-        raise HTTPException(status_code=422, detail="Los 'examples' no pueden estar vacíos")
-
-    if any(not r.strip() for r in data["responses"]):
-        raise HTTPException(status_code=422, detail="Las 'responses' no pueden estar vacías")
-
-    try:
-        result = intent_manager.actualizar_intent(intent_name, data)
-        intent_manager.entrenar_rasa()
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    resultado = cargar_intents(data)
+    entrenar_rasa()
 
     log_access(
         user_id=payload["_id"],
         email=payload["email"],
         rol=payload["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        endpoint="/admin/intents/upload",
+        method="POST",
+        status=201,
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
     )
 
-    return {"message": "✅ Intent actualizado correctamente", "data": result}
+    return resultado
+
+# 🔹 6. Exportar intents existentes a CSV
+@router.get("/admin/intents/export", summary="📤 Exportar intents a CSV", response_class=StreamingResponse)
+@limit("10/minute")  # export costoso
+def exportar_intents(request: Request, payload=Depends(require_role(["admin"]))):
+    output = guardar_intent_csv()
+
+    log_access(
+        user_id=payload["_id"],
+        email=payload["email"],
+        rol=payload["rol"],
+        endpoint="/admin/intents/export",
+        method="GET",
+        status=200,
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
+    )
+
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=intents_exportados.csv"}
+    )
+
+# 🔹 7. Exportar usuarios a CSV
+@router.get("/admin/users/export", summary="📤 Exportar usuarios a CSV", response_class=StreamingResponse)
+@limit("10/minute")
+def exportar_usuarios(request: Request, payload=Depends(require_role(["admin"]))):
+    """
+    Exporta todos los usuarios registrados (sin contraseñas) a CSV.
+    """
+    log_access(
+        user_id=payload["_id"],
+        email=payload["email"],
+        rol=payload["rol"],
+        endpoint="/admin/users/export",
+        method="GET",
+        status=200,
+        extra={"ip": _ip(request), "user_agent": _ua(request)}
+    )
+    return export_users_csv()

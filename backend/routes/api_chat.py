@@ -9,16 +9,22 @@ from backend.services.jwt_service import decode_token
 from backend.middleware.request_id import get_request_id
 from backend.utils.logging import get_logger
 
+# ✅ Rate limiting por endpoint
+from backend.rate_limit import limit
+
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/api", tags=["api-chat"])
+
 
 class ChatPayload(BaseModel):
     sender: str
     message: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
+
 @router.post("/chat")
+@limit("60/minute")  # ⛳ evita flood sin afectar UX
 async def chat_proxy(payload: ChatPayload, request: Request):
     # 1) JWT → claims
     auth_header = request.headers.get("Authorization")
