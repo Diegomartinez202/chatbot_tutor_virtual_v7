@@ -11,6 +11,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.hash import bcrypt
 import jwt  # pyjwt
 
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
+
 router = APIRouter(prefix="/api/admin", tags=["admin-auth"])
 
 # ────────────────── Config/env ──────────────────
@@ -78,6 +81,7 @@ async def _find_admin_by_email(email: str) -> Optional[dict]:
 
 # ────────────────── Endpoints ──────────────────
 @router.post("/register", response_model=RegisterOut)
+@limit("5/minute")  # evitar abuso de registro
 async def admin_register(body: RegisterIn = Body(...)):
     await ensure_admin_indexes()
 
@@ -102,6 +106,7 @@ async def admin_register(body: RegisterIn = Body(...)):
     return RegisterOut(ok=True, id=str(res.inserted_id), message="Usuario creado")
 
 @router.post("/login", response_model=TokenOut)
+@limit("10/minute")  # mitiga fuerza bruta junto con lockouts externos
 async def admin_login(body: LoginIn = Body(...)):
     await ensure_admin_indexes()
 
@@ -132,6 +137,7 @@ def _decode_token(auth_header: Optional[str]) -> dict:
         raise HTTPException(status_code=401, detail="Token inválido.")
 
 @router.get("/me", response_model=AdminMe)
+@limit("120/minute")  # consultas frecuentes al perfil son OK
 async def admin_me(authorization: Optional[str] = Header(None)):
     claims = _decode_token(authorization)
     uid = claims.get("sub")

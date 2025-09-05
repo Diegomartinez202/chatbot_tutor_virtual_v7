@@ -1,4 +1,4 @@
-# api/app/routes/chat_audio.py
+# app/routers/chat_audio.py
 from __future__ import annotations
 
 import os

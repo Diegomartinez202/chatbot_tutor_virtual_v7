@@ -15,14 +15,14 @@ router = APIRouter(tags=["stats"])
 @router.get(
     "/admin/stats",
     summary="📊 Obtener estadísticas del chatbot",
-    response_model=EstadisticasChatbotResponse
+    response_model=EstadisticasChatbotResponse,
 )
 @limit("30/minute")  # consultas de métricas (moderado)
 async def get_stats(
     request: Request,
     desde: str = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
     hasta: str = Query(None, description="Fecha fin (YYYY-MM-DD)"),
-    user=Depends(require_role(["admin", "soporte"]))
+    user=Depends(require_role(["admin", "soporte"])),
 ):
     total_logs = await stats_service.obtener_total_logs(desde, hasta)
     total_exportaciones_csv = await stats_service.obtener_total_exportaciones_csv(desde, hasta)
@@ -40,7 +40,7 @@ async def get_stats(
         method=request.method,
         status=200,
         ip=request.state.ip,
-        user_agent=request.state.user_agent
+        user_agent=request.state.user_agent,
     )
 
     return {
@@ -50,5 +50,5 @@ async def get_stats(
         "total_usuarios": total_users,
         "ultimos_usuarios": last_users,
         "usuarios_por_rol": usuarios_por_rol,
-        "logs_por_dia": logs_por_dia
+        "logs_por_dia": logs_por_dia,
     }
