@@ -11,6 +11,9 @@ from fastapi.responses import StreamingResponse, Response
 import motor.motor_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
+# ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
+from backend.rate_limit import limit
+
 router = APIRouter(prefix="/api/media", tags=["media"])
 
 # ─────────────────────────────────────────────────────────────
@@ -80,6 +83,7 @@ async def _stream_range(gridout, start: int, end: int, chunk_size: int = 1024 * 
 
 
 @router.get("/{media_id}")
+@limit("30/minute")  # streaming/descarga de binarios
 async def get_media(
     media_id: str,
     request: Request,
@@ -132,6 +136,7 @@ async def get_media(
 
 
 @router.head("/{media_id}")
+@limit("60/minute")  # HEAD es liviano (preflight)
 async def head_media(
     media_id: str,
     download: bool = Query(default=False, description="Forzar descarga ('attachment')"),

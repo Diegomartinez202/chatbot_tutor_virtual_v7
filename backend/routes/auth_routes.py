@@ -1,3 +1,4 @@
+# backend/routes/auth_routes.py  (prefijo /auth)
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -6,7 +7,7 @@ from backend.dependencies.auth import get_current_user
 from backend.utils.jwt_manager import (
     create_access_token,
     create_refresh_token,
-    decode_token
+    decode_token,
 )
 from backend.config.settings import settings
 from backend.logger import logger
@@ -15,10 +16,13 @@ from backend.services.auth_service import (
     registrar_login_exitoso,
     registrar_acceso_perfil,
     registrar_logout,
-    registrar_refresh_token
+    registrar_refresh_token,
 )
 from backend.services.user_service import authenticate_user, find_user_by_email
 from models.auth_model import LoginRequest, TokenResponse
+
+# ✅ Rate limiting por endpoint (seguro: si SlowAPI no está, es no-op)
+from backend.rate_limit import limit
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -27,6 +31,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 # ========================
 
 @router.post("/login", response_model=TokenResponse)
+@limit("10/minute")  # frena intentos/brute force por IP/usuario
 def login(request_body: LoginRequest, request: Request):
     """🔐 Login de usuario. Retorna access y refresh token."""
     user = authenticate_user(request_body.email, request_body.password)
@@ -40,24 +45,27 @@ def login(request_body: LoginRequest, request: Request):
     registrar_login_exitoso(request, user)
     logger.info(f"✅ Login exitoso para: {user['email']}")
 
-    response = JSONResponse(content={
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    })
+    response = JSONResponse(
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+    )
 
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=not settings.debug,
-        samesite="Lax"
+        samesite="Lax",
     )
 
     return response
 
 
 @router.get("/me")
+@limit("60/minute")  # consultas de perfil
 def get_profile(request: Request, current_user=Depends(get_current_user)):
     """👤 Devuelve perfil del usuario autenticado."""
     registrar_acceso_perfil(request, current_user)
@@ -65,11 +73,12 @@ def get_profile(request: Request, current_user=Depends(get_current_user)):
     return {
         "email": current_user["email"],
         "nombre": current_user["nombre"],
-        "rol": current_user.get("rol", "usuario")
+        "rol": current_user.get("rol", "usuario"),
     }
 
 
 @router.post("/logout")
+@limit("30/minute")  # operación ligera pero sensible
 def logout(request: Request, current_user=Depends(get_current_user)):
     """🔒 Logout y eliminación de cookie refresh_token."""
     registrar_logout(request, current_user)
@@ -81,6 +90,7 @@ def logout(request: Request, current_user=Depends(get_current_user)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
+@limit("60/minute")  # rotación de access token
 def refresh_token(request: Request, current_user=Depends(get_current_user)):
     """🔁 Genera un nuevo access token desde refresh token (si el actual no ha expirado)."""
     new_access_token = create_access_token(current_user)
@@ -89,7 +99,7 @@ def refresh_token(request: Request, current_user=Depends(get_current_user)):
 
     return {
         "access_token": new_access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
 
 
@@ -97,7 +107,9 @@ def refresh_token(request: Request, current_user=Depends(get_current_user)):
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+
 @router.post("/refresh-token", response_model=TokenResponse)
+@limit("60/minute")  # alternativo; permitido pero acotado
 def refresh_token_manual(data: RefreshTokenRequest, request: Request):
     """🔁 Genera un nuevo access_token usando un refresh_token manual."""
     try:
@@ -120,7 +132,7 @@ def refresh_token_manual(data: RefreshTokenRequest, request: Request):
 
         return {
             "access_token": access_token,
-            "token_type": "bearer"
+            "token_type": "bearer",
         }
 
     except Exception as e:
