@@ -124,7 +124,7 @@ def create_app() -> FastAPI:
     app.include_router(stats.router)
     app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
     app.include_router(logs_legacy.router)  
-app.include_router(logs_v2.router)     
+    app.include_router(logs_v2.router)     
     # ✅ Intents: moderno sin prefijo; legacy aislado bajo /api/legacy
     app.include_router(intent_controller.router)  # moderno: /admin/intents*
     app.include_router(
