@@ -50,7 +50,8 @@ from backend.routes import user as user_routes
 from backend.routes import user_controller as user_routes 
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
-
+from backend.routes import logs as logs_legacy
+from backend.routes import logs_v2
 # Redis opcional (para rate-limit builtin en producción)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
@@ -122,6 +123,8 @@ def create_app() -> FastAPI:
     app.include_router(media_router)
     app.include_router(stats.router)
     app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
+    app.include_router(logs_legacy.router)  
+app.include_router(logs_v2.router)     
     # ✅ Intents: moderno sin prefijo; legacy aislado bajo /api/legacy
     app.include_router(intent_controller.router)  # moderno: /admin/intents*
     app.include_router(
