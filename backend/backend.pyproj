@@ -1,20 +1,21 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <!-- Carpeta base del proyecto (está dentro de backend) -->
+    <!-- El proyecto vive dentro de la carpeta backend -->
     <ProjectHome>.</ProjectHome>
-    <!-- Archivo de inicio (dentro de backend) -->
+
+    <!-- Archivo de inicio -->
     <StartupFile>main.py</StartupFile>
 
-    <!-- Ruta del intérprete: tu venv -->
+    <!-- IntÃ©rprete del venv (RELATIVO a backend\) -->
     <InterpreterPath>..\ .venv\Scripts\python.exe</InterpreterPath>
 
-    <!-- Donde se ejecuta: la raíz del repo para que "backend.main" resuelva bien -->
+    <!-- Directorio de trabajo: la RAÃZ del repo (para que backend.main resuelva) -->
     <WorkingDirectory>..\</WorkingDirectory>
 
     <!-- Argumentos: ejecuta Uvicorn -->
     <CommandLineArguments>-m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000</CommandLineArguments>
 
-    <!-- Añadimos la raíz al PYTHONPATH -->
+    <!-- AÃ±ade la raÃ­z al PYTHONPATH -->
     <SearchPath>..\</SearchPath>
 
     <LaunchProvider>Standard Python launcher</LaunchProvider>
@@ -24,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Incluye tu main.py; agrega otros .py si quieres que aparezcan en el explorador -->
+    <!-- Muestra main.py; VS listarÃ¡ el resto al expandir la carpeta -->
     <Compile Include="main.py" />
   </ItemGroup>
 
