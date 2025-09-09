@@ -4,7 +4,7 @@ Consulta la guía: [EMBED_GUIDE.md](./EMBED_GUIDE.md)
 
 # 🤖 Chatbot Tutor Virtual v2 – Proyecto SENA
 
-Sistema modular e inteligente para orientación académica y soporte en línea, desarrollado como solución embebible para plataformas educativas como **Zajuna**. Utiliza **FastAPI**, **Rasa**, **MongoDB**, **React** y **Docker**.
+Sistema modular e inteligente para orientación académica y soporte en línea de preguntas frecuentes, desarrollado como solución embebible para plataformas educativas como **Zajuna**. Utiliza **FastAPI**, **Rasa**, **MongoDB**, **React** y **Docker**.
 
 ---
 ![Status](https://img.shields.io/badge/estado-desarrollo-blue.svg)
@@ -204,4 +204,145 @@ Orquestación con Docker y Railway
 🔒 Conserva este aviso de licencia en todos los archivos modificados.
 
 <!-- Prueba de conexión GitHub ✅ -->
+
+
+
+
+
+
+
+
+
+
+# 📘 Proyecto Chatbot Tutor Virtual v7.3
+
+---
+
+## 🏫 Institución
+**Servicio Nacional de Aprendizaje (SENA)**
+
+## 👤 Autor
+**Daniel Hernán Martínez Cano**
+
+## 📅 Versión
+v7.3 — 2025
+
+---
+
+## 📌 Introducción
+
+El **Chatbot Tutor Virtual** es una solución tecnológica diseñada para apoyar a los aprendices del SENA en la interacción con la plataforma **Zajuna** y en la gestión de procesos académicos y administrativos.  
+
+El proyecto combina **Inteligencia Artificial** (Rasa para NLU/NLG) con un **backend en FastAPI**, **MongoDB** como base de datos, un **panel administrativo en React (Vite)**, y un **widget web embebible**.  
+Además, está preparado para despliegues en **Visual Studio 2022 (F5)** y en **Docker Compose**, lo que garantiza portabilidad y escalabilidad.
+
+---
+
+## 🎯 Objetivos
+
+### Objetivo General
+Desarrollar un **Chatbot Tutor Virtual** que facilite el acompañamiento académico, mejore la experiencia de los aprendices en la plataforma Zajuna y optimice los procesos de soporte.
+
+### Objetivos Específicos
+1. **Levantamiento de requerimientos** funcionales y no funcionales.  
+2. **Diseño de arquitectura tecnológica** modular, escalable y desacoplada.  
+3. **Implementación del backend** en FastAPI con autenticación JWT y conexión a MongoDB.  
+4. **Integración de Rasa** como motor de NLU/NLG para flujos conversacionales inteligentes.  
+5. **Desarrollo de un panel administrativo** en React + Vite para la gestión de intents, logs y métricas.  
+6. **Construcción de un widget web embebible** que permita integrar el chatbot en la plataforma Zajuna.  
+7. **Pruebas unitarias, funcionales y E2E** para garantizar la calidad del sistema.  
+8. **Contenerización con Docker Compose**, habilitando despliegue de backend, frontend, Rasa y servicios asociados.  
+9. **Documentación técnica e institucional** para entrega y sustentación.  
+
+---
+
+## 🏗️ Arquitectura General
+
+El sistema está conformado por los siguientes componentes:
+
+- **Backend (FastAPI + MongoDB)**  
+  Maneja API REST, autenticación, panel de administración y comunicación con Rasa.  
+
+- **Rasa (NLU/NLG + Action Server)**  
+  Procesa las intenciones de los usuarios, gestiona historias, reglas y acciones personalizadas.  
+
+- **Frontend (Admin Panel en React + Vite)**  
+  Permite a los administradores gestionar intents, entrenar el bot y visualizar métricas.  
+
+- **Widget Web Embebible**  
+  Proporciona la interfaz del chatbot para integrar en Zajuna y otros portales.  
+
+- **Orquestación con Docker Compose**  
+  Define perfiles (`build` con Dockerfiles locales, `vanilla` con imágenes oficiales) para flexibilidad en desarrollo y producción.  
+
+---
+
+## 📂 Estructura del Proyecto
+
+chatbot_tutor_virtual_v7.3/
+│── backend/ # FastAPI + conexión a MongoDB
+│── rasa/ # NLU/NLG (domain.yml, nlu.yml, rules.yml, stories.yml)
+│── rasa_action_server/ # Custom actions de Rasa
+│── admin_panel_react/ # Panel administrativo en React + Vite
+│── ops/nginx/conf.d/ # Configuración de Nginx
+│── docker-compose.yml # Orquestación con perfiles build/vanilla
+│── run_backend.bat
+│── run_frontend.bat
+│── run_all.bat
+│── run_compose_build.bat
+│── run_compose_vanilla.bat
+│── check_health.bat
+│── check_health.ps1
+│── README.md # Documento institucional
+│── README-dev.md # Guía técnica para desarrolladores
+
+markdown
+Copiar código
+
+---
+
+## ⚙️ Tecnologías Implementadas
+
+- **Lenguajes y Frameworks**
+  - Python 3.11 (FastAPI, Uvicorn, Pydantic)
+  - JavaScript (React + Vite)
+  - YAML (definición de intents, reglas e historias en Rasa)
+
+- **Bases de Datos**
+  - MongoDB (persistencia de usuarios, logs y métricas)
+
+- **IA Conversacional**
+  - Rasa (NLU/NLG, stories, rules, forms)
+  - Rasa SDK (acciones personalizadas)
+
+- **Contenerización**
+  - Docker & Docker Compose
+  - Perfiles (`build` con Dockerfiles, `vanilla` con imágenes oficiales)
+
+- **Infraestructura**
+  - Visual Studio 2022 (integración con F5 para backend Python)
+  - Node.js + NPM para React/Vite
+  - Nginx (reverse proxy y hosting del panel en perfil build)
+
+---
+
+## ✅ Estado Actual
+
+- Backend FastAPI **implementado y probado**.  
+- Autenticación JWT y guardado en MongoDB.  
+- Panel React con login, intents, logs y métricas.  
+- Widget web embebible con botones, carruseles y escalado a humano.  
+- Rasa integrado con intents, reglas, historias y acciones personalizadas.  
+- Docker Compose listo con perfiles **build** y **vanilla**.  
+- Scripts `.bat` para automatizar ejecución local y con contenedores.  
+- Documentación técnica (`README-dev.md`) y de entrega (`README.md`).
+
+---
+
+## 📜 Licencia
+
+Este proyecto es de uso académico e institucional para el **SENA**.  
+La distribución y uso externo requiere autorización expresa del autor.
+
+---
 
