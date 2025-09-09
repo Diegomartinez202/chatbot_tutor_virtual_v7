@@ -1,9 +1,8 @@
-// src/pages/AdminRegisterPage.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "@/components/Input";
 import IconTooltip from "@/components/ui/IconTooltip";
-import { UserPlus, Mail, Lock, Shield } from "lucide-react";
+import { UserPlus, Mail, Lock, Shield, LogIn } from "lucide-react"; // ✅ Corregido: ahora LogIn está definido
 import { toast } from "react-hot-toast";
 import { registerAdmin } from "@/services/adminApi";
 
@@ -136,6 +135,7 @@ export default function AdminRegisterPage() {
                     <Link to="/admin/login" className="hover:underline">¿Ya estás registrado? Iniciar sesión</Link>
                 </div>
 
+                {/* ✅ Botón de SSO con ícono corregido */}
                 {zajunaSSO && (
                     <div className="mt-4">
                         <button
