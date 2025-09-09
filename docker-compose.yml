@@ -1,11 +1,25 @@
 name: tutorbot-local
 version: "3.9"
 
+# =========================
+# Redes y volúmenes
+# =========================
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mongo-data:               # modo build (tu primera versión)
+  _docker_data_mongo:       # modo vanilla (la segunda versión)
+  # redis-data:             # si activas redis más adelante
+
 services:
-  # -------------------------
-  # 📦 MongoDB (persistente)
-  # -------------------------
+
+  # ─────────────────────────────────────────────────────────────
+  # 📦 MongoDB (perfil: build) — sin auth, volumen "mongo-data"
+  # ─────────────────────────────────────────────────────────────
   mongo:
+    profiles: ["build"]
     image: mongo:6
     container_name: mongo
     restart: unless-stopped
@@ -16,10 +30,32 @@ services:
     networks:
       - app-net
 
-  # ------------------------------------
-  # 🧠 Rasa (Core/NLU) + REST en :5005
-  # ------------------------------------
+  # ───────────────────────────────────────────────────────────────
+  # 📦 MongoDB (perfil: vanilla) — con auth vía variables de entorno
+  # ───────────────────────────────────────────────────────────────
+  ctv_mongo:
+    profiles: ["vanilla"]
+    image: mongo:6.0
+    container_name: ctv_mongo
+    restart: unless-stopped
+    environment:
+      # define en tu .env (o exporta) antes de levantar:
+      # MONGO_INITDB_ROOT_USERNAME=admin
+      # MONGO_INITDB_ROOT_PASSWORD=admin123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - _docker_data_mongo:/data/db
+    networks:
+      - app-net
+
+  # ─────────────────────────────────────────────
+  # 🧠 Rasa (perfil: build) — build desde ./rasa
+  # ─────────────────────────────────────────────
   rasa:
+    profiles: ["build"]
     build:
       context: ./rasa
       dockerfile: Dockerfile
@@ -32,13 +68,38 @@ services:
       - "5005:5005"
     depends_on:
       - action-server
+      - mongo
     networks:
       - app-net
 
-  # ---------------------------------------
-  # ⚙️ Rasa Action Server (custom actions)
-  # ---------------------------------------
+  # ────────────────────────────────────────────────────────────────
+  # 🧠 Rasa (perfil: vanilla) — imagen oficial + monta ./rasa
+  # ────────────────────────────────────────────────────────────────
+  ctv_rasa:
+    profiles: ["vanilla"]
+    image: rasa/rasa:3.6.19
+    container_name: ctv_rasa
+    restart: unless-stopped
+    command: >
+      rasa run
+      --enable-api
+      --cors "*"
+      --port ${RASA_PORT:-5005}
+    working_dir: /app/rasa
+    volumes:
+      - ./rasa:/app/rasa
+    ports:
+      - "${RASA_PORT:-5005}:5005"
+    depends_on:
+      - ctv_mongo
+    networks:
+      - app-net
+
+  # ──────────────────────────────────────────────────
+  # ⚙️ Rasa Action Server (perfil: build) — ./rasa_action_server
+  # ──────────────────────────────────────────────────
   action-server:
+    profiles: ["build"]
     build:
       context: ./rasa_action_server
       dockerfile: Dockerfile
@@ -49,27 +110,44 @@ services:
     networks:
       - app-net
 
-  # -------------------------------------
-  # 🐍 Backend FastAPI (API + Admin2)
-  # -------------------------------------
+  # ─────────────────────────────────────────────────────────────
+  # ⚙️ Rasa Action Server (perfil: vanilla) — imagen oficial SDK
+  # ─────────────────────────────────────────────────────────────
+  ctv_rasa_actions:
+    profiles: ["vanilla"]
+    image: rasa/rasa-sdk:3.6.2
+    container_name: ctv_rasa_actions
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python", "-m", "rasa_sdk", "--actions", "actions"]
+    volumes:
+      - ./rasa/actions:/app/actions
+    ports:
+      - "5055:5055"
+    depends_on:
+      - ctv_rasa
+    networks:
+      - app-net
+
+  # ─────────────────────────────────────────────
+  # 🐍 Backend FastAPI (perfil: build) — ./backend
+  # ─────────────────────────────────────────────
   backend:
+    profiles: ["build"]
     build:
       context: ./backend
       dockerfile: Dockerfile
-      # Si tu Dockerfile es multi-stage, puedes forzar:
-      # target: prod   # (usa override para dev con --reload)
+      # target: prod   # descomenta si tu Dockerfile es multi-stage
     container_name: backend
     restart: unless-stopped
-    # Carga .env raíz (frontend/SSO) + .env específico del backend (si existe)
     env_file:
       - ./.env
       - ./backend/.env
     environment:
-      # 👉 URLs internas de la red de Compose (no cambian tu lógica)
+      # 👉 URLs internas en la red de Compose (no cambian tu lógica)
       MONGO_URI: mongodb://mongo:27017/tutor_virtual
       MONGO_DB_NAME: tutor_virtual
       RASA_URL: http://rasa:5005
-      # Orígenes de frontend (panel/SPA). JSON válido (tu Settings acepta CSV/JSON)
       ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
       FRONTEND_SITE_URL: http://localhost:8080
       APP_ENV: dev
@@ -81,14 +159,45 @@ services:
       - "8000:8000"
     networks:
       - app-net
-    # (Opcional) Montar logs en host:
     # volumes:
     #   - ./backend/logs:/app/logs
 
-  # ----------------------------------------
-  # 🖥️ Admin Panel (React/Nginx) en :8080
-  # ----------------------------------------
+  # ───────────────────────────────────────────────────────────────
+  # 🐍 Backend FastAPI (perfil: vanilla) — imagen python + monta ./backend
+  # ───────────────────────────────────────────────────────────────
+  ctv_fastapi:
+    profiles: ["vanilla"]
+    image: python:3.11-slim
+    container_name: ctv_fastapi
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PYTHONUNBUFFERED: "1"
+      # Ajusta a tus variables reales:
+      # Si usas ctv_mongo con auth, define MONGO_DB y credenciales en .env
+      MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@ctv_mongo:27017/${MONGO_DB:-chatbot}?authSource=admin"
+      RASA_BASE_URL: "http://ctv_rasa:${RASA_PORT:-5005}"
+    volumes:
+      - ./backend:/app/backend
+    command: >
+      bash -lc "
+        pip install --no-cache-dir --upgrade pip setuptools wheel &&
+        if [ -f backend/requirements.txt ]; then pip install --no-cache-dir -r backend/requirements.txt; fi &&
+        python -m uvicorn backend.main:app --host 0.0.0.0 --port ${FASTAPI_PORT:-8000}
+      "
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    depends_on:
+      - ctv_mongo
+      - ctv_rasa
+    networks:
+      - app-net
+
+  # ─────────────────────────────────────────────
+  # 🖥️ Admin Panel (React/Nginx) — solo en modo build
+  # ─────────────────────────────────────────────
   admin:
+    profiles: ["build"]
     build:
       context: ./admin_panel_react
       dockerfile: Dockerfile
@@ -101,10 +210,14 @@ services:
     networks:
       - app-net
 
-  # ----------------------------------------
-  # 🌐 Nginx reverse proxy (/: Admin, /api: FastAPI, /rasa y /ws: Rasa)
-  # ----------------------------------------
+  # ─────────────────────────────────────────────────────────────
+  # 🌐 Nginx reverse proxy — solo en modo build
+  #   /         → Admin
+  #   /api      → FastAPI
+  #   /rasa,/ws → Rasa
+  # ─────────────────────────────────────────────────────────────
   nginx:
+    profiles: ["build"]
     image: nginx:1.27-alpine
     container_name: nginx
     restart: unless-stopped
@@ -121,9 +234,9 @@ services:
     networks:
       - app-net
 
-  # ----------------------------------------------------------
+  # ─────────────────────────────────────────────────────────────
   # (Opcional) Redis si activas RATE_LIMIT_BACKEND=redis
-  # ----------------------------------------------------------
+  # ─────────────────────────────────────────────────────────────
   # redis:
   #   image: redis:7-alpine
   #   container_name: redis
@@ -134,11 +247,3 @@ services:
   #     - redis-data:/data
   #   networks:
   #     - app-net
-
-networks:
-  app-net:
-    driver: bridge
-
-volumes:
-  mongo-data:
-  # redis-data:
