@@ -1,7 +1,7 @@
 param(
   [string]$FastApiUrl = "http://127.0.0.1:8000",
   [string]$RasaUrl    = "http://127.0.0.1:5005",
-  [string]$ActionUrl  = "http://127.0.0.1:5055",
+  [string]$ActionsUrl = "http://127.0.0.1:5055",
   [switch]$OpenDocs
 )
 
@@ -34,14 +34,14 @@ Write-Host "======================================" -ForegroundColor Cyan
 $fastapiPing   = Test-Endpoint -Url "$FastApiUrl/ping"        -Name "fastapi_ping"
 $chatHealth    = Test-Endpoint -Url "$FastApiUrl/chat/health" -Name "chat_health"
 $rasaStatus    = Test-Endpoint -Url "$RasaUrl/status"         -Name "rasa_status"
-$actionHealth  = Test-Endpoint -Url "$ActionUrl/health"       -Name "action_health"
+$actionsHealth = Test-Endpoint -Url "$ActionsUrl/health"      -Name "actions_health"
 
-$allOk = $fastapiPing.ok -and $chatHealth.ok -and $rasaStatus.ok -and $actionHealth.ok
+$allOk = $fastapiPing.ok -and $chatHealth.ok -and $rasaStatus.ok -and $actionsHealth.ok
 Write-Host "--------------------------------------"
 if ($allOk) {
   Write-Host "TODOS LOS SERVICIOS RESPONDEN OK" -ForegroundColor Green
   if ($OpenDocs) { Start-Process "$FastApiUrl/docs" }
 } else {
-  Write-Host "ALGÚN SERVICIO FALLÓ (ver arriba)" -ForegroundColor Yellow
+  Write-Host "ALGUN SERVICIO FALLÓ (ver arriba)" -ForegroundColor Yellow
 }
 Write-Host "--------------------------------------"
