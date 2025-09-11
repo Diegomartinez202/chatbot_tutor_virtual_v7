@@ -1,163 +1,233 @@
-# Despliegue con Docker — Perfiles `build` y `prod`
+Ámbito: Entregable 4 — Contenedor Docker funcional con un solo docker-compose.yml y dos perfiles (build/prod), imágenes reproducibles, y reverse proxy.
+Estado: Perfiles listos. Back/Front/Rasa/Action Server listos. Nginx listo. Health-check listo. Sin eliminar ni modificar tu lógica de negocio.
 
-Este documento resume cómo **levantar** el proyecto con Docker en dos perfiles:
-- **build**: desarrollo/testing (hot reload, logs, CORS flexible)
-- **prod**: entrega profesional (optimizado, Nginx, CORS cerrado)
+1) Requisitos
 
----
+Docker Desktop o Docker Engine + Compose v2
 
-## 1) Prerrequisitos
+4 GB RAM libres recomendados
 
-- **Docker Desktop** (Windows/Mac) o Docker + Compose v2 (Linux).
-- Recomendado: WSL2 activo en Windows (Docker Desktop → Settings → General → WSL2 engine).
+Puertos libres: 80, 8000, 5005, 5055, 5173 (solo build)
 
-Verifica:
-```bash
-docker version
-docker compose version
-2) Estructura relevante
-arduino
-Copiar código
-.
+2) Estructura del repo (resumen)
+chatbot_tutor_virtual_v7.3/
+├─ docker-compose.yml
 ├─ backend/
-│  ├─ Dockerfile        # multi-stage: dev (reload) y prod (workers)
-│  ├─ .env              # desarrollo local
-│  └─ .env.production   # producción (hostnames internos: mongo, rasa)
-├─ admin_panel_react/
-│  ├─ Dockerfile        # build SPA + Nginx
-│  └─ .env.development / .env.production  (VITE_API_BASE)
+│  ├─ Dockerfile               # multi-stage (dev/prod)
+│  ├─ requirements.txt
+│  ├─ .env                     # desarrollo
+│  └─ .env.production          # producción (usa hostnames internos)
 ├─ rasa/
-│  ├─ Dockerfile
-│  ├─ domain.yml, config.yml, data/, ...
-│  └─ entrypoint.sh     # entrena si no hay modelo (opcional)
+│  ├─ Dockerfile               # imagen de Rasa (con entrypoint.sh)
+│  ├─ entrypoint.sh            # render de endpoints + auto-train
+│  ├─ endpoints.tpl.yml        # template default
+│  ├─ endpoints.mongo.tpl.yml  # template con tracker Mongo (opcional)
+│  ├─ domain.yml / config.yml / data/** / ...
+│  └─ actions/                 # ⚠️ código de acciones (una sola base)
+│     ├─ actions.py
+│     ├─ __init__.py
+│     └─ Dockerfile            # (LEGACY/OPCIONAL, ver notas)
 ├─ rasa_action_server/
-│  └─ Dockerfile, actions/, requirements.txt
+│  ├─ Dockerfile               # ⬅️ imagen oficial del Action Server (Opción A)
+│  ├─ requirements.txt         # (opcional para extras)
+│  └─ actions/entrypoint.sh    # (opcional; no requerido en Opción A)
 ├─ ops/
-│  └─ nginx/
-│     └─ conf.d/
-│        └─ app.conf    # proxy /, /api, /rasa, /ws  (válido build y prod)
-└─ docker-compose.yml   # perfiles: build, prod (+ vanilla opcional)
-3) Variables de entorno
-Backend
-Dev: backend/.env (ejemplo incluido).
+│  └─ nginx/conf.d/app.conf    # reverse proxy build/prod
+├─ check_health.ps1            # health: FastAPI, /chat/health, Rasa, Action Server
 
-Prod: backend/.env.production (incluye JWT, Mongo, Rasa, CORS/EMBED, rate-limit, SMTP).
-En Docker, usa hostnames internos:
 
-ini
-Copiar código
+Nota sobre rasa/actions/Dockerfile: lo conservamos solo como legado (no lo usa docker-compose). La imagen en uso del Action Server es la de rasa_action_server/Dockerfile y copia tu código desde rasa/actions/** (Opción A). No se elimina nada.
+
+3) Perfiles y entornos
+
+build (desarrollo/test): hot-reload en backend y Vite, CORS flexible, logs de depuración, auto-train Rasa si no hay modelo.
+
+prod (entrega): imágenes inmutables, Uvicorn en backend, Nginx para SPA/API/Rasa, CORS/headers más estrictos, hostnames internos.
+
+4) Variables de entorno
+
+backend/.env y backend/.env.production ya preparados.
+En producción, los servicios internos se resuelven como:
+
 MONGO_URI=mongodb://mongo:27017/chatbot_tutor_virtual_v2
+
 RASA_URL=http://rasa:5005
-Frontend (Vite)
-Dev: admin_panel_react/.env.development
 
-ini
-Copiar código
-VITE_API_BASE=http://localhost:8000
-Prod: admin_panel_react/.env.production
+Rasa: ENDPOINTS_TEMPLATE=default|mongo (por defecto default).
+Para usar tracker en Mongo:
 
-ini
-Copiar código
-VITE_API_BASE=https://api.tu-dominio.com    # o http://localhost/api si usas reverse proxy
-4) Levantar los perfiles
-Desarrollo / Testing — build
-bash
-Copiar código
+ENDPOINTS_TEMPLATE=mongo
+TRACKER_MONGO_URL=mongodb://mongo:27017
+TRACKER_MONGO_DB=rasa
+TRACKER_MONGO_COLLECTION=conversations
+
+
+Action Server:
+
+HELPDESK_WEBHOOK (por defecto lo definimos a http://backend:8000/api/helpdesk/tickets)
+
+ACTIONS_LOG_LEVEL, ACTIONS_LOG_FILE (opcional), ACTIONS_HTTP_TIMEOUT, ACTIONS_HTTP_RETRIES
+
+5) Cómo levantar
+5.1 Desarrollo / pruebas (perfil build)
+# desde la raíz del repo
 docker compose --profile build up -d --build
-# Backend (FastAPI dev): http://localhost:8000/docs
-# Frontend (Vite dev) : http://localhost:5173
-# Rasa               : http://localhost:5005/status
-# (Opcional) Nginx dev: http://localhost/ → proxya /, /api, /rasa, /ws
-Producción / Entrega — prod
-bash
-Copiar código
+docker compose --profile build logs -f rasa action-server backend-dev admin-dev nginx-dev
+
+
+UI (admin-dev): http://localhost
+
+API (backend-dev): http://localhost/api
+
+Rasa (REST): http://localhost/rasa
+
+WS a Rasa: ws://localhost/ws
+
+5.2 Producción (perfil prod)
 docker compose --profile prod up -d --build
-# Admin (SPA Nginx) : http://localhost:8080
-# Backend (Uvicorn) : http://localhost:8000/docs
-# Rasa              : http://localhost:5005/status
-# Reverse proxy (si deseas): http://localhost/  (montado a /, /api, /rasa, /ws)
-Parar servicios:
+docker compose --profile prod logs -f nginx backend rasa action-server admin
 
-bash
-Copiar código
-docker compose down
-Logs:
 
-bash
-Copiar código
-docker compose --profile build logs -f backend-dev
-docker compose --profile prod  logs -f backend
-5) Pruebas de salud (smoke tests)
-Conexión directa:
+UI (admin): http://localhost
 
-bash
-Copiar código
-# Backend
-curl -s http://localhost:8000/ping
-curl -s http://localhost:8000/chat/health
+API (backend): http://localhost/api
 
-# Rasa
-curl -s http://localhost:5005/status
-Vía reverse proxy (si montas Nginx y enrutas /api):
+Rasa (REST): http://localhost/rasa
 
-bash
-Copiar código
-curl -i http://localhost/api/ping
-curl -i http://localhost/rasa/status
-Swagger / OpenAPI:
+WS a Rasa: ws://localhost/ws
 
-http://localhost:8000/docs
+TLS (opcional): coloca certificados en ops/nginx/certs/ y habilita el puerto 443 en el servicio nginx (ya dejé la plantilla en app.conf lista para ampliar).
 
-6) CORS, EMBED y seguridad
-build: CORS flexible (localhost:5173 / 8080), DEBUG=true.
+6) Health check
+Windows (PowerShell):
+.\check_health.ps1 -OpenDocs
 
-prod: CORS cerrado (dominios institucionales), DEBUG=false.
-Ajusta en backend/.env.production:
+Linux/macOS (curl equivalente rápido):
+set -e
+for u in \
+  http://127.0.0.1:8000/ping \
+  http://127.0.0.1:8000/chat/health \
+  http://127.0.0.1:5005/status \
+  http://127.0.0.1:5055/health ; do
+  echo "=> $u"; curl -fsSL "$u" >/dev/null && echo "OK" || (echo "FAIL" && exit 1)
+done
 
-env
-Copiar código
-ALLOWED_ORIGINS=["https://zajuna.edu.co","https://app.zajuna.edu.co","https://chatbot-tutor.sena.edu.co"]
-FRAME_ANCESTORS=["'self'","https://zajuna.edu.co","https://app.zajuna.edu.co","https://chatbot-tutor.sena.edu.co"]
-(Opcional: TLS con Nginx; montar certs en ops/nginx/certs y habilitar 443.)
+7) Comandos útiles
+# reconstruir solo backend dev
+docker compose build backend-dev && docker compose up -d backend-dev
 
-7) Checklist para entrega (los 4 productos)
-API funcional (FastAPI):
+# reconstruir Rasa (si cambias NLU/data)
+docker compose build rasa && docker compose up -d rasa
 
-Endpoint /ping OK
+# reconstruir action server (si cambias actions.py)
+docker compose build action-server && docker compose up -d action-server
 
-/auth/login, /admin/register, /chat responden (usa Postman/Swagger)
+# ver logs de un servicio
+docker compose logs -f backend  # (o backend-dev / rasa / action-server / admin / nginx)
 
-Logs sin errores en docker compose logs backend
+8) Errores comunes
 
-Interfaz web conversacional:
+Puerto en uso: libera 80/8000/5005/5055/5173 o cambia mapeos en docker-compose.yml.
 
-build: http://localhost:5173 (HMR)
+Rasa sin modelo: si models/ está vacío, el entrypoint.sh entrena; revisa errores en datos NLU.
 
-prod: http://localhost:8080 (SPA Nginx)
+CORS/iframe: ajusta ALLOWED_ORIGINS, FRAME_ANCESTORS y CSP del Nginx si incrustas el widget.
 
-Si integras con Zajuna: iframe o consumir /api desde front institucional
+Mongo auth (vanilla): hay un servicio ctv_mongo con auth para pruebas alternas (perfil vanilla). No se usa en build/prod.
 
-Manual técnico / usuario:
+9) Archivos revisados/entregados (Action Server)
 
-Este README-deploy.md + README-frontend.md + README-solution.md
+Opción A confirmada: una sola base de acciones en rasa/actions/**. La imagen de ejecución se construye desde rasa_action_server/Dockerfile y copia esa carpeta.
 
-Esquemas: arquitectura, perfiles, endpoints, flujos, pruebas
+A. rasa_action_server/Dockerfile ✅ (en uso por docker-compose)
+# syntax=docker/dockerfile:1.6
+FROM python:3.11-slim
 
-Contenedor Docker funcional:
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-build/prod levantan sin cambios de código
+WORKDIR /app/actions
 
-ops/nginx/conf.d/app.conf enruta /, /api, /rasa, /ws
+# Sistema mínimo (curl para healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
 
-docker-compose.yml único con perfiles
+# Rasa SDK
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir rasa-sdk==3.6.2
 
-8) Problemas comunes
-Docker no corre (Windows): inicia Docker Desktop → docker version.
+# (Opcional) dependencias de tus acciones si creas este archivo
+# (lo buscará en la RAÍZ DEL REPO: rasa_action_server/requirements.txt)
+COPY rasa_action_server/requirements.txt /tmp/requirements.txt
+RUN if [ -f /tmp/requirements.txt ]; then \
+      pip install --no-cache-dir -r /tmp/requirements.txt ; \
+    fi
 
-version obsoleta en compose: ignorable; quita version: "3.9" si molesta.
+# Copia SOLO el código de acciones desde tu ubicación original (Opción A)
+COPY rasa/actions /app/actions
 
-Puertos ocupados: cambia mapeos en docker-compose.yml.
+# Usuario no-root
+RUN adduser --disabled-password --gecos "" --uid 10002 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
-Rasa sin modelo: usa un entrypoint.sh de Rasa que entrene si models/ está vacío (opcional).
+EXPOSE 5055
 
-CORS: añade tu dominio a ALLOWED_ORIGINS en .env.production.
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -fsS http://localhost:5055/health || exit 1
+
+# Lanza el servidor de acciones cargando el módulo "actions"
+CMD ["python", "-m", "rasa_sdk", "--actions", "actions", "--port", "5055"]
+
+B. rasa/actions/Dockerfile 🟨 (legado/alternativo – no lo usa compose)
+
+Lo dejamos por compatibilidad. Si alguna vez quisieras construir un contenedor auto-contenido que incluya solo rasa/actions (sin copiar desde fuera), este Dockerfile funciona. No afecta tu despliegue actual.
+
+# 🧠 Action Server para Rasa (LEGADO/ALTERNATIVO)
+FROM rasa/rasa-sdk:3.6.2
+
+WORKDIR /app/actions
+
+# Copiar solo las acciones, no el resto del proyecto
+COPY . .
+
+# Inicia el servidor de acciones
+CMD ["start", "--actions", "actions"]
+
+
+Si quieres evitar confusiones en el futuro, puedes renombrarlo a Dockerfile.legacy o dejar un comentario al inicio indicando que no lo usa docker-compose. No lo elimino para respetar tu requerimiento.
+
+10) Nginx (reverse proxy)
+
+Ya entregado y validado en ops/nginx/conf.d/app.conf. Apunta a:
+
+/ → admin | admin-dev
+
+/api/ → backend | backend-dev
+
+/rasa/ y /ws → rasa
+
+Para TLS, añade los certificados en ops/nginx/certs/ y expón 443.
+
+11) Validación final (checklist)
+
+ docker-compose.yml en raíz con perfiles build y prod
+
+ backend/Dockerfile multi-stage (dev/prod) + .env + .env.production
+
+ rasa/Dockerfile + entrypoint.sh + endpoints.tpl.yml (+ endpoints.mongo.tpl.yml)
+
+ Acciones en rasa/actions/** (una sola base)
+
+ Imagen Action Server desde rasa_action_server/Dockerfile (en uso)
+
+ ops/nginx/conf.d/app.conf (proxy /, /api, /rasa, /ws)
+
+ check_health.ps1 prueba FastAPI, /chat/health, Rasa, Action Server
+
+ Levanta --profile build y --profile prod sin errores
+
+ (Opcional) TLS en Nginx funcionando

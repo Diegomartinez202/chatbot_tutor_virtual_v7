@@ -3,25 +3,28 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app/actions
 
-# Dependencias de sistema mínimas (requests/ssl/etc.)
+# Sistema mínimo (curl para healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
  && rm -rf /var/lib/apt/lists/*
 
-# 1) Instala rasa-sdk
-RUN pip install --upgrade pip && pip install rasa-sdk==3.6.2
+# Rasa SDK
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir rasa-sdk==3.6.2
 
-# 2) Dependencias opcionales de tus actions (si existe el archivo)
-COPY rasa/actions/requirements.txt /tmp/requirements.txt
+# (Opcional) dependencias de tus acciones si creas este archivo
+# (lo buscará en la RAÍZ DEL REPO: rasa_action_server/requirements.txt)
+COPY rasa_action_server/requirements.txt /tmp/requirements.txt
 RUN if [ -f /tmp/requirements.txt ]; then \
-      pip install --no-cache-dir -r /tmp/requirements.txt; \
+      pip install --no-cache-dir -r /tmp/requirements.txt ; \
     fi
 
-# 3) Copia sólo el código de acciones
+# Copia SOLO el código de acciones desde tu ubicación original (Opción A)
 COPY rasa/actions /app/actions
 
 # Usuario no-root
@@ -31,9 +34,8 @@ USER appuser
 
 EXPOSE 5055
 
-# Healthcheck al action server
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://localhost:5055/health || exit 1
 
-# Inicia el servidor de acciones
+# Lanza el servidor de acciones cargando el módulo "actions"
 CMD ["python", "-m", "rasa_sdk", "--actions", "actions", "--port", "5055"]

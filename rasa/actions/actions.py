@@ -18,6 +18,17 @@ from rasa_sdk.events import SlotSet
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction  # Rasa SDK 3.x
 
+__all__ = [
+    "ValidateSoporteForm",
+    "ValidateRecoveryForm",
+    "ActionEnviarCorreo",
+    "ActionEnviarSoporte",
+    "ActionSoporteSubmit",
+    "ActionConectarHumano",
+    "ActionHealthCheck",
+    "ActionCheckAuth",
+]
+
 # =========================
 #    Logging estructurado
 # =========================
@@ -72,6 +83,8 @@ MAX_RETRIES = int(os.getenv("ACTIONS_HTTP_RETRIES", "2"))
 # Ping opcional en health check
 ACTIONS_PING_HELPDESK = (os.getenv("ACTIONS_PING_HELPDESK") or "false").lower() == "true"
 
+# (Opcional) base para links de reset
+RESET_URL_BASE = (os.getenv("RESET_URL_BASE") or "https://zajuna.edu").rstrip("/")
 
 # =========================
 #   Utilidades HTTP/SMTP
@@ -148,7 +161,6 @@ def _json_payload_from_text(text: str) -> Dict[str, Any]:
         pass
     return {}
 
-
 # =========================
 #   Validaciones de Forms
 # =========================
@@ -223,7 +235,6 @@ class ValidateRecoveryForm(FormValidationAction):
             return {"email": None}
         return {"email": v}
 
-
 # ==============   Acciones   ==============
 
 class ActionEnviarCorreo(Action):
@@ -243,7 +254,7 @@ class ActionEnviarCorreo(Action):
             dispatcher.utter_message(text="⚠️ No detecté tu correo. Por favor, escríbelo (ej: usuario@ejemplo.com).")
             return []
 
-        reset_link = f"https://zajuna.edu/reset?email={email}"
+        reset_link = f"{RESET_URL_BASE}/reset?email={email}"
         body = (
             "Hola,\n\nHas solicitado recuperar tu contraseña.\n"
             f"Usa el siguiente enlace para continuar: {reset_link}\n\n"
@@ -492,13 +503,11 @@ class ActionHealthCheck(Action):
         dispatcher.utter_message(text=f"health: {json.dumps(status, ensure_ascii=False)}")
         return []
 
-
 # =========================
 #        Auth gating
 # =========================
 JWT_PUBLIC_KEY = os.getenv("JWT_PUBLIC_KEY", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
-
 
 def _has_auth(tracker: Tracker) -> bool:
     """Devuelve True si la UI/proxy indicó que hay auth válida."""

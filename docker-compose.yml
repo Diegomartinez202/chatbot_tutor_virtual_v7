@@ -1,5 +1,5 @@
 name: tutorbot-local
-version: "3.9"
+version: "3.9"   # Compose v2 lo ignora; puedes dejarlo para compat
 
 # =========================
 # Redes y volúmenes
@@ -47,7 +47,25 @@ services:
     networks: [app-net]
 
   # ─────────────────────────────────────────────
-  # 🧠 Rasa (build/prod) — build desde ./rasa
+  # ⚙️ Rasa Action Server (build/prod)
+  #   Opción A: copia tus acciones desde ./rasa/actions
+  # ─────────────────────────────────────────────
+  action-server:
+    profiles: ["build","prod"]
+    build:
+      context: .                       # raíz del repo para poder COPY rasa/actions
+      dockerfile: rasa_action_server/Dockerfile
+    container_name: action-server
+    restart: unless-stopped
+    environment:
+      HELPDESK_WEBHOOK: http://backend:8000/api/helpdesk/tickets
+      ACTIONS_LOG_LEVEL: INFO
+    ports:
+      - "5055:5055"
+    networks: [app-net]
+
+  # ─────────────────────────────────────────────
+  # 🤖 Rasa (build/prod) — build desde ./rasa
   # ─────────────────────────────────────────────
   rasa:
     profiles: ["build","prod"]
@@ -59,10 +77,16 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-    ports:
-      - "5005:5005"
+      RASA_AUTOTRAIN: "true"   # entrena si no hay modelo (puedes quitarlo si no lo quieres)
+      # (opcional) Tracker en Mongo → descomenta las 4 líneas y usa la plantilla mongo
+      # ENDPOINTS_TEMPLATE: "mongo"
+      # TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      # TRACKER_MONGO_DB: "rasa"
+      # TRACKER_MONGO_COLLECTION: "conversations"
     depends_on:
       - action-server
+    ports:
+      - "5005:5005"
     networks: [app-net]
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q 'version'"]
@@ -92,20 +116,6 @@ services:
       - ctv_mongo
     networks: [app-net]
 
-  # ──────────────────────────────────────────────────
-  # ⚙️ Rasa Action Server (build/prod) — ./rasa_action_server
-  # ──────────────────────────────────────────────────
-  action-server:
-    profiles: ["build","prod"]
-    build:
-      context: ./rasa_action_server
-      dockerfile: Dockerfile
-    container_name: action-server
-    restart: unless-stopped
-    ports:
-      - "5055:5055"
-    networks: [app-net]
-
   # ─────────────────────────────────────────────────────────────
   # ⚙️ Rasa Action Server (perfil: vanilla) — imagen oficial SDK
   # ─────────────────────────────────────────────────────────────
@@ -132,13 +142,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: dev               # etapa dev (hot reload)
+      target: dev               # etapa dev (uvicorn --reload)
     container_name: backend-dev
     restart: unless-stopped
     env_file:
-      - ./backend/.env          # tu .env local de dev
+      - ./backend/.env
     environment:
-      # Hostnames internos de Docker
       MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
       RASA_URL: http://rasa:5005
       APP_ENV: dev
@@ -193,7 +202,6 @@ services:
       UVICORN_WORKERS: "2"
       APP_ENV: prod
       DEBUG: "false"
-      # Hostnames internos
       MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
       RASA_URL: http://rasa:5005
     depends_on:
@@ -241,10 +249,10 @@ services:
       - admin
     ports:
       - "80:80"
-      # - "443:443"   # si agregas TLS
+      - "443:443"   # si agregas TLS
     volumes:
       - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
-      # - ./ops/nginx/certs:/etc/nginx/certs:ro
+      - ./ops/nginx/certs:/etc/nginx/certs:ro
     networks: [app-net]
 
   # =========================================
@@ -266,21 +274,49 @@ services:
     networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
+  # 🐍 Backend "vanilla" (sin Dockerfile propio; monta backend/)
+  # ─────────────────────────────────────────────────────────────
+  ctv_fastapi:
+    profiles: ["vanilla"]
+    image: python:3.11-slim
+    container_name: ctv_fastapi
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PYTHONUNBUFFERED: "1"
+      MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@ctv_mongo:27017/${MONGO_DB:-chatbot}?authSource=admin"
+      RASA_BASE_URL: "http://ctv_rasa:${RASA_PORT:-5005}"
+    volumes:
+      - ./backend:/app/backend
+    command: >
+      bash -lc "
+        pip install --no-cache-dir --upgrade pip setuptools wheel &&
+        if [ -f backend/requirements.txt ]; then pip install --no-cache-dir -r backend/requirements.txt; fi &&
+        python -m uvicorn backend.main:app --host 0.0.0.0 --port ${FASTAPI_PORT:-8000}
+      "
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    depends_on:
+      - ctv_mongo
+      - ctv_rasa
+    networks: [app-net]
+
+  # ─────────────────────────────────────────────────────────────
   # (Opcional) Redis si activas RATE_LIMIT_BACKEND=redis
   # ─────────────────────────────────────────────────────────────
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: redis
-  #   command: ["redis-server","--appendonly","yes"]
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis-data:/data
-  #   networks:
-  #     - app-net
+  redis:
+  image: redis:7-alpine
+  ontainer_name: redis
+  command: ["redis-server","--appendonly","yes"]
+  ports:
+  - "6379:6379"
+  volumes:
+  - redis-data:/data
+  networks:
+  - app-net
 
-  environment:
-  ENDPOINTS_TEMPLATE: mongo
-  TRACKER_MONGO_URL: mongodb://mongo:27017
-  TRACKER_MONGO_DB: rasa
-  TRACKER_MONGO_COLLECTION: conversations
+environment:
+  ENDPOINTS_TEMPLATE: "mongo"
+  TRACKER_MONGO_URL: "mongodb://mongo:27017"
+  TRACKER_MONGO_DB: "rasa"
+  TRACKER_MONGO_COLLECTION: "conversations"

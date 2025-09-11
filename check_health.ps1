@@ -1,6 +1,8 @@
 param(
   [string]$FastApiUrl = "http://127.0.0.1:8000",
-  [string]$RasaUrl    = "http://127.0.0.1:5005"
+  [string]$RasaUrl    = "http://127.0.0.1:5005",
+  [string]$ActionUrl  = "http://127.0.0.1:5055",
+  [switch]$OpenDocs
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -29,16 +31,17 @@ Write-Host "======================================" -ForegroundColor Cyan
 Write-Host " Chatbot Tutor Virtual - Health Check " -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 
-$fastapiPing  = Test-Endpoint -Url "$FastApiUrl/ping"        -Name "fastapi_ping"
-$chatHealth   = Test-Endpoint -Url "$FastApiUrl/chat/health" -Name "chat_health"
-$rasaStatus   = Test-Endpoint -Url "$RasaUrl/status"         -Name "rasa_status"
+$fastapiPing   = Test-Endpoint -Url "$FastApiUrl/ping"        -Name "fastapi_ping"
+$chatHealth    = Test-Endpoint -Url "$FastApiUrl/chat/health" -Name "chat_health"
+$rasaStatus    = Test-Endpoint -Url "$RasaUrl/status"         -Name "rasa_status"
+$actionHealth  = Test-Endpoint -Url "$ActionUrl/health"       -Name "action_health"
 
-$allOk = $fastapiPing.ok -and $chatHealth.ok -and $rasaStatus.ok
+$allOk = $fastapiPing.ok -and $chatHealth.ok -and $rasaStatus.ok -and $actionHealth.ok
 Write-Host "--------------------------------------"
 if ($allOk) {
   Write-Host "TODOS LOS SERVICIOS RESPONDEN OK" -ForegroundColor Green
-  Start-Process "$FastApiUrl/docs"
+  if ($OpenDocs) { Start-Process "$FastApiUrl/docs" }
 } else {
-  Write-Host "ALGUN SERVICIO FALLO (ver arriba)" -ForegroundColor Yellow
+  Write-Host "ALGÚN SERVICIO FALLÓ (ver arriba)" -ForegroundColor Yellow
 }
 Write-Host "--------------------------------------"

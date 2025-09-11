@@ -1,15 +1,10 @@
-version: "3.1"
-
+ENDPOINTS_TEMPLATE=mongo en el servicio rasa.
+# version: "3.1"
 action_endpoint:
   url: "${ACTION_SERVER_URL}"
 
 tracker_store:
-  # Nota: 'mongod' es el tipo usado por Rasa para MongoTrackerStore
   type: mongod
   url: "${TRACKER_MONGO_URL}"
   db: "${TRACKER_MONGO_DB}"
   collection: "${TRACKER_MONGO_COLLECTION}"
-  # Campos opcionales (solo si defines las variables):
-  # username: "${TRACKER_MONGO_USERNAME}"
-  # password: "${TRACKER_MONGO_PASSWORD}"
-  # auth_source: "${TRACKER_MONGO_AUTH_SOURCE}"
