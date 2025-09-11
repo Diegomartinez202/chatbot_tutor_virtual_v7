@@ -2,20 +2,17 @@ version: "3.1"
 
 rules:
 
-# ——— Saludo ———
 - rule: Saludo
   steps:
     - intent: saludo
     - action: utter_saludo
 
-# ——— Explorar temas → carrusel + recomendados ———
 - rule: Explorar temas
   steps:
     - intent: explorar_temas
     - action: utter_cursos_carousel
     - action: utter_cursos_recomendados
 
-# ——— Ingreso Zajuna → decidir recuperación u otro problema ———
 - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
   steps:
     - intent: ingreso_zajuna
@@ -28,19 +25,17 @@ rules:
     - action: soporte_form
     - active_loop: soporte_form
 
-# ——— Proceso académico → menú ———
 - rule: Menú proceso académico
   steps:
     - intent: proceso_academico
     - action: utter_menu_proceso_academico
 
-# ——— Intents informativos públicos (sin auth) ———
 - rule: Tutor asignado (público)
   steps:
     - intent: tutor_asignado
     - action: utter_tutor_asignado
 
-# ——— Intents privados → verificación de auth centralizada ———
+# Verificación de auth centralizada
 - rule: Estado estudiante (verifica auth)
   steps:
     - intent: estado_estudiante
@@ -51,7 +46,7 @@ rules:
     - intent: ver_certificados
     - action: action_check_auth
 
-# ——— Soporte técnico: iniciar form por varios intents ———
+# Forms de soporte desde varios intents
 - rule: Iniciar soporte (soporte_tecnico)
   steps:
     - intent: soporte_tecnico
@@ -82,8 +77,7 @@ rules:
     - action: soporte_form
     - active_loop: soporte_form
 
-# ——— Submit del soporte_form ———
-# (No duplicamos utter_soporte_creado aquí; lo emite action_soporte_submit)
+# Submit forms
 - rule: Submit soporte_form
   condition:
     - active_loop: soporte_form
@@ -93,7 +87,6 @@ rules:
     - action: utter_soporte_resumen
     - action: action_soporte_submit
 
-# ——— Flujo de recuperación de contraseña (form solo email) ———
 - rule: Iniciar recovery_form
   steps:
     - intent: recuperar_contrasena
@@ -109,7 +102,7 @@ rules:
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
-# ——— Escalar a humano ———
+# Escalado humano
 - rule: Escalar a humano (pregunta)
   steps:
     - intent: escalar_humano
@@ -126,7 +119,7 @@ rules:
     - intent: negar_escalar
     - action: utter_gracias_continuar
 
-# ——— Cambio de idioma ———
+# Cambio de idioma
 - rule: Cambiar a inglés
   steps:
     - intent: cambiar_idioma_ingles
@@ -137,28 +130,26 @@ rules:
     - intent: cambiar_idioma_espanol
     - action: utter_cambio_idioma_espanol
 
-# ——— Inscripción ———
+# Inscribirme
 - rule: Inscribirme
   steps:
     - intent: inscribirme
     - action: utter_confirmacion_inscripcion
 
-# ——— Enviar correo directo (si lo disparas como intent) ———
+# Enviar correo directo
 - rule: Enviar correo directo
   steps:
     - intent: enviar_correo
     - action: action_enviar_correo
 
-# ✅ ——— Enviar soporte DIRECTO (payload /enviar_soporte{...}) ———
-# Compatible con tu widget y la barra "Formulario de soporte" en React.
-# Dispara la action del backend y luego una confirmación corta.
+# ✅ Enviar soporte DIRECTO y confirmar
 - rule: Enviar soporte directo
   steps:
     - intent: enviar_soporte
     - action: action_enviar_soporte
     - action: utter_soporte_confirm
 
-# ——— Fallback ———
+# Fallback
 - rule: Fallback
   steps:
     - intent: fallback

@@ -1,4 +1,4 @@
-# Python artifacts
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -12,18 +12,18 @@ __pycache__/
 logs/
 *.log
 .cache/
-.rasa/cache/
+.rasa/
 
 # IDE / OS
 .DS_Store
 .vscode/
 .idea/
 
-# Modelos generados (no versionar)
-models/
-*.tar.gz
+# Modelos generados (no versionar grandes por defecto)
+# models/
+# *.tar.gz
 
-# Actions caches
+# Actions caches (si por error quedan aquí)
 actions/__pycache__/
 actions/*.pyc
 

@@ -23,11 +23,11 @@ intents:
   - cambiar_idioma_espanol
   - inscribirme
   - enviar_correo
-  - auth_login          # analítica del botón "Iniciar sesión"
+  - auth_login
   - affirm
   - deny
   - fallback
-  - enviar_soporte      # ← añadido para manejar /enviar_soporte{...}
+  - enviar_soporte
 
 entities:
   - email
@@ -207,7 +207,6 @@ responses:
   utter_soporte_error:
     - text: "⚠️ Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
 
-  # 🔐 Mensaje estándar cuando falta autenticación
   utter_need_auth:
     - text: "Necesitas iniciar sesión para ver esta información."
       buttons:
@@ -217,15 +216,19 @@ responses:
         type: "auth_needed"
         message: "Necesitas iniciar sesión para continuar."
 
+  # ✨ Confirmación breve usada por regla 'Enviar soporte directo'
+  utter_soporte_confirm:
+    - text: "📨 ¡Listo! He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
+
 actions:
   - action_enviar_correo
   - action_conectar_humano
   - action_soporte_submit
-  - action_enviar_soporte       # ← ya contemplada
+  - action_enviar_soporte
   - validate_soporte_form
   - validate_recovery_form
   - action_check_auth
-  - action_health_check         # ← NUEVA acción de health
+  - action_health_check
 
 session_config:
   session_expiration_time: 60

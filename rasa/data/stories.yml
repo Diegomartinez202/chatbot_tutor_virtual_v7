@@ -1,7 +1,6 @@
 version: "3.1"
 
 stories:
-# 1) Saludo y exploración
 - story: Saludo → Recomendados
   steps:
     - intent: saludo
@@ -27,7 +26,6 @@ stories:
     - action: utter_cursos_recomendados
     - action: utter_cursos_carousel
 
-# 2) Recuperación de contraseña con form (solo email)
 - story: Recuperar contraseña desde ingreso
   steps:
     - intent: ingreso_zajuna
@@ -40,7 +38,6 @@ stories:
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
-# 3) Proceso académico (menú y subflujos)
 - story: Proceso académico completo
   steps:
     - intent: proceso_academico
@@ -52,7 +49,6 @@ stories:
     - intent: horarios_calendario
     - action: utter_menu_proceso_academico
 
-# 4) Escalado a humano (confirmar / negar)
 - story: Escalar a humano (confirmado)
   steps:
     - intent: escalar_humano
@@ -68,7 +64,7 @@ stories:
     - intent: negar_escalar
     - action: utter_gracias_continuar
 
-# 5) Soporte técnico: iniciar soporte_form desde diferentes intents
+# Soporte técnico por diferentes entradas
 - story: Soporte técnico (intent principal)
   steps:
     - intent: soporte_tecnico
@@ -124,7 +120,6 @@ stories:
     - action: action_soporte_submit
     - action: utter_soporte_creado
 
-# 6) Cancelación del soporte_form por el usuario (deny/stop)
 - story: Cancelar soporte_form
   steps:
     - intent: soporte_tecnico

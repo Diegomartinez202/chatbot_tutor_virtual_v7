@@ -16,7 +16,7 @@ nlu:
     - buenos días
     - buenas tardes
     - buenas noches
-    - hola!! 
+    - hola!!
     - hola, qué tal?
     - qué onda
 
@@ -254,7 +254,7 @@ nlu:
     - quiero matricularme
     - inscribirme en ese programa
 
-# ————————— LOGIN EXPLÍCITO (TRACKING DEL BOTÓN “INICIAR SESIÓN”)
+# ————————— LOGIN EXPLÍCITO (TRACKING)
 - intent: auth_login
   examples: |
     - iniciar sesión
@@ -300,7 +300,7 @@ nlu:
     - mmm
     - ¿ah?
 
-# ————————— EMAIL (REGEX + FRASES CON ENTIDAD)
+# ————————— EMAIL (REGEX + FRASES)
 - regex: email
   examples: |
     - [A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}
@@ -320,7 +320,7 @@ nlu:
     - mi correo es juan@ejemplo.com
     - puedes escribir a soporte@empresa.co
 
-# ✅ ————————— SOPORTE DIRECTO (para payload /enviar_soporte{...})
+# ✅ SOPORTE DIRECTO
 - intent: enviar_soporte
   examples: |
     - quiero contactar soporte

@@ -9,17 +9,17 @@ networks:
     driver: bridge
 
 volumes:
-  mongo-data:               # modo build (tu primera versión)
-  _docker_data_mongo:       # modo vanilla (la segunda versión)
+  mongo-data:               # modo build/prod
+  _docker_data_mongo:       # modo vanilla
   # redis-data:             # si activas redis más adelante
 
 services:
 
   # ─────────────────────────────────────────────────────────────
-  # 📦 MongoDB (perfil: build) — sin auth, volumen "mongo-data"
+  # 📦 MongoDB (común a build y prod) — sin auth, volumen "mongo-data"
   # ─────────────────────────────────────────────────────────────
   mongo:
-    profiles: ["build"]
+    profiles: ["build","prod"]
     image: mongo:6
     container_name: mongo
     restart: unless-stopped
@@ -27,8 +27,7 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-    networks:
-      - app-net
+    networks: [app-net]
 
   # ───────────────────────────────────────────────────────────────
   # 📦 MongoDB (perfil: vanilla) — con auth vía variables de entorno
@@ -39,23 +38,19 @@ services:
     container_name: ctv_mongo
     restart: unless-stopped
     environment:
-      # define en tu .env (o exporta) antes de levantar:
-      # MONGO_INITDB_ROOT_USERNAME=admin
-      # MONGO_INITDB_ROOT_PASSWORD=admin123
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
       - _docker_data_mongo:/data/db
-    networks:
-      - app-net
+    networks: [app-net]
 
   # ─────────────────────────────────────────────
-  # 🧠 Rasa (perfil: build) — build desde ./rasa
+  # 🧠 Rasa (build/prod) — build desde ./rasa
   # ─────────────────────────────────────────────
   rasa:
-    profiles: ["build"]
+    profiles: ["build","prod"]
     build:
       context: ./rasa
       dockerfile: Dockerfile
@@ -63,14 +58,17 @@ services:
     restart: unless-stopped
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
-      RASA_AUTOTRAIN: "true"
+      RASA_PORT: "5005"
     ports:
       - "5005:5005"
     depends_on:
       - action-server
-      - mongo
-    networks:
-      - app-net
+    networks: [app-net]
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q 'version'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   # ────────────────────────────────────────────────────────────────
   # 🧠 Rasa (perfil: vanilla) — imagen oficial + monta ./rasa
@@ -92,14 +90,13 @@ services:
       - "${RASA_PORT:-5005}:5005"
     depends_on:
       - ctv_mongo
-    networks:
-      - app-net
+    networks: [app-net]
 
   # ──────────────────────────────────────────────────
-  # ⚙️ Rasa Action Server (perfil: build) — ./rasa_action_server
+  # ⚙️ Rasa Action Server (build/prod) — ./rasa_action_server
   # ──────────────────────────────────────────────────
   action-server:
-    profiles: ["build"]
+    profiles: ["build","prod"]
     build:
       context: ./rasa_action_server
       dockerfile: Dockerfile
@@ -107,8 +104,7 @@ services:
     restart: unless-stopped
     ports:
       - "5055:5055"
-    networks:
-      - app-net
+    networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
   # ⚙️ Rasa Action Server (perfil: vanilla) — imagen oficial SDK
@@ -126,78 +122,97 @@ services:
       - "5055:5055"
     depends_on:
       - ctv_rasa
-    networks:
-      - app-net
+    networks: [app-net]
 
-  # ─────────────────────────────────────────────
-  # 🐍 Backend FastAPI (perfil: build) — ./backend
-  # ─────────────────────────────────────────────
-  backend:
+  # ============================
+  # 🐍 Backend DEV (hot reload)
+  # ============================
+  backend-dev:
     profiles: ["build"]
     build:
       context: ./backend
       dockerfile: Dockerfile
-      # target: prod   # descomenta si tu Dockerfile es multi-stage
-    container_name: backend
+      target: dev               # etapa dev (hot reload)
+    container_name: backend-dev
     restart: unless-stopped
     env_file:
-      - ./.env
-      - ./backend/.env
+      - ./backend/.env          # tu .env local de dev
     environment:
-      # 👉 URLs internas en la red de Compose (no cambian tu lógica)
-      MONGO_URI: mongodb://mongo:27017/tutor_virtual
-      MONGO_DB_NAME: tutor_virtual
+      # Hostnames internos de Docker
+      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
       RASA_URL: http://rasa:5005
-      ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
-      FRONTEND_SITE_URL: http://localhost:8080
       APP_ENV: dev
       DEBUG: "true"
+    volumes:
+      - ./backend:/app/backend  # monta código para recarga
     depends_on:
       - mongo
       - rasa
     ports:
       - "8000:8000"
-    networks:
-      - app-net
-    # volumes:
-    #   - ./backend/logs:/app/logs
+    networks: [app-net]
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/chat/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
-  # ───────────────────────────────────────────────────────────────
-  # 🐍 Backend FastAPI (perfil: vanilla) — imagen python + monta ./backend
-  # ───────────────────────────────────────────────────────────────
-  ctv_fastapi:
-    profiles: ["vanilla"]
-    image: python:3.11-slim
-    container_name: ctv_fastapi
-    restart: unless-stopped
-    working_dir: /app
-    environment:
-      PYTHONUNBUFFERED: "1"
-      # Ajusta a tus variables reales:
-      # Si usas ctv_mongo con auth, define MONGO_DB y credenciales en .env
-      MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@ctv_mongo:27017/${MONGO_DB:-chatbot}?authSource=admin"
-      RASA_BASE_URL: "http://ctv_rasa:${RASA_PORT:-5005}"
-    volumes:
-      - ./backend:/app/backend
-    command: >
-      bash -lc "
-        pip install --no-cache-dir --upgrade pip setuptools wheel &&
-        if [ -f backend/requirements.txt ]; then pip install --no-cache-dir -r backend/requirements.txt; fi &&
-        python -m uvicorn backend.main:app --host 0.0.0.0 --port ${FASTAPI_PORT:-8000}
-      "
-    ports:
-      - "${FASTAPI_PORT:-8000}:8000"
-    depends_on:
-      - ctv_mongo
-      - ctv_rasa
-    networks:
-      - app-net
-
-  # ─────────────────────────────────────────────
-  # 🖥️ Admin Panel (React/Nginx) — solo en modo build
-  # ─────────────────────────────────────────────
-  admin:
+  # ======================================
+  # 🖥️ Frontend DEV (Vite con hot reload)
+  # ======================================
+  admin-dev:
     profiles: ["build"]
+    image: node:18-alpine
+    container_name: admin-dev
+    working_dir: /app
+    command: sh -lc "npm ci && npm run dev -- --host --port 5173"
+    volumes:
+      - ./admin_panel_react:/app
+    environment:
+      VITE_API_BASE: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend-dev
+    networks: [app-net]
+
+  # ============================
+  # 🐍 Backend PROD (Uvicorn)
+  # ============================
+  backend:
+    profiles: ["prod"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod              # etapa prod optimizada
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      UVICORN_WORKERS: "2"
+      APP_ENV: prod
+      DEBUG: "false"
+      # Hostnames internos
+      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
+      RASA_URL: http://rasa:5005
+    depends_on:
+      - mongo
+      - rasa
+    ports:
+      - "8000:8000"
+    networks: [app-net]
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/chat/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  # ==================================
+  # 🖥️ Frontend PROD (Nginx + build)
+  # ==================================
+  admin:
+    profiles: ["prod"]
     build:
       context: ./admin_panel_react
       dockerfile: Dockerfile
@@ -207,17 +222,16 @@ services:
       - "8080:80"
     depends_on:
       - backend
-    networks:
-      - app-net
+    networks: [app-net]
 
-  # ─────────────────────────────────────────────────────────────
-  # 🌐 Nginx reverse proxy — solo en modo build
+  # =========================================
+  # 🌐 Nginx Reverse Proxy (solo en prod)
   #   /         → Admin
   #   /api      → FastAPI
   #   /rasa,/ws → Rasa
-  # ─────────────────────────────────────────────────────────────
+  # =========================================
   nginx:
-    profiles: ["build"]
+    profiles: ["prod"]
     image: nginx:1.27-alpine
     container_name: nginx
     restart: unless-stopped
@@ -230,9 +244,26 @@ services:
       # - "443:443"   # si agregas TLS
     volumes:
       - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
-      # - ./ops/nginx/certs:/etc/nginx/certs:ro   # si usas TLS
-    networks:
-      - app-net
+      # - ./ops/nginx/certs:/etc/nginx/certs:ro
+    networks: [app-net]
+
+  # =========================================
+  # 🌐 Nginx Reverse Proxy (solo en build)
+  # =========================================
+  nginx-dev:
+    profiles: ["build"]
+    image: nginx:1.27-alpine
+    container_name: nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+      - rasa
+      - admin-dev
+    ports:
+      - "80:80"
+    volumes:
+      - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
   # (Opcional) Redis si activas RATE_LIMIT_BACKEND=redis
@@ -247,3 +278,9 @@ services:
   #     - redis-data:/data
   #   networks:
   #     - app-net
+
+  environment:
+  ENDPOINTS_TEMPLATE: mongo
+  TRACKER_MONGO_URL: mongodb://mongo:27017
+  TRACKER_MONGO_DB: rasa
+  TRACKER_MONGO_COLLECTION: conversations

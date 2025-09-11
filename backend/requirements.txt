@@ -2,14 +2,14 @@
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 
-# --- HTTP cliente asíncrono (para llamar a Rasa REST, etc.) ---
+# --- HTTP cliente ---
 aiohttp==3.9.5
 requests==2.31.0
 
-# --- Subida de archivos (UploadFile / Form) ---
+# --- Subida de archivos ---
 python-multipart==0.0.9
 
-# --- MongoDB (sincrónico y asíncrono) ---
+# --- MongoDB (sync/async) ---
 pymongo==4.7.2
 motor==3.4.0
 
@@ -23,10 +23,8 @@ redis>=5.0
 
 # --- (Opcional) STT real ---
 # faster-whisper==1.0.0
-# NOTA: para faster-whisper suele requerirse ffmpeg instalado en el sistema.
+# (Requiere ffmpeg en el sistema si lo habilitas)
 
-python-dotenv==1.0.1
-redis>=5.0
-# (opcional si vas a manipular imágenes/logs PDF)
+# --- PDF/Imagen (tu código lo usa) ---
 pdf2image==1.17.0
 pillow==11.1.0
