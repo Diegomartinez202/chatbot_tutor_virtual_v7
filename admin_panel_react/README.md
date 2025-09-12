@@ -1,102 +1,95 @@
-# admin_panel_react/README.md
+> Ruta: `chatbot_tutor_virtual_v7.3/admin_panel_react/README.md`
 
 ```md
 # 🖥️ Admin Panel (React + Vite)
 
-SPA para administración del Chatbot Tutor Virtual. **No cambia tu lógica**.
+Panel administrativo del **Chatbot Tutor Virtual**. Build con Vite, servido en producción con Nginx (imagen inmutable).
 
-## 1) Modos
+> 📎 **Windows Quickstart** y creación de venvs: ver `../docs/WINDOWS-QUICKSTART.md`  
+> 🔧 Script de venvs (enlace directo): `../scripts/make_venvs.ps1`
+
+---
+
+## 1) Modos de ejecución
 
 ### A) Dev (Vite + HMR)
-```bash
-docker compose --profile build up -d admin-dev
-# UI: http://localhost:5173
-Variables (compose):
+```powershell
+# con Docker (proxy ya configurado): desde la raíz
+docker compose --profile build up -d admin-dev nginx-dev
+# UI: http://localhost/
+Variables (ya las inyecta compose):
 
-VITE_API_BASE=http://localhost:8000
-
-VITE_RASA_HTTP=http://localhost:5005
-
-VITE_RASA_WS=ws://localhost:5005
-
-B) Prod (build + Nginx)
-bash
+ini
 Copiar código
+VITE_API_BASE=http://localhost:8000
+VITE_RASA_HTTP=http://localhost:5005
+VITE_RASA_WS=ws://localhost:5005
+O directo (sin Docker), dentro de admin_panel_react/:
+
+powershell
+Copiar código
+npm ci
+npm run dev   # http://localhost:5173
+B) Prod (build + Nginx)
+powershell
+Copiar código
+# raíz del repo
 docker compose --profile prod up -d --build admin nginx
 # UI: http://localhost/
-Build args que el compose pasa al Dockerfile:
+El compose pasa build args al Dockerfile:
 
-VITE_API_BASE=/api
-
-VITE_RASA_HTTP=/rasa
-
-VITE_RASA_WS=/ws
-
-2) Proxy vs dominios absolutos
-✅ Con proxy (recomendado): nada que cambiar (usa rutas relativas).
-
-🔄 Sin proxy: usa .env.production.external:
-
-env
+ini
 Copiar código
-VITE_API_BASE=https://api.zajuna.edu.co/api
-VITE_RASA_HTTP=https://rasa.zajuna.edu.co
-VITE_RASA_WS=wss://rasa.zajuna.edu.co/ws
-Construye:
+VITE_API_BASE=/api
+VITE_RASA_HTTP=/rasa
+VITE_RASA_WS=/ws
+2) Proxy vs Dominios absolutos
+✅ Con proxy (recomendado): /api, /rasa, /ws (Nginx enruta al backend/Rasa).
 
-bash
+🔄 Sin proxy (dominios absolutos):
+
+Usa ./.env.production.external (no borres el original).
+
+Antes de construir:
+
+powershell
 Copiar código
 cd admin_panel_react
 cp .env.production.external .env.production
 docker compose --profile prod build admin
 docker compose --profile prod up -d admin
-(Alternativa CI/CD: build args en docker-compose.yml del admin.)
+(alternativa CI/CD: sobreescribe con build.args en docker-compose.yml sin tocar archivos).
 
-3) Nginx (SPA)
-nginx.conf sirve la SPA con try_files $uri /index.html; y cachea estáticos.
+3) Dockerfile y Nginx
+Dockerfile multi-stage admite VITE_API_BASE, VITE_RASA_HTTP, VITE_RASA_WS.
 
-4) Dos frontends (original + sustentación)
-Puedes mantener dos builds sin tocar lógica:
+nginx.conf sirve SPA con try_files $uri /index.html; y cachea estáticos con hash.
 
-Carpeta admin_panel_react/ (principal).
+4) Variables útiles
+VITE_API_BASE → base del backend (/api o absoluto)
 
-Carpeta admin_panel_react_sus/ (sustentación).
+VITE_RASA_HTTP → HTTP de Rasa (/rasa o absoluto)
 
-Agrega un servicio admin-sus al compose (perfil prod), mismo Dockerfile, distinto contexto:
+VITE_RASA_WS → WebSocket de Rasa (/ws o absoluto)
 
-yaml
-Copiar código
-admin-sus:
-  profiles: ["prod"]
-  build:
-    context: ./admin_panel_react_sus
-    dockerfile: Dockerfile
-    args:
-      VITE_API_BASE: /api
-      VITE_RASA_HTTP: /rasa
-      VITE_RASA_WS: /ws
-  container_name: admin-sus
-  restart: unless-stopped
-  ports:
-    - "8081:80"      # otro puerto
-  depends_on:
-    - backend
-  networks: [app-net]
+VITE_CHAT_TRANSPORT → rest (default) o ws
+
 5) Smoke
-UI carga (200)
+Carga UI (200 OK) en http://localhost/ (prod) o http://localhost:5173 (dev).
 
-fetch('/api/chat/health') → {ok:true}
+Probar backend desde DevTools:
 
-Con dev: fetch('http://localhost:8000/api/chat/health')
-
-6) Env files
-.env.development (dev)
-
-.env.production (proxy)
-
-.env.production.external (sin proxy)
-
-.env.example (plantilla)
-
-yaml
+js
 Copiar código
+fetch('/api/chat/health').then(r=>r.json())
+En dev sin proxy:
+
+js
+Copiar código
+fetch('http://localhost:8000/api/chat/health').then(r=>r.json())
+6) Troubleshooting
+CORS (dev): backend debe permitir http://localhost:5173 (ya configurado).
+
+404 rutas internas: nginx.conf debe tener try_files $uri /index.html;.
+
+WS: en prod usa wss:// detrás de TLS y verifica /ws en Nginx.

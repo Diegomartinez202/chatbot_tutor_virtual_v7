@@ -1,225 +1,176 @@
-# Windows Quickstart (PowerShell + Visual Studio 2022)
+# 🪟 Windows Quickstart — Chatbot Tutor Virtual
 
-Guía de comandos para levantar **Chatbot Tutor Virtual** en Windows, con y sin Docker.
-No modifica tu lógica de negocio. Resume lo esencial para DEV/PROD, health y depuración.
+Guía express para levantar el proyecto en Windows (Visual Studio 2022 + PowerShell).
+**No modifica la lógica de negocio.** Usa Docker para Rasa/Actions/Mongo/Nginx; el backend puedes correrlo en Docker o local con venv.
 
 ---
 
-## 0) Prerrequisitos
+## ✅ Requisitos
 
 - **Docker Desktop 4.x** (o Docker Engine + Compose v2)
-- **PowerShell 5+** (Windows 10/11)
-- **Python 3.12** instalado (para backend local con venv)
+- **Visual Studio 2022** (o VS Code) con terminal PowerShell
+- **Node 18/20 LTS** (para desarrollo del panel React)
+- **Python 3.12** (para backend local opcional) y **Python 3.11** (solo si corres Rasa/Actions fuera de Docker)
 - Puertos libres: 80, 443, 8000, 5005, 5055, 5173, 6379
+
+> Si PowerShell bloquea scripts locales, habilita por sesión:
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
 
 ---
 
-## 1) Tareas “one-click” (scripts/tasks.ps1)
+## 📁 Dónde ejecutar los comandos
 
-Desde la **raíz del repo**:
+- **Raíz del repo**: `chatbot_tutor_virtual_v7.3\`
+- **Backend**: `chatbot_tutor_virtual_v7.3\backend\`
+- **Frontend (React)**: `chatbot_tutor_virtual_v7.3\admin_panel_react\`
+
+Abre Visual Studio 2022 → *View* → *Terminal* → selecciona **PowerShell**.  
+Usa `cd` para moverte a las rutas indicadas arriba.
+
+---
+
+## 🧰 Atajos “one-click”
+
+### A) Tareas de orquestación (Docker)
+
+- Script: **`.\scripts\tasks.ps1`**  
+  Ruta: `chatbot_tutor_virtual_v7.3\scripts\tasks.ps1`
 
 ```powershell
-# Primero (una vez): permitir scripts locales
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-
-# Arrancar DEV (build) con reconstrucción
+# DEV/BUILD (HMR + proxy + logs)
 .\scripts\tasks.ps1 -Profile build -Rebuild
 
-# Arrancar PROD local con reconstrucción
+# PROD (imágenes inmutables + proxy Nginx)
 .\scripts\tasks.ps1 -Profile prod -Rebuild
 
-# Detener todo
-.\scripts\tasks.ps1 -Stop
+# Solo ver logs
+.\scripts\tasks.ps1 -Profile build -Logs
+.\scripts\tasks.ps1 -Profile prod  -Logs
 
-# Logs útiles (build o prod)
-.\scripts\tasks.ps1 -Logs backend-dev,rasa,action-server
-Si descargaste el repo de internet, quizá necesites:
-Unblock-File .\scripts\tasks.ps1
+# Detener
+.\scripts\tasks.ps1 -Profile build -Down
+.\scripts\tasks.ps1 -Profile prod  -Down
+B) Creación de entornos virtuales (venv)
+Script: .\scripts\make_venvs.ps1 ✅ (Enlace directo)
+Ruta: chatbot_tutor_virtual_v7.3\scripts\make_venvs.ps1
 
-2) Levantar todo con Docker
-2.1 DEV (perfil build)
 powershell
 Copiar código
-# raíz del repo
+# Backend 3.12 (recomendado) — por defecto
+.\scripts\make_venvs.ps1
+
+# Backend 3.11 (opcional)
+.\scripts\make_venvs.ps1 -Backend311
+
+# Rasa/Actions 3.11 locales (solo si NO usas Docker para ellos)
+.\scripts\make_venvs.ps1 -Rasa311
+🚦 Modo 1 — Todo en Docker (DEV / perfil build)
+Ejecuta desde la raíz del repo:
+
+powershell
+Copiar código
 docker compose --profile build up -d mongo action-server rasa backend-dev admin-dev nginx-dev
 docker compose --profile build logs -f backend-dev rasa action-server
-# UI: http://localhost/
-# Docs FastAPI: http://localhost:8000/docs
-# Rasa status: http://localhost:5005/status
-# Actions health: http://localhost:5055/health
-2.2 PROD local (perfil prod)
+UI (admin): http://localhost/
+
+FastAPI docs: http://localhost:8000/docs
+
+Rasa status: http://localhost:5005/status
+
+Action Server health: http://localhost:5055/health
+
+Alternativa: .\scripts\tasks.ps1 -Profile build -Rebuild
+
+🛡️ Modo 2 — Producción local (perfil prod)
+Desde la raíz:
+
 powershell
 Copiar código
 docker compose --profile prod build
 docker compose --profile prod up -d
 docker compose --profile prod logs -f nginx backend rasa action-server
-# UI: http://localhost/
-# API: http://localhost/api
-# Rasa: http://localhost/rasa
-# WS:   ws://localhost/ws
-3) Backend local (venv 3.12) + dependencias en Docker
-Recomendado para depurar el backend sin tocar Rasa/Actions/Mongo.
+Admin: http://localhost/
+
+API: http://localhost/api
+
+Rasa: http://localhost/rasa (WS: ws://localhost/ws)
+
+🐍 Modo 3 — Backend local (venv) + Resto en Docker
+Levanta dependencias en Docker (raíz):
 
 powershell
 Copiar código
-# 3.1 Levanta dependencias en contenedores
 docker compose --profile build up -d mongo action-server rasa
+Crea/activa venv del backend (carpeta backend):
 
-# 3.2 Backend local (Visual Studio 2022 o PowerShell)
+powershell
+Copiar código
 cd backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip wheel
 pip install -r requirements.txt
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-# Docs: http://127.0.0.1:8000/docs
-Si ves un warning de codificación en pip install -r requirements.txt,
-consulta la sección 8.3 Pip / encoding de este archivo.
-
-4) Health y verificación
-powershell
-Copiar código
-# FastAPI
-curl http://127.0.0.1:8000/chat/health
-
-# Rasa
-curl http://127.0.0.1:5005/status
-
-# Action Server
-curl http://127.0.0.1:5055/health
-Smoke del chat (PowerShell):
+(Opcional) UI dev (carpeta admin_panel_react):
 
 powershell
 Copiar código
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/chat -Body (@{
-  sender="qa-session"
-  message="hola"
-} | ConvertTo-Json) -ContentType "application/json"
-5) Rasa/Actions (debug rápido)
-Entrar al contenedor de Rasa:
+cd ..\admin_panel_react
+npm ci
+npm run dev   # http://localhost:5173
+Rasa/Actions permanecen en Docker, no necesitas venv 3.11 salvo que quieras correrlos locales.
+
+🩺 Healthcheck rápido
+Script en la raíz: .\check_health.ps1
 
 powershell
 Copiar código
-docker exec -it rasa sh
-# dentro:
-rasa shell nlu
-rasa --version
-cat /app/endpoints.yml
-Entrar al Action Server:
+.\check_health.ps1 `
+  -FastApiUrl http://127.0.0.1:8000 `
+  -RasaUrl    http://127.0.0.1:5005 `
+  -ActionsUrl http://127.0.0.1:5055
+Si todo OK abre /docs del backend automáticamente.
 
+⏱️ Rate limit (activar por variables)
+Sin tocar código. Edita docker-compose.yml:
+
+Builtin (memoria):
+
+yaml
+Copiar código
+environment:
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_PROVIDER: builtin
+  RATE_LIMIT_BACKEND: memory
+Builtin (Redis):
+
+yaml
+Copiar código
+environment:
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_PROVIDER: builtin
+  RATE_LIMIT_BACKEND: redis
+  REDIS_URL: redis://redis:6379/0
+Política por defecto: 60 req/min a POST /chat y /api/chat.
+
+🧪 Smoke (3 líneas)
 powershell
 Copiar código
-docker exec -it action-server sh
-6) Frontend (Vite/React)
-DEV (Vite + HMR)
-powershell
-Copiar código
-docker compose --profile build up -d admin-dev
-# UI dev: http://localhost:5173
-PROD (imagen estática + Nginx)
-powershell
-Copiar código
-docker compose --profile prod up -d --build admin nginx
-# UI prod: http://localhost/
-7) Redis (opcional para rate-limit)
-Activar Redis y backend contra Redis:
+curl -fsS http://127.0.0.1:8000/chat/health
+curl -fsS http://127.0.0.1:5005/status
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/chat -Body (@{sender="qa";message="hola"} | ConvertTo-Json) -ContentType "application/json"
+🧯 Problemas típicos
+Puertos ocupados: libera 80/443/8000/5005/5055/5173/6379.
 
-powershell
-Copiar código
-# Ya está en docker-compose.yml
-docker compose --profile build up -d redis
-docker compose --profile prod  up -d redis
-Variables (en backend-dev y backend):
+CORS en dev: ALLOWED_ORIGINS debe incluir http://localhost:5173.
 
-ini
-Copiar código
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_PROVIDER=builtin
-RATE_LIMIT_BACKEND=redis
-REDIS_URL=redis://redis:6379/0
-8) Problemas comunes (y solución)
-8.1 Puertos ocupados
-powershell
-Copiar código
-# Ver procesos en 80/443/8000/5005/5055/5173/6379
-Get-NetTCPConnection -State Listen | ? {$_.LocalPort -in 80,443,8000,5005,5055,5173,6379} | ft -AutoSize
-# Matar si es necesario (identifica PID primero)
-Stop-Process -Id <PID> -Force
-8.2 CORS en DEV
-Asegura que backend/.env incluya:
+Actions 404: confirma ACTION_SERVER_URL y health en :5055/health.
 
-bash
-Copiar código
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost
-8.3 pip install -r requirements.txt muestra WARNING encoding (cp1252)
-Opciones (cualquiera sirve):
+Rasa no entrena: RASA_AUTOTRAIN=true si no hay modelo; mira logs de rasa.
 
-Opción A — Re-guardar como UTF-8 (recomendada)
+Redis: si lo usas, revisa volumen redis-data y logs del servicio.
 
-Abre backend/requirements.txt en tu editor.
 
-“Guardar como…” → UTF-8 (sin BOM).
-
-Reintenta:
-
-powershell
-Copiar código
-pip install -r requirements.txt
-Opción B — Convertir con PowerShell
-
-powershell
-Copiar código
-$path = "requirements.txt"
-$content = Get-Content -Raw -Encoding Default $path
-Set-Content -Path $path -Value $content -Encoding utf8
-pip install -r requirements.txt
-Opción C — Añadir cabecera PEP-263 (rápido)
-Agrega en la primera línea del requirements.txt:
-
-markdown
-Copiar código
-# -*- coding: utf-8 -*-
-y vuelve a instalar.
-
-El warning no rompe la instalación si el archivo solo contiene ASCII.
-Esto es solo para limpiar el mensaje y estandarizar.
-
-9) Visual Studio 2022
-Abre la carpeta del repo: File → Open → Folder…
-
-Terminal integrada: View → Terminal (PowerShell)
-
-Backend local:
-
-powershell
-Copiar código
-cd backend
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-Dependencias Docker (en otra terminal desde la raíz):
-
-powershell
-Copiar código
-docker compose --profile build up -d mongo action-server rasa
-10) Limpieza/Reset (con cuidado)
-powershell
-Copiar código
-# Bajar servicios (perfil actual)
-docker compose down
-
-# Eliminar volúmenes (Mongo/Redis) – ¡borra datos!
-docker volume rm chatbot_tutor_virtual_v7_3_mongo-data
-docker volume rm chatbot_tutor_virtual_v7_3_redis-data
-
-# Reconstruir todo (prod)
-docker compose --profile prod up -d --build
-11) Rutas útiles (proxy Nginx en prod)
-SPA: http://localhost/
-
-FastAPI: http://localhost/api (docs en /api/docs)
-
-Rasa HTTP: http://localhost/rasa
-
-Rasa WebSocket: ws://localhost/ws
