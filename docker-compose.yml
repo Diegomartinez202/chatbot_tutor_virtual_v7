@@ -1,5 +1,5 @@
 name: tutorbot-local
-version: "3.9"   # Compose v2 lo ignora; puedes dejarlo para compat
+version: "3.9"   # Compose v2 puede ignorarlo; ok mantenerlo
 
 # =========================
 # Redes y volúmenes
@@ -11,12 +11,12 @@ networks:
 volumes:
   mongo-data:               # modo build/prod
   _docker_data_mongo:       # modo vanilla
-  redis-data:             # si activas redis más adelante
+  redis-data:               # para Redis (rate-limit/cache)
 
 services:
 
   # ─────────────────────────────────────────────────────────────
-  # 📦 MongoDB (común a build y prod) — sin auth, volumen "mongo-data"
+  # 📦 MongoDB (común a build/prod)
   # ─────────────────────────────────────────────────────────────
   mongo:
     profiles: ["build","prod"]
@@ -30,7 +30,7 @@ services:
     networks: [app-net]
 
   # ───────────────────────────────────────────────────────────────
-  # 📦 MongoDB (perfil: vanilla) — con auth vía variables de entorno
+  # 📦 MongoDB (perfil: vanilla) — con auth
   # ───────────────────────────────────────────────────────────────
   ctv_mongo:
     profiles: ["vanilla"]
@@ -53,7 +53,7 @@ services:
   action-server:
     profiles: ["build","prod"]
     build:
-      context: .                       # raíz del repo para poder COPY rasa/actions
+      context: .                       # raíz para poder COPY rasa/actions
       dockerfile: rasa_action_server/Dockerfile
     container_name: action-server
     restart: unless-stopped
@@ -77,8 +77,8 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "true"   # entrena si no hay modelo (puedes quitarlo si no lo quieres)
-      # (opcional) Tracker en Mongo → descomenta estas 4 líneas y usa la plantilla 'mongo'
+      RASA_AUTOTRAIN: "true"   # entrena si no hay modelo
+      # (opcional) Tracker en Mongo → usa plantilla 'mongo'
       # ENDPOINTS_TEMPLATE: "mongo"
       # TRACKER_MONGO_URL: "mongodb://mongo:27017"
       # TRACKER_MONGO_DB: "rasa"
@@ -117,7 +117,7 @@ services:
     networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
-  # ⚙️ Rasa Action Server (perfil: vanilla) — imagen oficial SDK
+  # ⚙️ Rasa Action Server (perfil: vanilla) — SDK oficial
   # ─────────────────────────────────────────────────────────────
   ctv_rasa_actions:
     profiles: ["vanilla"]
@@ -142,7 +142,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: dev               # etapa dev (uvicorn --reload)
+      target: dev               # uvicorn --reload
     container_name: backend-dev
     restart: unless-stopped
     env_file:
@@ -152,11 +152,17 @@ services:
       RASA_URL: http://rasa:5005
       APP_ENV: dev
       DEBUG: "true"
+      # 🔒 Rate-limit (builtin + Redis)
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PROVIDER: builtin
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./backend:/app/backend  # monta código para recarga
+      - ./backend:/app/backend  # recarga en caliente
     depends_on:
       - mongo
       - rasa
+      - redis
     ports:
       - "8000:8000"
     networks: [app-net]
@@ -165,38 +171,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-
-      backend-dev:
-  environment:
-    # …lo tuyo…
-    RATE_LIMIT_BACKEND: redis
-    REDIS_URL: redis://redis:6379/0
-
-backend:
-  environment:
-    # …lo tuyo…
-    RATE_LIMIT_BACKEND: redis
-    REDIS_URL: redis://redis:6379/0
-
-  # ======================================
-  # 🖥️ Frontend PROD (Nginx + build)
-  # ======================================
-  admin:
-    profiles: ["prod"]
-    build:
-      context: ./admin_panel_react
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE: /api
-        VITE_RASA_HTTP: /rasa
-        VITE_RASA_WS: /ws
-    container_name: admin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
-    networks: [app-net]
 
   # ======================================
   # 🖥️ Frontend DEV (Vite con hot reload)
@@ -227,7 +201,7 @@ backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: prod              # etapa prod optimizada
+      target: prod              # etapa optimizada
     container_name: backend
     restart: unless-stopped
     env_file:
@@ -238,9 +212,15 @@ backend:
       DEBUG: "false"
       MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
       RASA_URL: http://rasa:5005
+      # 🔒 Rate-limit (builtin + Redis)
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PROVIDER: builtin
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       - mongo
       - rasa
+      - redis
     ports:
       - "8000:8000"
     networks: [app-net]
@@ -249,6 +229,26 @@ backend:
       interval: 30s
       timeout: 5s
       retries: 5
+
+  # ==================================
+  # 🖥️ Frontend PROD (Nginx + build)
+  # ==================================
+  admin:
+    profiles: ["prod"]
+    build:
+      context: ./admin_panel_react
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api
+        VITE_RASA_HTTP: /rasa
+        VITE_RASA_WS: /ws
+    container_name: admin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks: [app-net]
 
   # =========================================
   # 🌐 Nginx Reverse Proxy (solo en prod)
@@ -267,7 +267,7 @@ backend:
       - admin
     ports:
       - "80:80"
-      - "443:443"   # si agregas TLS
+      - "443:443"   # si activas TLS
     volumes:
       - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./ops/nginx/certs:/etc/nginx/certs:ro
@@ -292,7 +292,7 @@ backend:
     networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
-  # 🐍 Backend "vanilla" (sin Dockerfile propio; monta backend/)
+  # 🐍 Backend "vanilla" (monta backend/)
   # ─────────────────────────────────────────────────────────────
   ctv_fastapi:
     profiles: ["vanilla"]
@@ -320,15 +320,15 @@ backend:
     networks: [app-net]
 
   # ─────────────────────────────────────────────────────────────
-  # (Opcional) Redis si activas RATE_LIMIT_BACKEND=redis
+  # 🧰 Redis (rate-limit/cache) — opcional pero activado aquí
   # ─────────────────────────────────────────────────────────────
   redis:
-  image: redis:7-alpine
-  container_name: redis
-  command: ["redis-server","--appendonly","yes"]
-  ports:
-  - "6379:6379"
-  volumes:
-  - redis-data:/data
-  networks:
-  - app-net
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server","--appendonly","yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-net

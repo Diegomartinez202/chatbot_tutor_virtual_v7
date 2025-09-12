@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # --- FastAPI core ---
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
@@ -20,7 +21,6 @@ passlib[bcrypt]==1.7.4
 python-jose==3.3.0
 Jinja2==3.1.4
 redis>=5.0
-redis>=5.
 slowapi>=0.1.9
 # --- (Opcional) STT real ---
 # faster-whisper==1.0.0

@@ -1,102 +1,102 @@
-# 🧠 Panel Administrativo – Chatbot Tutor Virtual
+# admin_panel_react/README.md
 
-Este panel permite la gestión de *intents*, visualización de *logs* y administración general del **Chatbot Tutor Virtual**, desarrollado con **React + Vite** y conectado a un backend en **FastAPI**.
+```md
+# 🖥️ Admin Panel (React + Vite)
 
----
+SPA para administración del Chatbot Tutor Virtual. **No cambia tu lógica**.
 
-## 🚀 Funcionalidades principales
+## 1) Modos
 
-- 🔐 Login con JWT (solo administradores)
-- 🧭 Navegación protegida por rol (`admin`)
-- 📊 Dashboard general con métricas
-- 📝 Visualización y descarga de logs
-- 🤖 Carga y edición de *intents*
-- 🧠 Entrenamiento automático del chatbot
-- 📁 Subida de archivos `.csv` o `.json`
-- 👤 Gestión de usuarios y roles
+### A) Dev (Vite + HMR)
+```bash
+docker compose --profile build up -d admin-dev
+# UI: http://localhost:5173
+Variables (compose):
 
----
+VITE_API_BASE=http://localhost:8000
 
-## 📁 Estructura de carpetas
+VITE_RASA_HTTP=http://localhost:5005
 
-admin-panel-react/
-├── public/ # HTML base y favicon
-└── src/
-├── components/ # Botones, headers, formularios reutilizables
-├── pages/ # LoginPage, Dashboard, LogsPage, IntentsPage, etc.
-├── services/ # api.js, auth.js, axiosClient.js, etc.
-├── hooks/ # useAuth, useAdminActions, useToast, etc.
-├── context/ # AuthContext, ToastContext
-├── styles/ # index.css, toast.css, sidebar.css
-├── App.jsx # Enrutador principal
-├── main.jsx # Punto de entrada
-└── vite.config.js # Configuración Vite
+VITE_RASA_WS=ws://localhost:5005
 
-
-
----
-
-## ▶️ Instalación y ejecución
-
-### 1. Clonar el repositorio
-
-git clone https://github.com/tuusuario/chatbot-tutor-admin.git
-cd admin-panel-react
-2. Instalar dependencias
+B) Prod (build + Nginx)
 bash
-Copiar
-Editar
-npm install
-3. Ejecutar en modo desarrollo
-bash
-Copiar
-Editar
-npm run dev
-La app se abrirá en: http://localhost:5173
+Copiar código
+docker compose --profile prod up -d --build admin nginx
+# UI: http://localhost/
+Build args que el compose pasa al Dockerfile:
 
-⚙️ Variables de entorno
-Crea un archivo .env en la raíz con el siguiente contenido:
+VITE_API_BASE=/api
+
+VITE_RASA_HTTP=/rasa
+
+VITE_RASA_WS=/ws
+
+2) Proxy vs dominios absolutos
+✅ Con proxy (recomendado): nada que cambiar (usa rutas relativas).
+
+🔄 Sin proxy: usa .env.production.external:
 
 env
-Copiar
-Editar
-VITE_API_URL=http://localhost:8000/api
-VITE_BOT_NAME=Tutor Virtual
-🛠️ Compilación para producción
+Copiar código
+VITE_API_BASE=https://api.zajuna.edu.co/api
+VITE_RASA_HTTP=https://rasa.zajuna.edu.co
+VITE_RASA_WS=wss://rasa.zajuna.edu.co/ws
+Construye:
+
 bash
-Copiar
-Editar
-npm run build
-🧪 Pruebas
-bash
-Copiar
-Editar
-npm run test
-Incluye pruebas con Vitest + Testing Library para:
+Copiar código
+cd admin_panel_react
+cp .env.production.external .env.production
+docker compose --profile prod build admin
+docker compose --profile prod up -d admin
+(Alternativa CI/CD: build args en docker-compose.yml del admin.)
 
-Formularios
+3) Nginx (SPA)
+nginx.conf sirve la SPA con try_files $uri /index.html; y cachea estáticos.
 
-Hooks
+4) Dos frontends (original + sustentación)
+Puedes mantener dos builds sin tocar lógica:
 
-Rutas protegidas
+Carpeta admin_panel_react/ (principal).
 
-Sidebar y modales
+Carpeta admin_panel_react_sus/ (sustentación).
 
-📦 Despliegue
-Este proyecto está listo para ser desplegado en:
+Agrega un servicio admin-sus al compose (perfil prod), mismo Dockerfile, distinto contexto:
 
-Railway
+yaml
+Copiar código
+admin-sus:
+  profiles: ["prod"]
+  build:
+    context: ./admin_panel_react_sus
+    dockerfile: Dockerfile
+    args:
+      VITE_API_BASE: /api
+      VITE_RASA_HTTP: /rasa
+      VITE_RASA_WS: /ws
+  container_name: admin-sus
+  restart: unless-stopped
+  ports:
+    - "8081:80"      # otro puerto
+  depends_on:
+    - backend
+  networks: [app-net]
+5) Smoke
+UI carga (200)
 
-Vercel
+fetch('/api/chat/health') → {ok:true}
 
-GitHub Pages (con ajuste de base: './')
+Con dev: fetch('http://localhost:8000/api/chat/health')
 
-Docker (con nginx)
+6) Env files
+.env.development (dev)
 
-📜 Licencia
-MIT © 2025 – Proyecto educativo SENA
+.env.production (proxy)
 
-🤝 Autores
-Daniel Martínez
-Ferreenvíos & Suministros – Tutor Virtual Zajuna
-Desarrollado con ❤️ para formación técnica en Colombia.
+.env.production.external (sin proxy)
+
+.env.example (plantilla)
+
+yaml
+Copiar código
