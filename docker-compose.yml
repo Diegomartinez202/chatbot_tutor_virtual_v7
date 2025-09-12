@@ -11,7 +11,7 @@ networks:
 volumes:
   mongo-data:               # modo build/prod
   _docker_data_mongo:       # modo vanilla
-  # redis-data:             # si activas redis más adelante
+  redis-data:             # si activas redis más adelante
 
 services:
 
@@ -78,7 +78,7 @@ services:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
       RASA_AUTOTRAIN: "true"   # entrena si no hay modelo (puedes quitarlo si no lo quieres)
-      # (opcional) Tracker en Mongo → descomenta las 4 líneas y usa la plantilla mongo
+      # (opcional) Tracker en Mongo → descomenta estas 4 líneas y usa la plantilla 'mongo'
       # ENDPOINTS_TEMPLATE: "mongo"
       # TRACKER_MONGO_URL: "mongodb://mongo:27017"
       # TRACKER_MONGO_DB: "rasa"
@@ -166,6 +166,38 @@ services:
       timeout: 5s
       retries: 5
 
+      backend-dev:
+  environment:
+    # …lo tuyo…
+    RATE_LIMIT_BACKEND: redis
+    REDIS_URL: redis://redis:6379/0
+
+backend:
+  environment:
+    # …lo tuyo…
+    RATE_LIMIT_BACKEND: redis
+    REDIS_URL: redis://redis:6379/0
+
+  # ======================================
+  # 🖥️ Frontend PROD (Nginx + build)
+  # ======================================
+  admin:
+    profiles: ["prod"]
+    build:
+      context: ./admin_panel_react
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api
+        VITE_RASA_HTTP: /rasa
+        VITE_RASA_WS: /ws
+    container_name: admin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks: [app-net]
+
   # ======================================
   # 🖥️ Frontend DEV (Vite con hot reload)
   # ======================================
@@ -179,6 +211,8 @@ services:
       - ./admin_panel_react:/app
     environment:
       VITE_API_BASE: http://localhost:8000
+      VITE_RASA_HTTP: http://localhost:5005
+      VITE_RASA_WS: ws://localhost:5005
     ports:
       - "5173:5173"
     depends_on:
@@ -215,22 +249,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-
-  # ==================================
-  # 🖥️ Frontend PROD (Nginx + build)
-  # ==================================
-  admin:
-    profiles: ["prod"]
-    build:
-      context: ./admin_panel_react
-      dockerfile: Dockerfile
-    container_name: admin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
-    networks: [app-net]
 
   # =========================================
   # 🌐 Nginx Reverse Proxy (solo en prod)
@@ -306,7 +324,7 @@ services:
   # ─────────────────────────────────────────────────────────────
   redis:
   image: redis:7-alpine
-  ontainer_name: redis
+  container_name: redis
   command: ["redis-server","--appendonly","yes"]
   ports:
   - "6379:6379"
@@ -314,9 +332,3 @@ services:
   - redis-data:/data
   networks:
   - app-net
-
-environment:
-  ENDPOINTS_TEMPLATE: "mongo"
-  TRACKER_MONGO_URL: "mongodb://mongo:27017"
-  TRACKER_MONGO_DB: "rasa"
-  TRACKER_MONGO_COLLECTION: "conversations"

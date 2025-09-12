@@ -1,23 +1,26 @@
 # backend/routes/chat.py
+from __future__ import annotations
+
+from datetime import datetime
+from time import perf_counter
+from typing import Optional, Any, Dict, List
+
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import Optional, Any, Dict, List
-from time import perf_counter  # [ADDED]
 
 from backend.config.settings import settings
-from backend.utils.logging import get_logger
 from backend.middleware.request_id import get_request_id
 from backend.services.jwt_service import decode_token
 from backend.db.mongodb import get_logs_collection
 from backend.services.chat_service import process_user_message
+from backend.utils.logging import get_logger
 
-# ✅ Rate limiting por endpoint
-from backend.rate_limit import limit
+# ✅ Rate limiting por endpoint (compat: builtin/slowapi/fastapi-limiter)
+from backend.rate_limit import limit               # decorador seguro (no rompe si está desactivado)
+from backend.ext.rate_limit import limiter         # dependencia opcional (no-op si no hay Redis)
 
 # Mantén este nombre: main.py hace `from backend.routes.chat import chat_router`
-chat_router = APIRouter(tags=["Chat"])
-
+chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
 
 
@@ -35,13 +38,13 @@ class ChatRequest(BaseModel):
         extra = "allow"
 
 
-# ==== Endpoints ====
-@chat_router.get("/chat/health", summary="Healthcheck de chat")
+# ==== Endpoints auxiliares ====
+@chat_router.get("/health", summary="Healthcheck de chat")
 async def chat_health():
     return {"ok": True}
 
 
-@chat_router.get("/chat/debug", summary="Inspección de request (solo DEBUG)")
+@chat_router.get("/debug", summary="Inspección de request (solo DEBUG)")
 async def chat_debug(request: Request):
     if not settings.debug:
         # No revelar en producción
@@ -65,8 +68,14 @@ async def chat_debug(request: Request):
     }
 
 
-@chat_router.post("/chat", summary="Enviar mensaje al chatbot y registrar en MongoDB")
-@limit("60/minute")  # ⛳ límite de envío al bot
+# ==== Endpoint principal ====
+@chat_router.post(
+    "",
+    summary="Enviar mensaje al chatbot y registrar en MongoDB",
+    # FastAPI-Limiter (si está habilitado): 60 req / 60 s
+    dependencies=limiter(times=60, seconds=60),
+)
+@limit("60/minute")  # Builtin/SlowAPI (si está habilitado): 60 req / min
 async def send_message_to_bot(data: ChatRequest, request: Request):
     # Metadata de red (del middleware) con fallback
     ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") \
@@ -74,12 +83,11 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     user_agent = getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
     rid = get_request_id()
 
-    # 1) Validar JWT y construir metadata.auth
+    # 1) Validar JWT y construir metadata.auth (backend = fuente de verdad)
     auth_header = request.headers.get("Authorization")
     is_valid, claims = decode_token(auth_header)
 
     enriched_meta: Dict[str, Any] = dict(data.metadata or {})
-    # Forzar backend como fuente de verdad:
     enriched_meta["auth"] = {
         "hasToken": bool(is_valid),
         "claims": claims if is_valid else {},
@@ -90,18 +98,19 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         enriched_meta["url"] = request.headers.get("referer")
 
     # 2) Enviar a Rasa (propagando metadata) con medición de latencia
-    t0 = perf_counter()  # [ADDED]
+    t0 = perf_counter()
     try:
         try:
             bot_responses: List[Dict[str, Any]] = await process_user_message(
                 data.message, data.sender_id, metadata=enriched_meta  # type: ignore
             )
         except TypeError:
+            # Compat con firmas antiguas sin "metadata"
             bot_responses = await process_user_message(data.message, data.sender_id)
     except Exception as e:
         log.error(f"Error al comunicar con Rasa: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Error al comunicar con Rasa: {str(e)}")
-    latency_ms = int((perf_counter() - t0) * 1000)  # [ADDED]
+    latency_ms = int((perf_counter() - t0) * 1000)
 
     # 3) Intent defensivo (si viene adjunto en la 1ª respuesta)
     intent = None
@@ -129,7 +138,7 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         "user_agent": user_agent,
         "origen": "widget" if data.sender_id == "anonimo" else "autenticado",
         "metadata": enriched_meta,
-        "latency_ms": latency_ms,  # [ADDED]
+        "latency_ms": latency_ms,
     }
     try:
         get_logs_collection().insert_one(log_doc)
@@ -138,4 +147,4 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
         log.warning(f"No se pudo guardar el log en Mongo: {e}")
 
     # 5) Responder en formato Rasa (lista de mensajes)
-    return bot_responses  # (corregido: sin el punto final)
+    return bot_responses

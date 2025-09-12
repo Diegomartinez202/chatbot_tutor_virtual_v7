@@ -47,11 +47,13 @@ from backend.routes import intent_controller, intent_legacy_controller
 
 # ✅ Router alterno de usuarios (convive con admin_users bajo prefijo)
 from backend.routes import user as user_routes
-from backend.routes import user_controller as user_routes 
+from backend.routes import user_controller as user_routes  # (mantengo tu import tal cual)
+
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
 from backend.routes import logs as logs_legacy
 from backend.routes import logs_v2
+
 # Redis opcional (para rate-limit builtin en producción)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
@@ -68,8 +70,10 @@ try:
 except Exception:
     _SLOWAPI_OK = False
 
-# Selección del proveedor (por ENV). Default: builtin para evitar depender de SlowAPI si no está instalado.
-USE_SLOWAPI = (os.getenv("RATE_LIMIT_PROVIDER", "builtin").lower().strip() == "slowapi")
+# Proveedor de rate limit por ENV (extiendo con fastapi-limiter)
+_PROVIDER = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
+USE_SLOWAPI = (_PROVIDER == "slowapi")
+USE_FASTAPI_LIMITER = (_PROVIDER == "fastapi-limiter")
 
 STATIC_DIR = Path(settings.static_dir).resolve()
 setup_logging()
@@ -123,8 +127,9 @@ def create_app() -> FastAPI:
     app.include_router(media_router)
     app.include_router(stats.router)
     app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
-    app.include_router(logs_legacy.router)  
-    app.include_router(logs_v2.router)     
+    app.include_router(logs_legacy.router)
+    app.include_router(logs_v2.router)
+
     # ✅ Intents: moderno sin prefijo; legacy aislado bajo /api/legacy
     app.include_router(intent_controller.router)  # moderno: /admin/intents*
     app.include_router(
@@ -171,7 +176,7 @@ def create_app() -> FastAPI:
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
 
     # ─────────────────────────────────────────────────────────────
-    # Rate limiting: SlowAPI (opcional) o builtin (memoria/Redis)
+    # Rate limiting: SlowAPI (opcional) / FastAPI-Limiter (opcional) / builtin
     # ─────────────────────────────────────────────────────────────
     if settings.rate_limit_enabled and USE_SLOWAPI and _SLOWAPI_OK and not getattr(app.state, "limiter", None):
         try:
@@ -244,7 +249,13 @@ def create_app() -> FastAPI:
         except Exception as e:
             log.error(f"SlowAPI no disponible ({e}). Se usará builtin.")
             _activate_builtin_rate_limit(app)
+
+    elif settings.rate_limit_enabled and USE_FASTAPI_LIMITER:
+        # La inicialización real se hace en el hook de startup (más abajo).
+        log.info("RateLimit: FastAPI-Limiter seleccionado (init en startup).")
+        # No activamos builtin aquí para evitar duplicidad.
     else:
+        # Default o cualquier otro valor → builtin
         _activate_builtin_rate_limit(app)
 
     # 🔁 Redirects de assets al frontend
@@ -464,3 +475,21 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
+
+
+# ─────────────────────────────────────────────────────────────
+# FastAPI-Limiter (opcional) — SOLO si RATE_LIMIT_PROVIDER=fastapi-limiter
+# ─────────────────────────────────────────────────────────────
+from backend.ext.rate_limit import init_rate_limit
+from backend.ext.redis_client import close_redis
+
+@app.on_event("startup")
+async def _startup():
+    if (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip() == "fastapi-limiter":
+        await init_rate_limit(app)   # si Redis no está disponible, no hace nada
+
+@app.on_event("shutdown")
+async def _shutdown():
+    if (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip() == "fastapi-limiter":
+        await close_redis()
+

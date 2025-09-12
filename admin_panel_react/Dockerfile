@@ -1,28 +1,43 @@
-# 🖥️ Build Vite React Admin Panel
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1.6
+
+############################
+# Build (Vite)
+############################
+FROM node:18-alpine AS build
 WORKDIR /app
 
-# Instalar deps con cache eficiente
+# Instala dependencias con lockfile y caché de npm (más rápido en CI)
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
-# Copiar código y construir
+# Variables de build para Vite (puedes sobreescribir con --build-arg)
+ARG VITE_API_BASE=/api
+ARG VITE_RASA_HTTP=/rasa
+ARG VITE_RASA_WS=/ws
+ENV VITE_API_BASE=${VITE_API_BASE} \
+    VITE_RASA_HTTP=${VITE_RASA_HTTP} \
+    VITE_RASA_WS=${VITE_RASA_WS}
+
+# Copia el código y construye
 COPY . .
-# (Opcional) build args para Vite si los usas:
-# ARG VITE_CHAT_TRANSPORT=rest
-# ARG VITE_ALLOWED_HOST_ORIGINS=*
-# ENV VITE_CHAT_TRANSPORT=${VITE_CHAT_TRANSPORT}
-# ENV VITE_ALLOWED_HOST_ORIGINS=${VITE_ALLOWED_HOST_ORIGINS}
 RUN npm run build
 
-# 🌐 Nginx para servir estáticos
-FROM nginx:alpine
-# Config Nginx SPA (fallback a /index.html)
+############################
+# Runtime (Nginx estático)
+############################
+FROM nginx:1.27-alpine AS runtime
+
+# Config SPA (fallback a index.html + cache agresiva de assets con hash)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-# Copia el build
-COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copia artefactos generados por Vite
+COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-# Salud básica (opcional, algunos PaaS la leen)
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost/ || exit 1
+# Salud simple
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/ > /dev/null || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
