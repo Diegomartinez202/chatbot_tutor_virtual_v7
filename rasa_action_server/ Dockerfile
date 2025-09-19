@@ -6,25 +6,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /app/actions
+WORKDIR /app
 
 # Sistema mínimo (curl para healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Rasa SDK
-RUN python -m pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir rasa-sdk==3.6.2
-
-# (Opcional) dependencias de tus acciones si creas este archivo
-# (lo buscará en la RAÍZ DEL REPO: rasa_action_server/requirements.txt)
+# Dependencias Python (único lugar)
 COPY rasa_action_server/requirements.txt /tmp/requirements.txt
-RUN if [ -f /tmp/requirements.txt ]; then \
-      pip install --no-cache-dir -r /tmp/requirements.txt ; \
-    fi
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Copia SOLO el código de acciones desde tu ubicación original (Opción A)
+# Copiamos solo las acciones
 COPY rasa/actions /app/actions
 
 # Usuario no-root
@@ -37,5 +31,5 @@ EXPOSE 5055
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://localhost:5055/health || exit 1
 
-# Lanza el servidor de acciones cargando el módulo "actions"
-CMD ["python", "-m", "rasa_sdk", "--actions", "actions", "--port", "5055"]
+# Entrypoint oficial del SDK
+CMD ["python", "-m", "rasa_sdk", "start", "--actions", "actions", "--port", "5055"]

@@ -1,7 +1,7 @@
-# Dependencias opcionales para tus custom actions (Action Server).
-# Agrega aquí solo lo que tus acciones importen realmente.
-# Ejemplos:
-# requests==2.32.3
-# pandas==2.2.2
-# python-dotenv==1.0.1
-# spacy==3.7.5
+rasa-sdk==3.6.2
+requests>=2.32,<3
+pydantic>=1.10,<2
+# Solo si de verdad lo usas en actions.py:
+# spacy==3.7.2
+# es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl
+

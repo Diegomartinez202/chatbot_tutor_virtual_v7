@@ -112,7 +112,6 @@ Atajo “one-click”
 .\scripts\tasks.ps1 -Profile prod -Rebuild
 
 🩺 Health / Endpoints clave
-
 FastAPI
 
 GET / → {"message":"✅ API del Chatbot Tutor Virtual en funcionamiento"}
@@ -136,7 +135,6 @@ Action Server
 GET /health (puerto 5055)
 
 Script Windows (PowerShell)
-
 .\check_health.ps1 -FastApiUrl http://127.0.0.1:8000 -RasaUrl http://127.0.0.1:5005 -ActionsUrl http://127.0.0.1:5055
 # (si quieres validar a través del proxy)
 # .\check_health.ps1 -FastApiUrl http://127.0.0.1/api -RasaUrl http://127.0.0.1/rasa -ActionsUrl http://127.0.0.1:5055
@@ -146,11 +144,14 @@ Script Windows (PowerShell)
 Ya viene integrado en backend/main.py. No toques código, solo ENV:
 
 A) Builtin (memoria)
+
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_PROVIDER=builtin
 RATE_LIMIT_BACKEND=memory
 
+
 B) Builtin + Redis (recomendado)
+
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_PROVIDER=builtin
 RATE_LIMIT_BACKEND=redis
@@ -160,6 +161,7 @@ REDIS_URL=redis://redis:6379/0
 Asegura el servicio redis y el volumen redis-data en docker-compose.yml.
 
 C) SlowAPI (si instalas dependencias)
+
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_PROVIDER=slowapi
 RATE_LIMIT_STORAGE_URI=redis://redis:6379/0
@@ -187,6 +189,7 @@ Más detalle en: admin_panel_react/README.md.
 Docker no necesita venvs. Esto es solo si vas a ejecutar servicios locales para depurar.
 
 A) Backend en Python 3.12 (recomendado en Windows hoy)
+
 cd backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -194,14 +197,18 @@ python -m pip install -U pip wheel
 pip install -r requirements.txt
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
+
 B) Backend en Python 3.11 (si lo prefieres)
+
 cd backend
 py -3.11 -m venv .venv311
 .\.venv311\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
+
 C) Rasa/Action Server local en 3.11 (solo si NO usas Docker para ellos)
+
 # 1) Rasa (Terminal 1)
 cd rasa
 py -3.11 -m venv .venv
@@ -216,8 +223,8 @@ cd rasa
 .\.venv\Scripts\Activate.ps1
 python -m rasa_sdk --actions actions --port 5055
 
-D) React (admin)
 
+D) React (admin)
 React no usa venv; usa Node LTS:
 
 cd admin_panel_react
@@ -243,13 +250,13 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/chat -Body (@{
 
 3) Forms
 
-“necesito soporte” → completa slots y confirma.
+Mensaje: “necesito soporte” → completa slots → confirmación.
 
 4) Tickets Helpdesk
 
 HELPDESK_WEBHOOK=http://backend:8000/api/helpdesk/tickets (Action Server)
 
-Ver confirma en logs del backend.
+Ver confirmación en logs del backend.
 
 5) Auth-gating
 
@@ -267,23 +274,19 @@ Prod: WS por /ws (preferible wss:// con TLS).
 
 Superar 60 req/min al chat devuelve 429.
 
+📄 Para un detalle ampliado de pruebas (comandos + “resultado esperado” + plantilla de capturas) ver docs/QA-BACKEND.md.
+
 🧯 Troubleshooting
 
-Puertos ocupados
-Libera 80/443/8000/5005/5055/5173/6379 si están en uso.
+Puertos ocupados: libera 80/443/8000/5005/5055/5173/6379 si están en uso.
 
-Rasa no entrena
-Revisa docker compose logs -f rasa. Con RASA_AUTOTRAIN=true entrena si no hay modelo.
+Rasa no entrena: mira docker compose logs -f rasa. Con RASA_AUTOTRAIN=true entrena si no hay modelo.
 
-Actions 404
-ACTION_SERVER_URL debe apuntar a http://action-server:5055/webhook.
-Health: GET :5055/health.
+Actions 404: ACTION_SERVER_URL debe apuntar a http://action-server:5055/webhook. Health: GET :5055/health.
 
-CORS en dev
-Incluye http://localhost:5173 en ALLOWED_ORIGINS (backend).
+CORS en dev: incluye http://localhost:5173 en ALLOWED_ORIGINS (backend).
 
-Redis
-Verifica volumen redis-data y logs con docker compose logs -f redis.
+Redis: verifica volumen redis-data y logs con docker compose logs -f redis.
 
 Logs útiles
 
@@ -292,7 +295,7 @@ docker compose --profile prod  logs -f backend rasa action-server nginx
 
 📚 Documentos locales (más guías)
 
-Windows Quickstart: docs/WINDOWS-QUICKSTART.md
+Windows Quickstart: docs/WINDOWS-QUICKSTART.md ✅
 
 Frontend (React/Vite): admin_panel_react/README.md
 
@@ -302,4 +305,4 @@ Tareas Docker one-click: scripts/tasks.ps1
 
 Crear entornos virtuales (venvs): scripts/make_venvs.ps1
 
-Healthcheck PowerShell: check_health.ps1
+QA Backend detallado (para informe): docs/QA-BACKEND.md
