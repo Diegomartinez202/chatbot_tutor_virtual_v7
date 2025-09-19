@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 
 ############################
 # BASE
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libffi-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Preferimos backend/requirements.txt; si tu CI usa "requirements.txt" en raíz, duplica ese archivo.
+# Preferimos backend/requirements.txt; si tu CI usa "requirements.txt" en raÃ­z, duplica ese archivo.
 COPY backend/requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip \
  && pip install --prefix=/install -r /tmp/requirements.txt

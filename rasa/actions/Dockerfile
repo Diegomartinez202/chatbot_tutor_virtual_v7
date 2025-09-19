@@ -1,6 +1,6 @@
 # rasa/actions/Dockerfile
 # syntax=docker/dockerfile:1.6
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -41,4 +41,4 @@ EXPOSE 5055
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD wget -qO- http://127.0.0.1:5055/health >/dev/null 2>&1 || exit 1
 
-CMD ["python","-m","rasa_sdk","start","--actions","actions","--port","5055"]
+CMD ["python","-m","rasa_sdk","--actions","actions","--port","5055"]
