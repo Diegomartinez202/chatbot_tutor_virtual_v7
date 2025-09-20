@@ -80,10 +80,10 @@ services:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
       RASA_AUTOTRAIN: "true"
-      # ENDPOINTS_TEMPLATE: "mongo"
-      # TRACKER_MONGO_URL: "mongodb://mongo:27017"
-      # TRACKER_MONGO_DB: "rasa"
-      # TRACKER_MONGO_COLLECTION: "conversations"
+      ENDPOINTS_TEMPLATE: "mongo"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
     depends_on:
       - action-server
     ports:
@@ -152,15 +152,25 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
-      RASA_URL: http://rasa:5005
-      APP_ENV: dev
-      DEBUG: "true"
+      # ===== Opción B (JSON + hostnames Docker) =====
+      ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","https://tu-frontend.com"]'
+      EMBED_ALLOWED_ORIGINS: '["self","http://localhost:5173","http://localhost:8080"]'
+      FRAME_ANCESTORS: '"self"'
+      MONGO_URI: 'mongodb://mongo:27017/chatbot_tutor_virtual_v2'
+      MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
+      MONGODB_URL: 'mongodb://mongo:27017'
+      MONGODB_DB: chatbot_tutor_virtual_v7_3
+      MONGO_URL: 'mongodb://mongo:27017'
+      MONGO_DB: chatbot_admin
+      RASA_URL: 'http://rasa:5005'
+      RASA_REST_URL: 'http://rasa:5005/webhooks/rest/webhook'
+      RASA_WS_URL: 'ws://rasa:5005/ws'
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_PROVIDER: builtin
       RATE_LIMIT_BACKEND: redis
-      REDIS_URL: redis://redis:6379/0
-      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:8080,https://tu-frontend.com
+      REDIS_URL: 'redis://redis:6379/0'
+      APP_ENV: dev
+      DEBUG: "true"
       FRONTEND_SITE_URL: http://localhost:5173
     volumes:
       - ./backend:/app/backend
@@ -217,12 +227,12 @@ services:
       UVICORN_WORKERS: "2"
       APP_ENV: prod
       DEBUG: "false"
-      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
-      RASA_URL: http://rasa:5005
+      MONGO_URI: 'mongodb://mongo:27017/chatbot_tutor_virtual_v2'
+      RASA_URL: 'http://rasa:5005'
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_PROVIDER: builtin
       RATE_LIMIT_BACKEND: redis
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: 'redis://redis:6379/0'
     depends_on:
       - mongo
       - rasa

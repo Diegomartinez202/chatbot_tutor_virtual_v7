@@ -72,7 +72,7 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: "60"
       ADMIN_EMAIL: admin@example.com
       ADMIN_REGISTRATION_OPEN: "true"
-      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:8080,https://tu-frontend.com
+      ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","https://tu-frontend.com"]'
       APP_ENV: dev
       AUDIO_TTL_DAYS: "7"
       AWS_ACCESS_KEY_ID: ""
@@ -84,26 +84,26 @@ services:
       DEBUG: "true"
       EMAIL_FROM: demo@example.com
       EMAIL_TO: admin@example.com
-      EMBED_ALLOWED_ORIGINS: self
+      EMBED_ALLOWED_ORIGINS: '["self","http://localhost:5173","http://localhost:8080"]'
       EMBED_ENABLED: "true"
       FAVICON_PATH: backend/static/favicon.ico
       FIRST_ADMIN_IS_ADMIN: "true"
-      FRAME_ANCESTORS: self
+      FRAME_ANCESTORS: '"self"'
       FRONTEND_SITE_URL: http://localhost:5173
       HELPDESK_KIND: webhook
       HELPDESK_TOKEN: ""
-      HELPDESK_WEBHOOK: http://localhost:8000/api/helpdesk/tickets
+      HELPDESK_WEBHOOK: http://backend-dev:8000/api/helpdesk/tickets
       JWT_ALGORITHM: HS256
       LOG_DIR: logs
       LOGIN_BLOCK_MINUTES: "15"
       LOGIN_MAX_ATTEMPTS: "5"
       MIN_PASSWORD_LEN: "8"
       MONGO_DB: chatbot_admin
-      MONGO_DB_NAME: chatbot_tutor_virtual_v2
+      MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
       MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
-      MONGO_URL: mongodb://localhost:27017
-      MONGODB_DB: chatbot_tutor_virtual_v2
-      MONGODB_URL: mongodb://localhost:27017
+      MONGO_URL: mongodb://mongo:27017
+      MONGODB_DB: chatbot_tutor_virtual_v7_3
+      MONGODB_URL: mongodb://mongo:27017
       PW_REQUIRE_DIGIT: "true"
       PW_REQUIRE_LOWER: "true"
       PW_REQUIRE_SYMBOL: "true"
@@ -111,10 +111,10 @@ services:
       RASA_DATA_PATH: rasa/data/nlu.yml
       RASA_DOMAIN_PATH: rasa/domain.yml
       RASA_MODEL_PATH: rasa/models
-      RASA_REST_URL: http://localhost:5005/webhooks/rest/webhook
+      RASA_REST_URL: http://rasa:5005/webhooks/rest/webhook
       RASA_TRAIN_COMMAND: rasa train
       RASA_URL: http://rasa:5005
-      RASA_WS_URL: ws://localhost:5005/ws
+      RASA_WS_URL: ws://rasa:5005/ws
       RATE_LIMIT_BACKEND: redis
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_MAX_REQUESTS: "60"
@@ -130,7 +130,6 @@ services:
       SMTP_USER: demo@example.com
       STATIC_DIR: backend/static
       TEMPLATE_DIR: backend/templates
-      http: //localhost:5173 http://localhost:8080
     healthcheck:
       test:
         - CMD
@@ -217,8 +216,12 @@ services:
         required: true
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
+      ENDPOINTS_TEMPLATE: mongo
       RASA_AUTOTRAIN: "true"
       RASA_PORT: "5005"
+      TRACKER_MONGO_COLLECTION: conversations
+      TRACKER_MONGO_DB: rasa
+      TRACKER_MONGO_URL: mongodb://mongo:27017
     healthcheck:
       test:
         - CMD

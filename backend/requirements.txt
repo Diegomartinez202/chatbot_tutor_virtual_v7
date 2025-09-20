@@ -29,3 +29,4 @@ slowapi>=0.1.9
 # --- PDF/Imagen (tu código lo usa) ---
 pdf2image==1.17.0
 pillow==11.1.0
+pydantic-settings==2.2.1
