@@ -16,6 +16,8 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml
 RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 
 USER 1000
 EXPOSE 5005
