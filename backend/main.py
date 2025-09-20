@@ -34,10 +34,12 @@ from backend.routes import api_chat
 from app.routers import chat_audio
 from backend.routes import stats
 from app.routes.media import router as media_router
+from backend.routers.auth_refresh import router as auth_refresh_router
+from backend.routers.auth_logout import router as auth_logout_router
 
 # ✅ Tu router legacy (se mantiene)
 from backend.routes import auth_admin          # /api/admin (legacy)
-
+from backend.routers.auth_token import router as auth_token_router
 # ✅ Nuevos routers v2 (no chocan con legacy)
 from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
 from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
@@ -129,7 +131,9 @@ def create_app() -> FastAPI:
     app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
     app.include_router(logs_legacy.router)
     app.include_router(logs_v2.router)
-
+    app.include_router(auth_refresh_router, prefix="/auth", tags=["auth"])
+    app.include_router(auth_token_router, prefix="/auth", tags=["auth"])
+    app.include_router(auth_logout_router, prefix="/auth", tags=["auth"])
     # ✅ Intents: moderno sin prefijo; legacy aislado bajo /api/legacy
     app.include_router(intent_controller.router)  # moderno: /admin/intents*
     app.include_router(

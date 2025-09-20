@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
+    # ✅ NUEVO: compatibilidad temporal para aceptar tokens sin "typ"
+    jwt_accept_typeless: bool = Field(default=False, alias="JWT_ACCEPT_TYPELESS")
+
+    # ✅ NUEVO: nombre de la cookie de refresh
+    refresh_cookie_name: str = Field(default="rt", alias="REFRESH_COOKIE_NAME")
+
     # 🤖 Rasa Bot
     rasa_url: str = Field(..., alias="RASA_URL")
     rasa_data_path: str = Field(default="rasa/data/nlu.yml", alias="RASA_DATA_PATH")
@@ -82,6 +88,9 @@ class Settings(BaseSettings):
 
     # 👤 Admin
     admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
+
+    # ✅ NUEVO: password opcional para bootstrap admin (no altera tu flujo)
+    admin_bootstrap_password: Optional[str] = Field(default=None, alias="ADMIN_BOOTSTRAP_PASSWORD")
 
     # 🧾 Logs y entorno
     debug: bool = Field(default=False, alias="DEBUG")
