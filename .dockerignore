@@ -1,22 +1,46 @@
-# Ignorar archivos que no necesitas copiar al contenedor
+# VCS
 .git
 .gitignore
 .gitattributes
-Dockerfile*
-docker-compose.yml
-README.md
-LICENSE
-.env
-.env.*
-__pycache__/
+
+# Node / React
+**/node_modules
+**/.npm
+**/.yarn
+**/.next
+**/dist
+**/build
+admin_panel_react/node_modules
+admin_panel_react/dist
+admin_panel_react/build
+
+# Python
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/venv
+**/.coverage*
 *.pyc
 *.pyo
 *.pyd
-*.log
-*.sqlite3
-node_modules/
-venv/
-.env.local
+
+# IDE/editor
+.vscode
+.idea
 *.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data / logs / artefactos
+logs
+*.log
 .rasa/
 models/
+
+# Docker artefacts
+**/.docker-cache

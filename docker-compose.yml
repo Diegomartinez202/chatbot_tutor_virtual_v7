@@ -1,23 +1,26 @@
 name: tutorbot-local
-#version: "3.9"
+# version: "3.9"
 
-# =========================
+# ============================================================
 # Redes y volúmenes
-# =========================
+# ============================================================
 networks:
   app-net:
     driver: bridge
 
 volumes:
-  mongo-data: {}            # modo build/prod
-  _docker_data_mongo: {}    # modo vanilla
-  redis-data: {}            # para Redis (rate-limit/cache)
+  mongo-data: {}            # volumen persistente para Mongo en perfiles build/prod
+  _docker_data_mongo: {}    # volumen persistente para Mongo en perfil vanilla
+  redis-data: {}            # volumen persistente para Redis (rate-limit/cache)
 
+# ============================================================
+# Servicios
+# ============================================================
 services:
 
-  # ─────────────────────────────────────────────────────────────
-  # 📦 MongoDB (común a build/prod)
-  # ─────────────────────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # MongoDB (común a build/prod)
+  # ------------------------------------------------------------
   mongo:
     profiles: ["build","prod"]
     image: mongo:6
@@ -30,9 +33,9 @@ services:
     networks:
       - app-net
 
-  # ───────────────────────────────────────────────────────────────
-  # 📦 MongoDB (perfil: vanilla) — con auth
-  # ───────────────────────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # MongoDB (perfil: vanilla) — con autenticación
+  # ------------------------------------------------------------
   ctv_mongo:
     profiles: ["vanilla"]
     image: mongo:6.0
@@ -48,9 +51,9 @@ services:
     networks:
       - app-net
 
-  # ─────────────────────────────────────────────
-  # ⚙️ Rasa Action Server (build/prod) — build con ./rasa/actions/Dockerfile
-  # ─────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # Rasa Action Server (build/prod) — build desde ./rasa/actions/Dockerfile
+  # ------------------------------------------------------------
   action-server:
     profiles: ["build","prod"]
     build:
@@ -66,9 +69,9 @@ services:
     networks:
       - app-net
 
-  # ─────────────────────────────────────────────
-  # 🤖 Rasa (build/prod) — build desde ./rasa
-  # ─────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # Rasa (build/prod) — build desde ./rasa/Dockerfile
+  # ------------------------------------------------------------
   rasa:
     profiles: ["build","prod"]
     build:
@@ -91,14 +94,15 @@ services:
     networks:
       - app-net
     healthcheck:
-      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q 'version'"]
+      # Nota: evitamos comillas especiales/emojis; comando simple y portable
+      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
       timeout: 5s
       retries: 5
 
-  # ────────────────────────────────────────────────────────────────
-  # 🧠 Rasa (perfil: vanilla) — imagen oficial + monta ./rasa
-  # ────────────────────────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # Rasa (perfil: vanilla) — imagen oficial + monta ./rasa
+  # ------------------------------------------------------------
   ctv_rasa:
     profiles: ["vanilla"]
     image: rasa/rasa:3.6.19
@@ -119,9 +123,9 @@ services:
     networks:
       - app-net
 
-  # ─────────────────────────────────────────────────────────────
-  # ⚙️ Rasa Action Server (perfil: vanilla) — SDK oficial
-  # ─────────────────────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # Rasa Action Server (perfil: vanilla) — SDK oficial
+  # ------------------------------------------------------------
   ctv_rasa_actions:
     profiles: ["vanilla"]
     image: rasa/rasa-sdk:3.6.2
@@ -138,41 +142,50 @@ services:
     networks:
       - app-net
 
-  # ============================
-  # 🐍 Backend DEV (hot reload)
-  # ============================
+  # ============================================================
+  # Backend DEV (hot reload)
+  # ============================================================
   backend-dev:
     profiles: ["build"]
     build:
-      context: ./backend
+      # Dockerfile en la raíz del repo (no dentro de ./backend)
+      context: .
       dockerfile: Dockerfile
       target: dev
+      args:
+        # Tu requirements.txt está en la raíz del proyecto
+        REQUIREMENTS_PATH: requirements.txt
     container_name: backend-dev
     restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
-      # ===== Opción B (JSON + hostnames Docker) =====
+      # CORS / Embeds (JSON strings válidas)
       ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","https://tu-frontend.com"]'
       EMBED_ALLOWED_ORIGINS: '["self","http://localhost:5173","http://localhost:8080"]'
       FRAME_ANCESTORS: '"self"'
+      # Mongo (compat con distintas libs)
       MONGO_URI: 'mongodb://mongo:27017/chatbot_tutor_virtual_v2'
       MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
       MONGODB_URL: 'mongodb://mongo:27017'
       MONGODB_DB: chatbot_tutor_virtual_v7_3
       MONGO_URL: 'mongodb://mongo:27017'
       MONGO_DB: chatbot_admin
+      # Rasa endpoints en red Docker
       RASA_URL: 'http://rasa:5005'
       RASA_REST_URL: 'http://rasa:5005/webhooks/rest/webhook'
       RASA_WS_URL: 'ws://rasa:5005/ws'
+      # Rate limiting (usa Redis)
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_PROVIDER: builtin
       RATE_LIMIT_BACKEND: redis
       REDIS_URL: 'redis://redis:6379/0'
+      # Modo dev
       APP_ENV: dev
       DEBUG: "true"
       FRONTEND_SITE_URL: http://localhost:5173
     volumes:
+      # Monta solo el código del backend (para hot reload)
       - ./backend:/app/backend
     depends_on:
       - mongo
@@ -188,9 +201,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ======================================
-  # 🖥️ Frontend DEV (Vite con hot reload)
-  # ======================================
+  # ============================================================
+  # Frontend DEV (Vite con hot reload)
+  # ============================================================
   admin-dev:
     profiles: ["build"]
     image: node:18-alpine
@@ -210,15 +223,18 @@ services:
     networks:
       - app-net
 
-  # ============================
-  # 🐍 Backend PROD (Uvicorn)
-  # ============================
+  # ============================================================
+  # Backend PROD (Uvicorn)
+  # ============================================================
   backend:
     profiles: ["prod"]
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
       target: prod
+      args:
+        # Tu requirements.txt está en la raíz del proyecto
+        REQUIREMENTS_PATH: requirements.txt
     container_name: backend
     restart: unless-stopped
     env_file:
@@ -247,9 +263,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==================================
-  # 🖥️ Frontend PROD (Nginx + build)
-  # ==================================
+  # ============================================================
+  # Frontend PROD (Nginx + build)
+  # ============================================================
   admin:
     profiles: ["prod"]
     build:
@@ -268,9 +284,9 @@ services:
     networks:
       - app-net
 
-  # =========================================
-  # 🌐 Nginx Reverse Proxy (solo en prod)
-  # =========================================
+  # ============================================================
+  # Nginx Reverse Proxy (solo en prod)
+  # ============================================================
   nginx:
     profiles: ["prod"]
     image: nginx:1.27-alpine
@@ -289,9 +305,9 @@ services:
     networks:
       - app-net
 
-  # =========================================
-  # 🌐 Nginx Reverse Proxy (solo en build)
-  # =========================================
+  # ============================================================
+  # Nginx Reverse Proxy (solo en build)
+  # ============================================================
   nginx-dev:
     profiles: ["build"]
     image: nginx:1.27-alpine
@@ -308,9 +324,9 @@ services:
     networks:
       - app-net
 
-  # ─────────────────────────────────────────────────────────────
-  # 🐍 Backend "vanilla" (monta backend/)
-  # ─────────────────────────────────────────────────────────────
+  # ------------------------------------------------------------
+  # Backend "vanilla" (monta backend/)
+  # ------------------------------------------------------------
   ctv_fastapi:
     profiles: ["vanilla"]
     image: python:3.11-slim
@@ -337,7 +353,9 @@ services:
     networks:
       - app-net
 
-  # 🧰 Redis (rate-limit/cache)
+  # ------------------------------------------------------------
+  # Redis (rate-limit/cache)
+  # ------------------------------------------------------------
   redis:
     profiles: ["build","prod"]
     image: redis:7-alpine

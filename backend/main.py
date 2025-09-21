@@ -20,7 +20,14 @@ from backend.middleware.request_id import RequestIdMiddleware
 
 # 🧩 Middlewares propios
 from backend.middleware.auth_middleware import AuthMiddleware
-from backend.middleware.logging_middleware import LoggingMiddleware
+# -- IMPORT SEGURO (opcional) para evitar fallos si falta el archivo:
+try:
+    from backend.middleware.logging_middleware import LoggingMiddleware
+    _LOGGING_MIDDLEWARE_AVAILABLE = True
+except Exception:
+    _LOGGING_MIDDLEWARE_AVAILABLE = False
+    LoggingMiddleware = None  # type: ignore
+
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.request_meta import request_meta_middleware  # IP/UA
 
@@ -173,7 +180,10 @@ def create_app() -> FastAPI:
 
     # 🧠 Middlewares personalizados
     app.add_middleware(AccessLogMiddleware)
-    app.add_middleware(LoggingMiddleware)
+    if _LOGGING_MIDDLEWARE_AVAILABLE and LoggingMiddleware:
+        app.add_middleware(LoggingMiddleware)
+    else:
+        print("[WARN] LoggingMiddleware no disponible; continuando sin él.")
     app.add_middleware(AuthMiddleware)
 
     # 🌐 Base pública frontend
@@ -496,4 +506,3 @@ async def _startup():
 async def _shutdown():
     if (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip() == "fastapi-limiter":
         await close_redis()
-

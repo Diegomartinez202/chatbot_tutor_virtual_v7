@@ -3,44 +3,67 @@
 ############################
 # BASE (runtime base)
 ############################
-FROM python:3.10-slim AS base
+FROM python:3.10-slim-bookworm AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_ROOT_USER_ACTION=ignore \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    DEBIAN_FRONTEND=noninteractive \
+    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl poppler-utils \
- && rm -rf /var/lib/apt/lists/*
+# apt robusto (sin cache mounts), unlock y reintentos
+RUN set -eux; \
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock-frontend || true; \
+    apt-get -o Acquire::Retries=5 update; \
+    apt-get install -y --no-install-recommends \
+      bash \
+      curl \
+      ca-certificates \
+      poppler-utils \
+    ; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 ############################
 # DEPS (requirements)
 ############################
-FROM python:3.10-slim AS deps
+FROM python:3.10-slim-bookworm AS deps
 
 ENV PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_ROOT_USER_ACTION=ignore
+    PIP_ROOT_USER_ACTION=ignore \
+    DEBIAN_FRONTEND=noninteractive \
+    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
-# Toolchain para compilar si falta wheel + utilidades de saneo
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libffi-dev cargo dos2unix libc-bin \
- && rm -rf /var/lib/apt/lists/*
+# Toolchain + utilidades de saneo (sin cache mounts), unlock y reintentos
+RUN set -eux; \
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock-frontend || true; \
+    apt-get -o Acquire::Retries=5 update; \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      libffi-dev \
+      cargo \
+      dos2unix \
+      libc-bin \
+      ca-certificates \
+    ; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /tmp/requirements.txt
+# Ruta del requirements (por defecto, backend/)
+ARG REQUIREMENTS_PATH=backend/requirements.txt
 
-# Sanea EOL/encoding SOLO después del COPY (ahora el archivo sí existe)
-# - dos2unix: por si viene con CRLF
-# - iconv: intenta convertir si venía ISO-8859-1/Windows-1252 (si ya está en UTF-8 no cambia nada)
-RUN dos2unix /tmp/requirements.txt || true \
- && (iconv -f ISO-8859-1 -t UTF-8 /tmp/requirements.txt -o /tmp/requirements.txt || true)
+# Copia y sanea requirements
+COPY ${REQUIREMENTS_PATH} /tmp/requirements.txt
+RUN dos2unix /tmp/requirements.txt || true && \
+    (iconv -f ISO-8859-1 -t UTF-8 /tmp/requirements.txt -o /tmp/requirements.txt || true)
 
-# Herramientas de build conservadoras y deps
+# Instala dependencias en /install para copiar luego
 RUN python -m pip install --upgrade "pip<25" "setuptools<70" wheel && \
     pip install --prefer-binary --prefix=/install -r /tmp/requirements.txt
 
@@ -49,9 +72,13 @@ RUN python -m pip install --upgrade "pip<25" "setuptools<70" wheel && \
 ############################
 FROM base AS prod
 
+# Trae paquetes instalados
 COPY --from=deps /install /usr/local
-COPY . /app/backend
 
+# Copia solo el backend (si el build context es ./backend, esto será el contenido)
+COPY . /app
+
+# Permisos
 RUN mkdir -p /app/logs /app/backend/static && \
     adduser --disabled-password --gecos "" --uid 10001 appuser && \
     chown -R appuser:appuser /app
@@ -76,7 +103,9 @@ CMD ["bash","-lc","exec uvicorn backend.main:app --host ${UVICORN_HOST} --port $
 ############################
 FROM prod AS dev
 
-RUN pip install --no-cache-dir watchfiles uvicorn[standard]
+USER root
+RUN python -m pip install --no-cache-dir watchfiles uvicorn[standard]
+USER appuser
 
 ENV APP_ENV=dev \
     DEBUG=1
