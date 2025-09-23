@@ -9,9 +9,9 @@ networks:
     driver: bridge
 
 volumes:
-  mongo-data: {}            # volumen persistente para Mongo en perfiles build/prod
-  _docker_data_mongo: {}    # volumen persistente para Mongo en perfil vanilla
-  redis-data: {}            # volumen persistente para Redis (rate-limit/cache)
+  mongo-data: {}
+  _docker_data_mongo: {}
+  redis-data: {}
 
 # ============================================================
 # Servicios
@@ -52,7 +52,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # Rasa Action Server (build/prod) — build desde ./rasa/actions/Dockerfile
+  # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
   action-server:
     profiles: ["build","prod"]
@@ -70,7 +70,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # Rasa (build/prod) — build desde ./rasa/Dockerfile
+  # Rasa (build/prod)
   # ------------------------------------------------------------
   rasa:
     profiles: ["build","prod"]
@@ -93,15 +93,17 @@ services:
       - "5005:5005"
     networks:
       - app-net
+    volumes:
+      - ./rasa/models:/app/models
     healthcheck:
-      # Nota: evitamos comillas especiales/emojis; comando simple y portable
-      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
       timeout: 5s
+      start_period: 300s
       retries: 5
 
   # ------------------------------------------------------------
-  # Rasa (perfil: vanilla) — imagen oficial + monta ./rasa
+  # Rasa (perfil: vanilla)
   # ------------------------------------------------------------
   ctv_rasa:
     profiles: ["vanilla"]
@@ -124,7 +126,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # Rasa Action Server (perfil: vanilla) — SDK oficial
+  # Rasa Action Server (perfil: vanilla)
   # ------------------------------------------------------------
   ctv_rasa_actions:
     profiles: ["vanilla"]
@@ -148,44 +150,36 @@ services:
   backend-dev:
     profiles: ["build"]
     build:
-      # Dockerfile en la raíz del repo (no dentro de ./backend)
       context: .
       dockerfile: Dockerfile
       target: dev
       args:
-        # Tu requirements.txt está en la raíz del proyecto
         REQUIREMENTS_PATH: requirements.txt
     container_name: backend-dev
     restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
-      # CORS / Embeds (JSON strings válidas)
       ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","https://tu-frontend.com"]'
       EMBED_ALLOWED_ORIGINS: '["self","http://localhost:5173","http://localhost:8080"]'
       FRAME_ANCESTORS: '"self"'
-      # Mongo (compat con distintas libs)
       MONGO_URI: 'mongodb://mongo:27017/chatbot_tutor_virtual_v2'
       MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
       MONGODB_URL: 'mongodb://mongo:27017'
       MONGODB_DB: chatbot_tutor_virtual_v7_3
       MONGO_URL: 'mongodb://mongo:27017'
       MONGO_DB: chatbot_admin
-      # Rasa endpoints en red Docker
       RASA_URL: 'http://rasa:5005'
       RASA_REST_URL: 'http://rasa:5005/webhooks/rest/webhook'
       RASA_WS_URL: 'ws://rasa:5005/ws'
-      # Rate limiting (usa Redis)
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_PROVIDER: builtin
       RATE_LIMIT_BACKEND: redis
       REDIS_URL: 'redis://redis:6379/0'
-      # Modo dev
       APP_ENV: dev
       DEBUG: "true"
       FRONTEND_SITE_URL: http://localhost:5173
     volumes:
-      # Monta solo el código del backend (para hot reload)
       - ./backend:/app/backend
     depends_on:
       - mongo
@@ -202,7 +196,7 @@ services:
       retries: 5
 
   # ============================================================
-  # Frontend DEV (Vite con hot reload)
+  # Frontend DEV (Vite)
   # ============================================================
   admin-dev:
     profiles: ["build"]
@@ -233,7 +227,6 @@ services:
       dockerfile: Dockerfile
       target: prod
       args:
-        # Tu requirements.txt está en la raíz del proyecto
         REQUIREMENTS_PATH: requirements.txt
     container_name: backend
     restart: unless-stopped
@@ -305,27 +298,8 @@ services:
     networks:
       - app-net
 
-  # ============================================================
-  # Nginx Reverse Proxy (solo en build)
-  # ============================================================
-  nginx-dev:
-    profiles: ["build"]
-    image: nginx:1.27-alpine
-    container_name: nginx-dev
-    restart: unless-stopped
-    depends_on:
-      - backend-dev
-      - rasa
-      - admin-dev
-    ports:
-      - "80:80"
-    volumes:
-      - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
-    networks:
-      - app-net
-
   # ------------------------------------------------------------
-  # Backend "vanilla" (monta backend/)
+  # Backend "vanilla"
   # ------------------------------------------------------------
   ctv_fastapi:
     profiles: ["vanilla"]

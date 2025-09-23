@@ -7,11 +7,8 @@ rules:
     - intent: saludo
     - action: utter_saludo
 
-- rule: Explorar temas
-  steps:
-    - intent: explorar_temas
-    - action: utter_cursos_carousel
-    - action: utter_cursos_recomendados
+# ⚠️ QUITAMOS la rule "Explorar temas" para no chocar con stories
+# Las stories ya definen qué acción va primero (carrusel o recomendados).
 
 - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
   steps:
@@ -46,7 +43,7 @@ rules:
     - intent: ver_certificados
     - action: action_check_auth
 
-# Forms de soporte desde varios intents
+# Forms de soporte desde varios intents (ok)
 - rule: Iniciar soporte (soporte_tecnico)
   steps:
     - intent: soporte_tecnico
@@ -77,7 +74,7 @@ rules:
     - action: soporte_form
     - active_loop: soporte_form
 
-# Submit forms
+# ✅ Submit soporte_form — añadimos utter_soporte_creado para coincidir con tus stories
 - rule: Submit soporte_form
   condition:
     - active_loop: soporte_form
@@ -86,7 +83,9 @@ rules:
     - active_loop: null
     - action: utter_soporte_resumen
     - action: action_soporte_submit
+    - action: utter_soporte_creado
 
+# Recovery form
 - rule: Iniciar recovery_form
   steps:
     - intent: recuperar_contrasena
@@ -102,17 +101,17 @@ rules:
     - action: action_enviar_correo
     - action: utter_confirmar_recuperacion
 
-# Escalado humano
+# Escalado humano — hacemos coincidir el orden con tu story (action → utter)
+- rule: Confirmar escalado a humano
+  steps:
+    - intent: confirmacion_escalar_humano
+    - action: action_conectar_humano
+    - action: utter_confirmar_escalado
+
 - rule: Escalar a humano (pregunta)
   steps:
     - intent: escalar_humano
     - action: utter_escalar_humano
-
-- rule: Confirmar escalado a humano
-  steps:
-    - intent: confirmacion_escalar_humano
-    - action: utter_confirmar_escalado
-    - action: action_conectar_humano
 
 - rule: Negar escalado a humano
   steps:
@@ -142,7 +141,7 @@ rules:
     - intent: enviar_correo
     - action: action_enviar_correo
 
-# ✅ Enviar soporte DIRECTO y confirmar
+# Enviar soporte DIRECTO y confirmar
 - rule: Enviar soporte directo
   steps:
     - intent: enviar_soporte

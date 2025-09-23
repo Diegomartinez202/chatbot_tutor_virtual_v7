@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.6
 FROM rasa/rasa:3.6.20-full
 
 USER root
@@ -18,8 +17,7 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml
 
-# Normaliza EOL (CRLF -> LF), elimina BOM y fija permisos/propietario
-# - sin heredoc, usando sed en modo seguro
+# Normaliza EOL (CRLF -> LF), elimina BOM y fija permisos/propietario (sin heredoc)
 RUN sed -i 's/\r$//' /entrypoint.sh \
  && sed -i '1s/^\xEF\xBB\xBF//' /entrypoint.sh \
  && find /app -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; || true \
@@ -29,7 +27,7 @@ RUN sed -i 's/\r$//' /entrypoint.sh \
 # Usuario sin privilegios (coherente con la imagen base)
 USER 1000
 
-# Entrypoint único y limpio
+# Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 5005

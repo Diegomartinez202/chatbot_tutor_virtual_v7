@@ -30,6 +30,7 @@ TPL="/app/endpoints.tpl.yml"
 [ "$ENDPOINTS_TEMPLATE" = "mongo" ] && TPL="/app/endpoints.mongo.tpl.yml"
 
 if [ -f "$TPL" ]; then
+  echo "Renderizando /app/endpoints.yml desde $TPL"
   if command -v envsubst >/dev/null 2>&1; then
     envsubst < "$TPL" > /app/endpoints.yml
   else
@@ -43,19 +44,30 @@ if [ -f "$TPL" ]; then
         /app/endpoints.yml || true
     fi
   fi
+else
+  echo "No encontre plantilla $TPL. Usare /app/endpoints.yml si existe."
 fi
 
+echo "endpoints.yml resultante (si existe):"
+( cat /app/endpoints.yml || true ) | sed -e 's/^/  /'
+
 # =========================
-# Entrenamiento opcional
+# Entrenamiento (segun flags)
 # =========================
 mkdir -p /app/models
 
 NEED_TRAIN=0
-[ "${RASA_AUTOTRAIN:-false}" = "true" ] && NEED_TRAIN=1
-[ -z "$(ls -1 /app/models/*.tar.gz 2>/dev/null || true)" ] && NEED_TRAIN=1
+# Compat:
+#  - RASA_AUTOTRAIN=true   -> entrena siempre
+#  - RASA_FORCE_TRAIN=1    -> entrena siempre
+if [ "${RASA_AUTOTRAIN:-false}" = "true" ] || [ "${RASA_FORCE_TRAIN:-0}" = "1" ]; then
+  NEED_TRAIN=1
+elif ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
+  NEED_TRAIN=1
+fi
 
 if [ "$NEED_TRAIN" -eq 1 ]; then
-  echo "Training model (rasa train)..."
+  echo "Entrenando modelo (rasa train)..."
   set +e
   rasa train \
     --domain /app/domain.yml \
@@ -66,21 +78,16 @@ if [ "$NEED_TRAIN" -eq 1 ]; then
   TRAIN_RC=$?
   set -e
   if [ $TRAIN_RC -ne 0 ]; then
-    echo "Train failed (rc=$TRAIN_RC)."
-    if [ "${RASA_FAIL_ON_TRAIN_ERROR:-0}" = "1" ]; then
-      exit $TRAIN_RC
-    else
-      echo "Continuing without stopping the container."
-    fi
+    echo "Entrenamiento fallo (rc=$TRAIN_RC). Continuo sin detener el contenedor."
   fi
 else
-  echo "Model found in /app/models. Skipping training."
+  echo "Modelo encontrado en /app/models. Omitiendo entrenamiento."
 fi
 
 # =========================
 # Run server
 # =========================
-echo "Starting Rasa server on ${RASA_HOST}:${RASA_PORT}"
+echo "Iniciando Rasa server en ${RASA_HOST}:${RASA_PORT} (CORS=${RASA_CORS})"
 exec rasa run \
   --enable-api \
   -i "${RASA_HOST}" \

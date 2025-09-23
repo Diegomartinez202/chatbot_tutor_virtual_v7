@@ -45,6 +45,7 @@ stories:
     - intent: tutor_asignado
     - action: utter_tutor_asignado
     - intent: ver_certificados
+    - action: action_check_auth
     - action: utter_certificados_info
     - intent: horarios_calendario
     - action: utter_menu_proceso_academico
@@ -54,8 +55,8 @@ stories:
     - intent: escalar_humano
     - action: utter_escalar_humano
     - intent: confirmacion_escalar_humano
-    - action: action_conectar_humano
     - action: utter_confirmar_escalado
+    - action: action_conectar_humano
 
 - story: Escalar a humano (negado)
   steps:
