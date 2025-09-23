@@ -1,58 +1,49 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-echo "🚀 Rasa entrypoint"
+echo "Rasa entrypoint"
 
 # =========================
 # Config por variables ENV
 # =========================
-export RASA_PORT="${RASA_PORT:-5005}"
-export RASA_HOST="${RASA_HOST:-0.0.0.0}"
-export RASA_CORS="${RASA_CORS:-*}"
+RASA_PORT="${RASA_PORT:-5005}"
+RASA_HOST="${RASA_HOST:-0.0.0.0}"
+RASA_CORS="${RASA_CORS:-*}"
 
 # URL del Action Server
-export ACTION_SERVER_URL="${ACTION_SERVER_URL:-http://action-server:5055/webhook}"
+ACTION_SERVER_URL="${ACTION_SERVER_URL:-http://action-server:5055/webhook}"
 
 # Plantilla de endpoints: default | mongo
-export ENDPOINTS_TEMPLATE="${ENDPOINTS_TEMPLATE:-default}"
+ENDPOINTS_TEMPLATE="${ENDPOINTS_TEMPLATE:-default}"
 
 # Si usas tracker en Mongo, predefine vars
-if [ "${ENDPOINTS_TEMPLATE}" = "mongo" ]; then
-  export TRACKER_MONGO_URL="${TRACKER_MONGO_URL:-mongodb://mongo:27017}"
-  export TRACKER_MONGO_DB="${TRACKER_MONGO_DB:-rasa}"
-  export TRACKER_MONGO_COLLECTION="${TRACKER_MONGO_COLLECTION:-conversations}"
+if [ "$ENDPOINTS_TEMPLATE" = "mongo" ]; then
+  TRACKER_MONGO_URL="${TRACKER_MONGO_URL:-mongodb://mongo:27017}"
+  TRACKER_MONGO_DB="${TRACKER_MONGO_DB:-rasa}"
+  TRACKER_MONGO_COLLECTION="${TRACKER_MONGO_COLLECTION:-conversations}"
 fi
 
 # =========================
 # Render de endpoints.yml
 # =========================
 TPL="/app/endpoints.tpl.yml"
-if [ "${ENDPOINTS_TEMPLATE}" = "mongo" ]; then
-  TPL="/app/endpoints.mongo.tpl.yml"
-fi
+[ "$ENDPOINTS_TEMPLATE" = "mongo" ] && TPL="/app/endpoints.mongo.tpl.yml"
 
-if [ -f "${TPL}" ]; then
-  echo "🧩 Renderizando /app/endpoints.yml desde ${TPL}"
+if [ -f "$TPL" ]; then
   if command -v envsubst >/dev/null 2>&1; then
-    envsubst < "${TPL}" > /app/endpoints.yml
+    envsubst < "$TPL" > /app/endpoints.yml
   else
-    # Fallback mínimo sin envsubst
-    cp "${TPL}" /app/endpoints.yml
-    sed -i "s|\${ACTION_SERVER_URL}|${ACTION_SERVER_URL}|g" /app/endpoints.yml || true
-    if [ "${ENDPOINTS_TEMPLATE}" = "mongo" ]; then
+    cp "$TPL" /app/endpoints.yml
+    sed -i "s|\${ACTION_SERVER_URL}|$ACTION_SERVER_URL|g" /app/endpoints.yml || true
+    if [ "$ENDPOINTS_TEMPLATE" = "mongo" ]; then
       sed -i \
-        -e "s|\${TRACKER_MONGO_URL}|${TRACKER_MONGO_URL}|g" \
-        -e "s|\${TRACKER_MONGO_DB}|${TRACKER_MONGO_DB}|g" \
-        -e "s|\${TRACKER_MONGO_COLLECTION}|${TRACKER_MONGO_COLLECTION}|g" \
+        -e "s|\${TRACKER_MONGO_URL}|$TRACKER_MONGO_URL|g" \
+        -e "s|\${TRACKER_MONGO_DB}|$TRACKER_MONGO_DB|g" \
+        -e "s|\${TRACKER_MONGO_COLLECTION}|$TRACKER_MONGO_COLLECTION|g" \
         /app/endpoints.yml || true
     fi
   fi
-else
-  echo "⚠️  No encontré plantilla ${TPL}. Usaré /app/endpoints.yml existente si lo hay."
 fi
-
-echo "🔎 endpoints.yml resultante (si existe):"
-( cat /app/endpoints.yml || true ) | sed -e 's/^/  /'
 
 # =========================
 # Entrenamiento opcional
@@ -60,17 +51,11 @@ echo "🔎 endpoints.yml resultante (si existe):"
 mkdir -p /app/models
 
 NEED_TRAIN=0
-# Compatibilidad con dos flags:
-#  - RASA_AUTOTRAIN=true   → entrena siempre
-#  - RASA_FORCE_TRAIN=1    → entrena siempre
-if [ "${RASA_AUTOTRAIN:-false}" = "true" ] || [ "${RASA_FORCE_TRAIN:-0}" = "1" ]; then
-  NEED_TRAIN=1
-elif ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
-  NEED_TRAIN=1
-fi
+[ "${RASA_AUTOTRAIN:-false}" = "true" ] && NEED_TRAIN=1
+[ -z "$(ls -1 /app/models/*.tar.gz 2>/dev/null || true)" ] && NEED_TRAIN=1
 
-if [ "${NEED_TRAIN}" -eq 1 ]; then
-  echo "🏋️  Entrenando modelo (rasa train)..."
+if [ "$NEED_TRAIN" -eq 1 ]; then
+  echo "Training model (rasa train)..."
   set +e
   rasa train \
     --domain /app/domain.yml \
@@ -80,26 +65,26 @@ if [ "${NEED_TRAIN}" -eq 1 ]; then
     ${RASA_TRAIN_FLAGS:-}
   TRAIN_RC=$?
   set -e
-  if [ ${TRAIN_RC} -ne 0 ]; then
-    echo "❌ Entrenamiento falló (rc=${TRAIN_RC})."
+  if [ $TRAIN_RC -ne 0 ]; then
+    echo "Train failed (rc=$TRAIN_RC)."
     if [ "${RASA_FAIL_ON_TRAIN_ERROR:-0}" = "1" ]; then
-      exit ${TRAIN_RC}
+      exit $TRAIN_RC
     else
-      echo "➡️  Continuo sin detener el contenedor (revisa tus datos/config)."
+      echo "Continuing without stopping the container."
     fi
   fi
 else
-  echo "✅ Modelo encontrado en /app/models. Omitiendo entrenamiento."
+  echo "Model found in /app/models. Skipping training."
 fi
 
 # =========================
 # Run server
 # =========================
-echo "🌐 Iniciando Rasa server en ${RASA_HOST}:${RASA_PORT} (CORS=${RASA_CORS})"
+echo "Starting Rasa server on ${RASA_HOST}:${RASA_PORT}"
 exec rasa run \
   --enable-api \
-  --cors "${RASA_CORS}" \
-  --host "${RASA_HOST}" \
-  --port "${RASA_PORT}" \
+  -i "${RASA_HOST}" \
+  -p "${RASA_PORT}" \
   --endpoints /app/endpoints.yml \
-  --model /app/models
+  --model /app/models \
+  --cors "${RASA_CORS}"
