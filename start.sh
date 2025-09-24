@@ -1,6 +1,6 @@
-#!/bin/bash
+﻿#!/bin/bash
 
-echo "🚀 Iniciando Chatbot Tutor Virtual..."
+echo "ðŸš€ Iniciando Chatbot Tutor Virtual..."
 
 # Activar entorno virtual si es necesario (opcional)
 # source venv/bin/activate

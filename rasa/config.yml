@@ -1,4 +1,4 @@
-version: "3.1"
+﻿version: "3.1"
 
 language: "es"
 
@@ -40,6 +40,7 @@ policies:
     core_fallback_threshold: 0.3
     core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
+    check_for_contradictions: false   # ← añadido para entrenar aunque haya historias/reglas ambiguas
   - name: MemoizationPolicy
     max_history: 5
   - name: TEDPolicy

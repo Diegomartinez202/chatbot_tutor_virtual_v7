@@ -1,4 +1,4 @@
-version: "3.1"
+﻿version: "3.1"
 
 nlu:
   - intent: enviar_soporte
@@ -6,4 +6,5 @@ nlu:
       - Quiero contactar soporte
       - Necesito ayuda con el acceso
       - Enviar ticket a soporte
-      - Tengo un problema técnico y deseo reportarlo
+      - Tengo un problema tÃ©cnico y deseo reportarlo
+

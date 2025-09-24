@@ -1,18 +1,18 @@
-version: "3.9"
+﻿version: "3.9"
 
 name: tutorbot-railway-ref
 
-# ⚠️ Archivo de REFERENCIA para Railway.
+# âš ï¸ Archivo de REFERENCIA para Railway.
 # Railway crea cada servicio por separado; este compose documenta
-# nombres, imágenes y variables para que el DNS interno funcione:
+# nombres, imÃ¡genes y variables para que el DNS interno funcione:
 #   - backend        -> http://backend:8000
 #   - rasa           -> http://rasa:5005
 #   - action-server  -> http://action-server:5055
 #   - admin          -> http://admin:80
 #
-# En Railway NO se exponen puertos entre servicios; el tráfico público
+# En Railway NO se exponen puertos entre servicios; el trÃ¡fico pÃºblico
 # lo gestiona Railway por cada servicio que marques como "publicable".
-# Aquí NO mapeamos ports: omitidos a propósito.
+# AquÃ­ NO mapeamos ports: omitidos a propÃ³sito.
 
 services:
   backend:
@@ -20,7 +20,7 @@ services:
     container_name: backend
     restart: unless-stopped
     environment:
-      # 👉 Configúralas en Railway → Variables del servicio "backend"
+      # ðŸ‘‰ ConfigÃºralas en Railway â†’ Variables del servicio "backend"
       APP_ENV: "prod"
       DEBUG: "false"
       # Mongo: usa el valor que tengas en Railway (plugin o externo)
@@ -28,9 +28,9 @@ services:
       MONGO_DB_NAME: ${MONGO_DB_NAME:-tutor_virtual}
       # Rasa por DNS interno entre servicios Railway
       RASA_URL: "http://rasa:5005"
-      # Frontend público (tu dominio del admin en Railway)
+      # Frontend pÃºblico (tu dominio del admin en Railway)
       FRONTEND_SITE_URL: ${FRONTEND_SITE_URL}
-      # Orígenes permitidos para CORS
+      # OrÃ­genes permitidos para CORS
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       # Clave JWT
       SECRET_KEY: ${SECRET_KEY}
@@ -56,7 +56,7 @@ services:
     image: docker.io/diego0102/zajuna-action:${TAG:-latest}
     container_name: action-server
     restart: unless-stopped
-    # Agrega aquí variables si tus actions las necesitan (tokens, etc.)
+    # Agrega aquÃ­ variables si tus actions las necesitan (tokens, etc.)
     networks:
       - app-net
 
@@ -64,7 +64,7 @@ services:
     image: docker.io/diego0102/zajuna-admin:${TAG:-latest}
     container_name: admin
     restart: unless-stopped
-    # El admin suele ser estático (Nginx). Sin ENV en runtime.
+    # El admin suele ser estÃ¡tico (Nginx). Sin ENV en runtime.
     # Marca este servicio como "publicable" en Railway para darle URL.
     depends_on:
       - backend

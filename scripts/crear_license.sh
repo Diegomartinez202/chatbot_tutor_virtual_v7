@@ -1,11 +1,11 @@
-#!/bin/bash
+﻿#!/bin/bash
 
-echo "📝 Generando archivo LICENSE (MIT)..."
+echo "ðŸ“ Generando archivo LICENSE (MIT)..."
 
 cat <<EOF > LICENSE
 MIT License
 
-Copyright (c) 2025 Daniel Martínez
+Copyright (c) 2025 Daniel MartÃ­nez
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the \"Software\"), to deal
@@ -26,4 +26,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 EOF
 
-echo "✅ Archivo LICENSE generado correctamente."
+echo "âœ… Archivo LICENSE generado correctamente."

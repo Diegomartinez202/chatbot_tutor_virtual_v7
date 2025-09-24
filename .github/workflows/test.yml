@@ -1,4 +1,4 @@
-name: Admin CI (build + tests)
+﻿name: Admin CI (build + tests)
 
 on:
   push:

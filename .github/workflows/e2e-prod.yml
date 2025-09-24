@@ -1,4 +1,4 @@
-name: E2E Prod (Playwright)
+﻿name: E2E Prod (Playwright)
 
 on:
   workflow_dispatch:

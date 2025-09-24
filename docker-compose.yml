@@ -1,8 +1,8 @@
-name: tutorbot-local
+﻿name: tutorbot-local
 # version: "3.9"
 
 # ============================================================
-# Redes y volúmenes
+# Redes y volÃºmenes
 # ============================================================
 networks:
   app-net:
@@ -19,7 +19,7 @@ volumes:
 services:
 
   # ------------------------------------------------------------
-  # MongoDB (común a build/prod)
+  # MongoDB (comÃºn a build/prod)
   # ------------------------------------------------------------
   mongo:
     profiles: ["build","prod"]
@@ -34,7 +34,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # MongoDB (perfil: vanilla) — con autenticación
+  # MongoDB (perfil: vanilla) â€” con autenticaciÃ³n
   # ------------------------------------------------------------
   ctv_mongo:
     profiles: ["vanilla"]

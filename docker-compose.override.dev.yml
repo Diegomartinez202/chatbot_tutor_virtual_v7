@@ -1,4 +1,4 @@
-# docker-compose.override.dev.yml
+﻿# docker-compose.override.dev.yml
 # Override adicional SOLO para desarrollo avanzado.
 # Se activa con: docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up --build
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 : "${BACKEND_URL:?BACKEND_URL no definido}"
@@ -8,7 +8,7 @@ set -euo pipefail
 have_jq() { command -v jq >/dev/null 2>&1; }
 JQ=${JQ:-jq}
 if ! have_jq; then
-  JQ="cat"  # fallback si jq no est�
+  JQ="cat"  # fallback si jq no está
 fi
 
 echo "== Backend =="

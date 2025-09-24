@@ -1,4 +1,4 @@
-name: Train Rasa model
+ï»¿name: Train Rasa model
 
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
       - name: Install Rasa (core + nlu)
         run: |
           python -m pip install --upgrade pip
-          # Versión sugerida (ajústala si usas otra)
+          # VersiÃ³n sugerida (ajÃºstala si usas otra)
           pip install "rasa==3.6.20"
 
       # (Opcional) si tienes acciones personalizadas que afecten el training

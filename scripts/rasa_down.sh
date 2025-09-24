@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 STATE_DIR="${STATE_DIR:-.rasa}"
@@ -9,15 +9,15 @@ stop_pidfile () {
   local f="$1"
   local name="$2"
   if [[ -f "$f" ]]; then
-    echo "🛑 Deteniendo ${name}..."
+    echo "ðŸ›‘ Deteniendo ${name}..."
     xargs -r kill < "$f" || true
     rm -f "$f"
   else
-    echo "ℹ️ ${name} no estaba corriendo (sin PID)."
+    echo "â„¹ï¸ ${name} no estaba corriendo (sin PID)."
   fi
 }
 
 stop_pidfile "$RASA_PID_FILE" "Rasa API"
 stop_pidfile "$ACTIONS_PID_FILE" "Action Server"
 
-echo "✅ Todo detenido."
+echo "âœ… Todo detenido."

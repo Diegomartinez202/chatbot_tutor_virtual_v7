@@ -1,4 +1,4 @@
-name: E2E Preview (Playwright + local dev server)
+﻿name: E2E Preview (Playwright + local dev server)
 
 on:
   workflow_dispatch:

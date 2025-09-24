@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 : "${BACKEND_URL:?BACKEND_URL no definido}"

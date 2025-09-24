@@ -1,4 +1,4 @@
-name: Deploy to Railway (redeploy services)
+﻿name: Deploy to Railway (redeploy services)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      SERVICES: "backend rasa action-server admin"  # cámbialos si tus nombres difieren
+      SERVICES: "backend rasa action-server admin"  # cÃ¡mbialos si tus nombres difieren
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,11 +39,11 @@ jobs:
         run: |
           set -e
           for SVC in $SERVICES; do
-            echo "🚀 Redeploy $SVC"
+            echo "ðŸš€ Redeploy $SVC"
             if railway service redeploy --service "$SVC"; then
-              echo "✅ $SVC redeployed"
+              echo "âœ… $SVC redeployed"
             else
-              echo "↩️  Fallback railway up for $SVC"
-              railway up --service "$SVC" --detach || echo "⚠️  No se pudo redeployar $SVC automáticamente."
+              echo "â†©ï¸  Fallback railway up for $SVC"
+              railway up --service "$SVC" --detach || echo "âš ï¸  No se pudo redeployar $SVC automÃ¡ticamente."
             fi
           done

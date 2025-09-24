@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # scripts/curl_examples.sh
 # Uso:
-#   MODE=backend ./scripts/curl_examples.sh A        # Flujo soporte_form vía FastAPI (/api/chat)
+#   MODE=backend ./scripts/curl_examples.sh A        # Flujo soporte_form vÃ­a FastAPI (/api/chat)
 #   MODE=rasa    ./scripts/curl_examples.sh A        # Flujo directo a Rasa REST
 #   MODE=backend ./scripts/curl_examples.sh C0       # ver_certificados SIN token (utter_need_auth)
 #   MODE=backend ./scripts/curl_examples.sh C1       # ver_certificados CON token (contenido real)
@@ -41,7 +41,7 @@ curl_json () {
   fi
 }
 
-# Construye y envía payloads SIEMPRE con metadata.auth.hasToken (true/false)
+# Construye y envÃ­a payloads SIEMPRE con metadata.auth.hasToken (true/false)
 send_with_auth_flag () {
   local sender="$1"; shift
   local message="$1"; shift
@@ -63,7 +63,7 @@ send_with_auth_flag () {
   curl_json "$url" "$payload"
 }
 
-# Igual que el anterior pero sin bandera explícita (para flows simples)
+# Igual que el anterior pero sin bandera explÃ­cita (para flows simples)
 send () {
   local sender="$1"; shift
   local message="$1"; shift
@@ -73,7 +73,7 @@ send () {
 # ========== Flujos ==========
 flow_A () {
   echo "== Flujo A: soporte_form =="
-  send "$SENDER_A" "necesito soporte técnico"; echo
+  send "$SENDER_A" "necesito soporte tÃ©cnico"; echo
   send "$SENDER_A" "Mi nombre es Daniel Martinez"; echo
   send "$SENDER_A" "daniel.martinez010201@gmail.com"; echo
   send "$SENDER_A" "Pantalla blanca al abrir el curso de IA."; echo
@@ -82,7 +82,7 @@ flow_A () {
 flow_B () {
   echo "== Flujo B: recovery_form =="
   send "$SENDER_B" "quiero ingresar a zajuna"; echo
-  send "$SENDER_B" "recuperar contraseña"; echo
+  send "$SENDER_B" "recuperar contraseÃ±a"; echo
   send "$SENDER_B" "usuario+test@domain.io"; echo
 }
 

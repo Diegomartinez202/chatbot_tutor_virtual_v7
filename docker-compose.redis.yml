@@ -1,4 +1,4 @@
-version: "3.9"
+﻿version: "3.9"
 
 services:
   redis:
@@ -29,3 +29,4 @@ volumes:
 networks:
   app-net:
     external: false
+

@@ -1,3 +1,3 @@
-#!/bin/bash
-echo "🔄 Actualizando desde GitHub..."
+﻿#!/bin/bash
+echo "ðŸ”„ Actualizando desde GitHub..."
 git pull origin main

@@ -1,4 +1,4 @@
-name: Docker Hub — Build & Push (admin/backend/rasa/action)
+﻿name: Docker Hub â€” Build & Push (admin/backend/rasa/action)
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
       - ".github/workflows/dockerhub-publish.yml"
 
 env:
-  DOCKERHUB_ORG: "diego0102"            # ← tu org/usuario en Docker Hub
+  DOCKERHUB_ORG: "diego0102"            # â† tu org/usuario en Docker Hub
   TAG_LATEST: "latest"
   TAG_SHA: "${{ github.sha }}"
 

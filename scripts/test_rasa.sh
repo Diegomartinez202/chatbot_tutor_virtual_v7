@@ -1,15 +1,15 @@
-#!/bin/bash
+﻿#!/bin/bash
 
-echo "🤖 Ejecutando pruebas de Rasa..."
+echo "ðŸ¤– Ejecutando pruebas de Rasa..."
 
-# Ir a raíz del proyecto
+# Ir a raÃ­z del proyecto
 cd "$(dirname "$0")/.."
 
 # Entrenar Rasa (opcional si ya entrenaste)
 cd rasa
 rasa train
 
-# Simular un mensaje de prueba al bot si está corriendo
+# Simular un mensaje de prueba al bot si estÃ¡ corriendo
 curl -X POST http://localhost:5005/webhooks/rest/webhook \
      -H "Content-Type: application/json" \
      -d '{
@@ -18,3 +18,4 @@ curl -X POST http://localhost:5005/webhooks/rest/webhook \
          }'
 
 cd ..
+
