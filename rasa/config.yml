@@ -1,4 +1,6 @@
-﻿version: "3.1"
+﻿assistant_id: "tutorbot-local"
+recipe: default.v1
+version: "3.1"
 
 language: "es"
 
@@ -40,7 +42,7 @@ policies:
     core_fallback_threshold: 0.3
     core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
-    check_for_contradictions: false
+    check_for_contradictions: true
   - name: MemoizationPolicy
     max_history: 5
   - name: TEDPolicy

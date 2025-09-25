@@ -342,3 +342,9 @@ services:
       - redis-data:/data
     networks:
       - app-net
+      event_broker:
+  type: redis
+  url: "redis"
+  port: 6379
+  db: 0
+  # password: ""   # Si usas clave, descomenta y ponla  

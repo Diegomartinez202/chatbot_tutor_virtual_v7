@@ -2,143 +2,152 @@
 
 rules:
 
-  - rule: Saludo
-    steps:
-      - intent: saludo
-      - action: utter_saludo
+# Saludo
+- rule: Saludo
+  steps:
+    - intent: saludo
+    - action: utter_saludo
 
-  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
-    steps:
-      - intent: ingreso_zajuna
-      - action: utter_preguntar_problema_acceso
+# Ingreso a Zajuna (preguntar tipo de ayuda)
+- rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+  steps:
+    - intent: ingreso_zajuna
+    - action: utter_preguntar_problema_acceso
 
-  - rule: Otro problema de acceso → iniciar soporte
-    steps:
-      - intent: otro_problema_acceso
-      - action: utter_soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
+# Otro problema de acceso → iniciar soporte
+- rule: Otro problema de acceso → iniciar soporte
+  steps:
+    - intent: otro_problema_acceso
+    - action: utter_soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Menú proceso académico
-    steps:
-      - intent: proceso_academico
-      - action: utter_menu_proceso_academico
+# Menú proceso académico
+- rule: Menú proceso académico
+  steps:
+    - intent: proceso_academico
+    - action: utter_menu_proceso_academico
 
-  - rule: Tutor asignado (público)
-    steps:
-      - intent: tutor_asignado
-      - action: utter_tutor_asignado
+# Tutor asignado (público)
+- rule: Tutor asignado (público)
+  steps:
+    - intent: tutor_asignado
+    - action: utter_tutor_asignado
 
-  - rule: Estado estudiante (verifica auth)
-    steps:
-      - intent: estado_estudiante
-      - action: action_check_auth
+# Verificación de auth centralizada (solo verifica; no añade utter aquí)
+- rule: Estado estudiante (verifica auth)
+  steps:
+    - intent: estado_estudiante
+    - action: action_check_auth
 
-  - rule: Ver certificados (verifica auth)
-    steps:
-      - intent: ver_certificados
-      - action: action_check_auth
+- rule: Ver certificados (verifica auth)
+  steps:
+    - intent: ver_certificados
+    - action: action_check_auth
 
-  # Forms de soporte
-  - rule: Iniciar soporte (soporte_tecnico)
-    steps:
-      - intent: soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
+# Forms de soporte desde varios intents
+- rule: Iniciar soporte (soporte_tecnico)
+  steps:
+    - intent: soporte_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Iniciar soporte (otro_problema_tecnico)
-    steps:
-      - intent: otro_problema_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
+- rule: Iniciar soporte (otro_problema_tecnico)
+  steps:
+    - intent: otro_problema_tecnico
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Iniciar soporte (no_ingreso)
-    steps:
-      - intent: problema_no_ingreso
-      - action: soporte_form
-      - active_loop: soporte_form
+- rule: Iniciar soporte (no_ingreso)
+  steps:
+    - intent: problema_no_ingreso
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Iniciar soporte (pantalla_blanca)
-    steps:
-      - intent: pantalla_blanca
-      - action: soporte_form
-      - active_loop: soporte_form
+- rule: Iniciar soporte (pantalla_blanca)
+  steps:
+    - intent: pantalla_blanca
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Iniciar soporte (error_actividad)
-    steps:
-      - intent: error_actividad
-      - action: soporte_form
-      - active_loop: soporte_form
+- rule: Iniciar soporte (error_actividad)
+  steps:
+    - intent: error_actividad
+    - action: soporte_form
+    - active_loop: soporte_form
 
-  - rule: Submit soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: soporte_form
-      - active_loop: null
-      - action: utter_soporte_resumen
-      - action: action_soporte_submit
-      - action: utter_soporte_creado
+# Submit soporte_form (mismo orden que las stories)
+- rule: Submit soporte_form
+  condition:
+    - active_loop: soporte_form
+  steps:
+    - action: soporte_form
+    - active_loop: null
+    - action: utter_soporte_resumen
+    - action: action_soporte_submit
+    - action: utter_soporte_creado
 
-  # Recovery
-  - rule: Iniciar recovery_form
-    steps:
-      - intent: recuperar_contrasena
-      - action: recovery_form
-      - active_loop: recovery_form
+# Recovery form
+- rule: Iniciar recovery_form
+  steps:
+    - intent: recuperar_contrasena
+    - action: recovery_form
+    - active_loop: recovery_form
 
-  - rule: Submit recovery_form
-    condition:
-      - active_loop: recovery_form
-    steps:
-      - action: recovery_form
-      - active_loop: null
-      - action: action_enviar_correo
-      - action: utter_confirmar_recuperacion
+- rule: Submit recovery_form
+  condition:
+    - active_loop: recovery_form
+  steps:
+    - action: recovery_form
+    - active_loop: null
+    - action: action_enviar_correo
+    - action: utter_confirmar_recuperacion
 
-  # Escalado humano (alineado con story)
-  - rule: Confirmar escalado a humano
-    steps:
-      - intent: confirmacion_escalar_humano
-      - action: action_conectar_humano
+# Escalado humano (mismo orden que la story: primero action, luego utter)
+- rule: Confirmar escalado a humano
+  steps:
+    - intent: confirmacion_escalar_humano
+    - action: action_conectar_humano
+    - action: utter_confirmar_escalado
 
-  - rule: Negar escalado a humano
-    steps:
-      - intent: negar_escalar
-      - action: utter_gracias_continuar
+# Negar escalado a humano
+- rule: Negar escalado a humano
+  steps:
+    - intent: negar_escalar
+    - action: utter_gracias_continuar
 
-  # Cambio de idioma
-  - rule: Cambiar a inglés
-    steps:
-      - intent: cambiar_idioma_ingles
-      - action: utter_cambio_idioma_ingles
+# Cambio de idioma
+- rule: Cambiar a inglés
+  steps:
+    - intent: cambiar_idioma_ingles
+    - action: utter_cambio_idioma_ingles
 
-  - rule: Cambiar a español
-    steps:
-      - intent: cambiar_idioma_espanol
-      - action: utter_cambio_idioma_espanol
+- rule: Cambiar a español
+  steps:
+    - intent: cambiar_idioma_espanol
+    - action: utter_cambio_idioma_espanol
 
-  # Inscribirme
-  - rule: Inscribirme
-    steps:
-      - intent: inscribirme
-      - action: utter_confirmacion_inscripcion
+# Inscribirme
+- rule: Inscribirme
+  steps:
+    - intent: inscribirme
+    - action: utter_confirmacion_inscripcion
 
-  # Enviar correo
-  - rule: Enviar correo directo
-    steps:
-      - intent: enviar_correo
-      - action: action_enviar_correo
+# Enviar correo directo
+- rule: Enviar correo directo
+  steps:
+    - intent: enviar_correo
+    - action: action_enviar_correo
 
-  # Enviar soporte directo
-  - rule: Enviar soporte directo
-    steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
+# Enviar soporte directo y confirmar
+- rule: Enviar soporte directo
+  steps:
+    - intent: enviar_soporte
+    - action: action_enviar_soporte
+    - action: utter_soporte_confirm
 
-  # Fallback
-  - rule: Fallback
-    steps:
-      - intent: fallback
-      - action: utter_default
+# Fallback (según tu intent personalizado)
+- rule: Fallback
+  steps:
+    - intent: fallback
+    - action: utter_default
