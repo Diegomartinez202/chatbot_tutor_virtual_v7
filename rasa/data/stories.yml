@@ -2,32 +2,32 @@
 
 stories:
 
-  - story: Saludo â†’ Recomendados
+  - story: Saludo → Recomendados
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: explorar_temas
       - action: utter_cursos_recomendados
 
-  - story: Saludo â†’ Carrusel cursos
+  - story: Saludo → Carrusel cursos
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: explorar_temas
       - action: utter_cursos_carousel
 
-  - story: Explorar directo â†’ Carrusel
+  - story: Explorar directo → Carrusel
     steps:
       - intent: explorar_temas
       - action: utter_cursos_carousel
 
-  - story: Mis cursos â†’ Recomendados + Carrusel
+  - story: Mis cursos → Recomendados + Carrusel
     steps:
       - intent: explorar_temas
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
-  - story: Recuperar contraseÃ±a desde ingreso
+  - story: Recuperar contraseña desde ingreso
     steps:
       - intent: ingreso_zajuna
       - action: utter_preguntar_problema_acceso
@@ -39,16 +39,15 @@ stories:
       - action: action_enviar_correo
       - action: utter_confirmar_recuperacion
 
-  - story: Proceso acadÃ©mico completo
+  - story: Proceso académico completo
     steps:
       - intent: proceso_academico
       - action: utter_menu_proceso_academico
       - intent: tutor_asignado
       - action: utter_tutor_asignado
       - intent: ver_certificados
-      - action: action_check_auth   # coincide con regla
-      # Si tu action luego emite un utter, puedes aÃ±adirlo:
-      # - action: utter_certificados_info
+      - action: action_check_auth
+      # - action: utter_certificados_info   # opcional
       - intent: horarios_calendario
       - action: utter_menu_proceso_academico
 
@@ -67,8 +66,8 @@ stories:
       - intent: negar_escalar
       - action: utter_gracias_continuar
 
-  # Soporte tÃ©cnico por diferentes entradas
-  - story: Soporte tÃ©cnico (intent principal)
+  # Soporte técnico
+  - story: Soporte técnico (intent principal)
     steps:
       - intent: soporte_tecnico
       - action: soporte_form
@@ -79,7 +78,7 @@ stories:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  - story: Soporte tÃ©cnico (no ingreso)
+  - story: Soporte técnico (no ingreso)
     steps:
       - intent: problema_no_ingreso
       - action: soporte_form
@@ -90,7 +89,7 @@ stories:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  - story: Soporte tÃ©cnico (pantalla blanca)
+  - story: Soporte técnico (pantalla blanca)
     steps:
       - intent: pantalla_blanca
       - action: soporte_form
@@ -101,7 +100,7 @@ stories:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  - story: Soporte tÃ©cnico (error actividad)
+  - story: Soporte técnico (error actividad)
     steps:
       - intent: error_actividad
       - action: soporte_form
@@ -112,7 +111,7 @@ stories:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  - story: Soporte tÃ©cnico (otro problema)
+  - story: Soporte técnico (otro problema)
     steps:
       - intent: otro_problema_tecnico
       - action: soporte_form

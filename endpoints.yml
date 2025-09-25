@@ -1,0 +1,25 @@
+# endpoints.yml
+# Configuración de endpoints para Rasa
+
+# 📌 Tracker store en MongoDB
+tracker_store:
+  type: mongo
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
+
+# 📌 Event broker en Redis (útil si usas sockets o integraciones)
+event_broker:
+  type: redis
+  url: "redis"
+  port: 6379
+  db: 0
+  password: null
+
+# 📌 Endpoint para acciones personalizadas
+action_endpoint:
+  url: "http://action_server:5055/webhook"
+
+# 📌 Endpoint de nlu (opcional: se usa si separas NLU del core)
+# nlu:
+#   url: "http://localhost:5000"

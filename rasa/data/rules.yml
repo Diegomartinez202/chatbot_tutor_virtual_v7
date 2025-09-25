@@ -7,31 +7,28 @@ rules:
       - intent: saludo
       - action: utter_saludo
 
-  # (quitamos la rule "Explorar temas" para no chocar con stories)
-
   - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
     steps:
       - intent: ingreso_zajuna
       - action: utter_preguntar_problema_acceso
 
-  - rule: Otro problema de acceso â†’ iniciar soporte
+  - rule: Otro problema de acceso → iniciar soporte
     steps:
       - intent: otro_problema_acceso
       - action: utter_soporte_tecnico
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: MenÃº proceso acadÃ©mico
+  - rule: Menú proceso académico
     steps:
       - intent: proceso_academico
       - action: utter_menu_proceso_academico
 
-  - rule: Tutor asignado (pÃºblico)
+  - rule: Tutor asignado (público)
     steps:
       - intent: tutor_asignado
       - action: utter_tutor_asignado
 
-  # VerificaciÃ³n de auth centralizada
   - rule: Estado estudiante (verifica auth)
     steps:
       - intent: estado_estudiante
@@ -42,7 +39,7 @@ rules:
       - intent: ver_certificados
       - action: action_check_auth
 
-  # Forms de soporte desde varios intents
+  # Forms de soporte
   - rule: Iniciar soporte (soporte_tecnico)
     steps:
       - intent: soporte_tecnico
@@ -73,7 +70,6 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  # Submit soporte_form â€” alineado con stories (incluye utter_soporte_creado)
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
@@ -84,7 +80,7 @@ rules:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  # Recovery form
+  # Recovery
   - rule: Iniciar recovery_form
     steps:
       - intent: recuperar_contrasena
@@ -100,11 +96,10 @@ rules:
       - action: action_enviar_correo
       - action: utter_confirmar_recuperacion
 
-  # Escalado humano â€” orden igual a la story (utter â†’ action)
+  # Escalado humano (alineado con story)
   - rule: Confirmar escalado a humano
     steps:
       - intent: confirmacion_escalar_humano
-      - action: utter_confirmar_escalado
       - action: action_conectar_humano
 
   - rule: Negar escalado a humano
@@ -113,12 +108,12 @@ rules:
       - action: utter_gracias_continuar
 
   # Cambio de idioma
-  - rule: Cambiar a inglÃ©s
+  - rule: Cambiar a inglés
     steps:
       - intent: cambiar_idioma_ingles
       - action: utter_cambio_idioma_ingles
 
-  - rule: Cambiar a espaÃ±ol
+  - rule: Cambiar a español
     steps:
       - intent: cambiar_idioma_espanol
       - action: utter_cambio_idioma_espanol
@@ -129,13 +124,13 @@ rules:
       - intent: inscribirme
       - action: utter_confirmacion_inscripcion
 
-  # Enviar correo directo
+  # Enviar correo
   - rule: Enviar correo directo
     steps:
       - intent: enviar_correo
       - action: action_enviar_correo
 
-  # Enviar soporte DIRECTO y confirmar
+  # Enviar soporte directo
   - rule: Enviar soporte directo
     steps:
       - intent: enviar_soporte
