@@ -1,4 +1,5 @@
-﻿version: "3.1"
+version: "3.1"
+
 intents:
   - saludo
   - explorar_temas
@@ -62,162 +63,162 @@ forms:
 
 responses:
   utter_saludo:
-    - text: "ðŸ¤– Â¡Hola! Â¿En quÃ© puedo ayudarte hoy?"
+    - text: "Hola! ¿En qué puedo ayudarte hoy?"
       buttons:
-        - title: "ðŸ” Explorar temas"
+        - title: "Explorar temas"
           payload: "/explorar_temas"
-        - title: "ðŸ“¥ Ingreso a Zajuna"
+        - title: "Ingreso a Zajuna"
           payload: "/ingreso_zajuna"
-        - title: "ðŸ“š Mis cursos y contenidos"
+        - title: "Mis cursos y contenidos"
           payload: "/explorar_temas"
-        - title: "ðŸ§¾ Proceso acadÃ©mico / administrativo"
+        - title: "Proceso académico / administrativo"
           payload: "/proceso_academico"
-        - title: "ðŸ› ï¸ Soporte tÃ©cnico"
+        - title: "Soporte técnico"
           payload: "/soporte_tecnico"
 
   utter_cursos_carousel:
     - custom:
         cards:
-          - title: "Excel BÃ¡sico"
-            subtitle: "20h â€¢ Virtual"
+          - title: "Excel Básico"
+            subtitle: "20h - Virtual"
             image: "https://via.placeholder.com/300x160?text=Excel"
             buttons:
               - title: "Inscribirme"
                 payload: "/inscribirme"
           - title: "Soldadura MIG"
-            subtitle: "40h â€¢ Presencial"
+            subtitle: "40h - Presencial"
             image: "https://via.placeholder.com/300x160?text=Soldadura"
             buttons:
               - title: "Inscribirme"
                 payload: "/inscribirme"
-          - title: "ProgramaciÃ³n Web"
-            subtitle: "60h â€¢ Virtual"
+          - title: "Programación Web"
+            subtitle: "60h - Virtual"
             image: "https://via.placeholder.com/300x160?text=Web"
             buttons:
               - title: "Inscribirme"
                 payload: "/inscribirme"
 
   utter_cursos_recomendados:
-    - text: "ðŸ“˜ AquÃ­ tienes algunos cursos que podrÃ­an interesarte:"
+    - text: "Aquí tienes algunos cursos que podrían interesarte:"
       buttons:
-        - title: "ðŸŸ© Python BÃ¡sico â€“ Ago 2025"
+        - title: "Python Básico – Ago 2025"
           payload: "/inscribirme"
-        - title: "ðŸŸ© IA Educativa â€“ Sep 2025"
+        - title: "IA Educativa – Sep 2025"
           payload: "/inscribirme"
 
   utter_preguntar_problema_acceso:
-    - text: "ðŸ¤– Entiendo. Â¿Tienes problemas de acceso? Â¿Deseas recuperar tu contraseÃ±a?"
+    - text: "Entiendo. ¿Tienes problemas de acceso? ¿Deseas recuperar tu contraseña?"
       buttons:
-        - title: "âœ… SÃ­, recuperar contraseÃ±a"
+        - title: "Sí, recuperar contraseña"
           payload: "/recuperar_contrasena"
-        - title: "âŒ No, otro problema"
+        - title: "No, otro problema"
           payload: "/otro_problema_acceso"
 
   utter_pedir_correo:
-    - text: "ðŸ“© Por favor, dime tu correo para enviarte el enlace de recuperaciÃ³n."
+    - text: "Por favor, dime tu correo para enviarte el enlace de recuperación."
 
   utter_confirmar_recuperacion:
-    - text: "âœ… Â¡Perfecto! Revisa tu bandeja de entrada."
+    - text: "Perfecto. Revisa tu bandeja de entrada."
 
   utter_menu_proceso_academico:
-    - text: "Â¿Sobre quÃ© deseas informaciÃ³n?"
+    - text: "¿Sobre qué deseas información?"
       buttons:
-        - title: "ðŸ§‘â€ðŸ« Tutor asignado"
+        - title: "Tutor asignado"
           payload: "/tutor_asignado"
-        - title: "ðŸ“„ Certificados"
+        - title: "Certificados"
           payload: "/ver_certificados"
-        - title: "ðŸ“… Horarios y calendario"
+        - title: "Horarios y calendario"
           payload: "/horarios_calendario"
 
   utter_certificados_info:
     - text: |
-        ðŸ§¾ Python BÃ¡sico â€“ Nov 2024
-        ðŸ§¾ IA Educativa â€“ Ene 2025
+        Python Básico – Nov 2024
+        IA Educativa – Ene 2025
       buttons:
-        - title: "ðŸ”— Descargar todos"
+        - title: "Descargar todos"
           payload: "/ver_certificados"
-        - title: "ðŸŸ¢ Ver detalles"
+        - title: "Ver detalles"
           payload: "/ver_certificados"
 
   utter_tutor_asignado:
     - text: |
-        ðŸ‘¨â€ðŸ« Tu tutor actual es:
-        Nombre: Prof. Ana MarÃ­a Restrepo
+        Tu tutor actual es:
+        Nombre: Prof. Ana María Restrepo
         Email: ana.restrepo@zajuna.edu
-        Horario: Lun y MiÃ© 10:00 â€“ 12:00
+        Horario: Lun y Mié 10:00 - 12:00
       buttons:
-        - title: "ðŸ“… Ver disponibilidad"
+        - title: "Ver disponibilidad"
           payload: "/tutor_asignado"
-        - title: "âœ‰ï¸ Enviar mensaje"
+        - title: "Enviar mensaje"
           payload: "/tutor_asignado"
 
   utter_soporte_tecnico:
-    - text: "ðŸ¤– Entiendo. Vamos a tomar tus datos para ayudarte mejor."
+    - text: "Entiendo. Vamos a tomar tus datos para ayudarte mejor."
 
   utter_estado_estudiante:
-    - text: "ðŸŽ“ EstÃ¡s **activo** para el periodo acadÃ©mico 2025-2."
+    - text: "Estás activo para el periodo académico 2025-2."
 
   utter_cambio_idioma_ingles:
     - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
 
   utter_cambio_idioma_espanol:
-    - text: "Volvamos a EspaÃ±ol ðŸ‡ªðŸ‡¸"
+    - text: "Volvamos a Español."
 
   utter_escalar_humano:
-    - text: "ðŸ¤– Â¿Quieres que te comunique con un agente humano?"
-      buttons:
-        - title: "âœ… SÃ­, por favor"
+    - text: "¿Quieres que te comunique con un agente humano?"
+    - buttons:
+        - title: "Sí, por favor"
           payload: "/confirmacion_escalar_humano"
-        - title: "âŒ No, seguir con bot"
+        - title: "No, seguir con bot"
           payload: "/negar_escalar"
 
   utter_confirmar_escalado:
-    - text: "ðŸ” Te estoy conectando con un agente humano, por favor espera..."
+    - text: "Te estoy conectando con un agente humano, por favor espera..."
 
   utter_gracias_continuar:
-    - text: "ðŸ‘ Perfecto, sigamos aquÃ­ en el chat."
+    - text: "Perfecto, sigamos aquí en el chat."
 
   utter_confirmacion_inscripcion:
-    - text: "âœ… EstÃ¡s inscrito al curso. Te enviaremos confirmaciÃ³n por correo."
+    - text: "Estás inscrito al curso. Te enviaremos confirmación por correo."
 
   utter_default:
-    - text: "âŒ No entendÃ­ eso. Â¿PodrÃ­as reformularlo?"
+    - text: "No entendí eso. ¿Podrías reformularlo?"
 
   # Prompts del soporte_form
   utter_ask_nombre:
-    - text: "ðŸ‘¤ Â¿CuÃ¡l es tu nombre completo?"
+    - text: "¿Cuál es tu nombre completo?"
   utter_ask_email:
-    - text: "ðŸ“§ Â¿CuÃ¡l es tu correo de contacto?"
+    - text: "¿Cuál es tu correo de contacto?"
   utter_ask_mensaje:
-    - text: "ðŸ“ CuÃ©ntame brevemente el problema tÃ©cnico (mÃ¡x. 5000 caracteres)."
+    - text: "Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
 
   utter_soporte_form_ok:
-    - text: "ðŸ™ Gracias. Estoy registrando tu solicitudâ€¦"
+    - text: "Gracias. Estoy registrando tu solicitud..."
 
   utter_soporte_resumen:
     - text: |
-        âœ… Gracias {nombre}. Voy a crear un ticket con:
-        â€¢ Email: {email}
-        â€¢ Mensaje: "{mensaje}"
+        Gracias {nombre}. Voy a crear un ticket con:
+        - Email: {email}
+        - Mensaje: "{mensaje}"
 
   utter_soporte_creado:
-    - text: "ðŸŽ« Ticket creado correctamente. Te enviaremos novedades a tu correo."
+    - text: "Ticket creado correctamente. Te enviaremos novedades a tu correo."
 
   utter_soporte_error:
-    - text: "âš ï¸ OcurriÃ³ un error al crear el ticket. Intenta de nuevo en unos minutos."
+    - text: "Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
 
   utter_need_auth:
-    - text: "Necesitas iniciar sesiÃ³n para ver esta informaciÃ³n."
+    - text: "Necesitas iniciar sesión para ver esta información."
       buttons:
-        - title: "Iniciar sesiÃ³n"
+        - title: "Iniciar sesión"
           payload: "/auth_login"
       custom:
         type: "auth_needed"
-        message: "Necesitas iniciar sesiÃ³n para continuar."
+        message: "Necesitas iniciar sesión para continuar."
 
-  # âœ¨ ConfirmaciÃ³n breve usada por regla 'Enviar soporte directo'
+  # Confirmación breve usada por regla 'Enviar soporte directo'
   utter_soporte_confirm:
-    - text: "ðŸ“¨ Â¡Listo! He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
+    - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
 
 actions:
   - action_enviar_correo

@@ -126,3 +126,11 @@ except FileNotFoundError:
 
 print("LIMPIADOS/ACTUALIZADOS:")
 print("\n".join(f" - {c}" for c in changed) if changed else " (ninguno)")
+
+
+
+
+
+
+
+
