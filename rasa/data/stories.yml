@@ -2,132 +2,96 @@
 
 stories:
 
-- story: Saludo → Recomendados
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: explorar_temas
-    - action: utter_cursos_recomendados
+  # 👋 Saludo → cursos recomendados
+  - story: Saludo → Recomendados
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: explorar_temas
+      - action: utter_cursos_recomendados
 
-- story: Saludo → Carrusel cursos
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: explorar_temas
-    - action: utter_cursos_carousel
+  # 👋 Saludo → carrusel de cursos
+  - story: Saludo → Carrusel cursos
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: explorar_temas
+      - action: utter_cursos_carousel
 
-- story: Explorar directo → Carrusel
-  steps:
-    - intent: explorar_temas
-    - action: utter_cursos_carousel
+  # 🔎 Explorar directo → Carrusel
+  - story: Explorar directo → Carrusel
+    steps:
+      - intent: explorar_temas
+      - action: utter_cursos_carousel
 
-- story: Mis cursos → Recomendados + Carrusel
-  steps:
-    - intent: explorar_temas
-    - action: utter_cursos_recomendados
-    - action: utter_cursos_carousel
+  # 📚 Mis cursos → recomendados + carrusel
+  - story: Mis cursos → Recomendados + Carrusel
+    steps:
+      - intent: explorar_temas
+      - action: utter_cursos_recomendados
+      - action: utter_cursos_carousel
 
-- story: Recuperar contraseña desde ingreso
-  steps:
-    - intent: ingreso_zajuna
-    - action: utter_preguntar_problema_acceso
-    - intent: recuperar_contrasena
-    - action: recovery_form
-    - active_loop: recovery_form
-    - action: recovery_form
-    - active_loop: null
-    - action: action_enviar_correo
-    - action: utter_confirmar_recuperacion
+  # 🔐 Recuperar contraseña desde ingreso
+  - story: Recuperar contraseña desde ingreso
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_preguntar_problema_acceso
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+      - action: recovery_form
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
 
-- story: Proceso académico completo
-  steps:
-    - intent: proceso_academico
-    - action: utter_menu_proceso_academico
-    - intent: tutor_asignado
-    - action: utter_tutor_asignado
-    - intent: ver_certificados
-    - action: action_check_auth
-    # si action_check_auth luego emite un utter, lo hará internamente
-    - intent: horarios_calendario
-    - action: utter_menu_proceso_academico
+  # 📚 Proceso académico completo
+  - story: Proceso académico completo
+    steps:
+      - intent: proceso_academico
+      - action: utter_menu_proceso_academico
+      - intent: tutor_asignado
+      - action: utter_tutor_asignado
+      - intent: ver_certificados
+      - action: action_check_auth
+      - intent: horarios_calendario
+      - action: utter_menu_proceso_academico
 
-- story: Escalar a humano (confirmado)
-  steps:
-    - intent: escalar_humano
-    - action: utter_escalar_humano
-    - intent: confirmacion_escalar_humano
-    - action: action_conectar_humano
-    - action: utter_confirmar_escalado
+  # 🙋 Escalar a humano (confirmado)
+  - story: Escalar a humano (confirmado)
+    steps:
+      - intent: escalar_humano
+      - action: utter_escalar_humano
+      - intent: confirmacion_escalar_humano
+      - action: action_conectar_humano
+      - action: utter_confirmar_escalado
 
-- story: Escalar a humano (negado)
-  steps:
-    - intent: escalar_humano
-    - action: utter_escalar_humano
-    - intent: negar_escalar
-    - action: utter_gracias_continuar
+  # 🙅 Escalar a humano (negado)
+  - story: Escalar a humano (negado)
+    steps:
+      - intent: escalar_humano
+      - action: utter_escalar_humano
+      - intent: negar_escalar
+      - action: utter_gracias_continuar
 
-# Soporte técnico por diferentes entradas
-- story: Soporte técnico (intent principal)
-  steps:
-    - intent: soporte_tecnico
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: soporte_form
-    - active_loop: null
-    - action: utter_soporte_resumen
-    - action: action_soporte_submit
-    - action: utter_soporte_creado
+  # 🛠️ Soporte técnico (flujo completo)
+  - story: Soporte técnico (genérico)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
 
-- story: Soporte técnico (no ingreso)
-  steps:
-    - intent: problema_no_ingreso
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: soporte_form
-    - active_loop: null
-    - action: utter_soporte_resumen
-    - action: action_soporte_submit
-    - action: utter_soporte_creado
-
-- story: Soporte técnico (pantalla blanca)
-  steps:
-    - intent: pantalla_blanca
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: soporte_form
-    - active_loop: null
-    - action: utter_soporte_resumen
-    - action: action_soporte_submit
-    - action: utter_soporte_creado
-
-- story: Soporte técnico (error actividad)
-  steps:
-    - intent: error_actividad
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: soporte_form
-    - active_loop: null
-    - action: utter_soporte_resumen
-    - action: action_soporte_submit
-    - action: utter_soporte_creado
-
-- story: Soporte técnico (otro problema)
-  steps:
-    - intent: otro_problema_tecnico
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: soporte_form
-    - active_loop: null
-    - action: utter_soporte_resumen
-    - action: action_soporte_submit
-    - action: utter_soporte_creado
-
-- story: Cancelar soporte_form
-  steps:
-    - intent: soporte_tecnico
-    - action: soporte_form
-    - active_loop: soporte_form
-    - intent: deny
-    - action: action_deactivate_loop
-    - active_loop: null
-    - action: utter_gracias_continuar
+  # ❌ Cancelar soporte_form
+  - story: Cancelar soporte_form
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+      - intent: deny
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar

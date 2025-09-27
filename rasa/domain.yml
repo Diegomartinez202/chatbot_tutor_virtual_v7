@@ -1,6 +1,7 @@
 version: "3.1"
 
 intents:
+  # Intents principales del asistente
   - saludo
   - explorar_temas
   - ingreso_zajuna
@@ -24,6 +25,7 @@ intents:
   - inscribirme
   - enviar_correo
   - auth_login
+  # Intents de fallback y confirmación
   - affirm
   - deny
   - fallback
@@ -40,11 +42,13 @@ slots:
       - type: from_entity
         entity: email
       - type: from_text
+
   nombre:
     type: text
     influence_conversation: false
     mappings:
       - type: from_text
+
   mensaje:
     type: text
     influence_conversation: false
@@ -57,11 +61,13 @@ forms:
       - nombre
       - email
       - mensaje
+
   recovery_form:
     required_slots:
       - email
 
 responses:
+  # --- Saludo inicial ---
   utter_saludo:
     - text: "Hola! ¿En qué puedo ayudarte hoy?"
       buttons:
@@ -76,6 +82,7 @@ responses:
         - title: "Soporte técnico"
           payload: "/soporte_tecnico"
 
+  # --- Cursos ---
   utter_cursos_carousel:
     - custom:
         cards:
@@ -106,6 +113,7 @@ responses:
         - title: "IA Educativa – Sep 2025"
           payload: "/inscribirme"
 
+  # --- Problemas de acceso ---
   utter_preguntar_problema_acceso:
     - text: "Entiendo. ¿Tienes problemas de acceso? ¿Deseas recuperar tu contraseña?"
       buttons:
@@ -120,6 +128,7 @@ responses:
   utter_confirmar_recuperacion:
     - text: "Perfecto. Revisa tu bandeja de entrada."
 
+  # --- Menú proceso académico ---
   utter_menu_proceso_academico:
     - text: "¿Sobre qué deseas información?"
       buttons:
@@ -152,21 +161,24 @@ responses:
         - title: "Enviar mensaje"
           payload: "/tutor_asignado"
 
+  # --- Soporte técnico ---
   utter_soporte_tecnico:
     - text: "Entiendo. Vamos a tomar tus datos para ayudarte mejor."
 
   utter_estado_estudiante:
     - text: "Estás activo para el periodo académico 2025-2."
 
+  # --- Cambio de idioma ---
   utter_cambio_idioma_ingles:
     - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
 
   utter_cambio_idioma_espanol:
     - text: "Volvamos a Español."
 
+  # --- Escalamiento humano ---
   utter_escalar_humano:
     - text: "¿Quieres que te comunique con un agente humano?"
-    - buttons:
+      buttons:
         - title: "Sí, por favor"
           payload: "/confirmacion_escalar_humano"
         - title: "No, seguir con bot"
@@ -178,17 +190,21 @@ responses:
   utter_gracias_continuar:
     - text: "Perfecto, sigamos aquí en el chat."
 
+  # --- Inscripciones ---
   utter_confirmacion_inscripcion:
     - text: "Estás inscrito al curso. Te enviaremos confirmación por correo."
 
+  # --- Fallback ---
   utter_default:
     - text: "No entendí eso. ¿Podrías reformularlo?"
 
-  # Prompts del soporte_form
+  # --- Prompts del soporte_form ---
   utter_ask_nombre:
     - text: "¿Cuál es tu nombre completo?"
+
   utter_ask_email:
     - text: "¿Cuál es tu correo de contacto?"
+
   utter_ask_mensaje:
     - text: "Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
 
@@ -207,16 +223,17 @@ responses:
   utter_soporte_error:
     - text: "Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
 
+  # --- Autenticación requerida ---
   utter_need_auth:
     - text: "Necesitas iniciar sesión para ver esta información."
       buttons:
         - title: "Iniciar sesión"
           payload: "/auth_login"
-      custom:
+    - custom:
         type: "auth_needed"
         message: "Necesitas iniciar sesión para continuar."
 
-  # Confirmación breve usada por regla 'Enviar soporte directo'
+  # --- Confirmación soporte directo ---
   utter_soporte_confirm:
     - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
 
