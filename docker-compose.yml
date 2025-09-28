@@ -95,8 +95,11 @@ services:
       - app-net
     volumes:
       - ./rasa/models:/app/models
-      - ./rasa/endpoints.yml:/app/endpoints.yml:ro
-      - ./rasa/data:/app/data   # 👈 Nuevo volumen para tus archivos NLU
+      - ./rasa/data:/app/data                 
+      - ./rasa/domain.yml:/app/domain.yml:ro   
+      - ./rasa/config.yml:/app/config.yml:ro  
+      - ./rasa/endpoints.yml:/app/endpoints.yml:ro  
+
 
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
