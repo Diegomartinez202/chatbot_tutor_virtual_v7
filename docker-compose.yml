@@ -2,7 +2,7 @@
 # version: "3.9"
 
 # ============================================================
-# Redes y volÃºmenes
+# Redes y volúmenes
 # ============================================================
 networks:
   app-net:
@@ -19,7 +19,7 @@ volumes:
 services:
 
   # ------------------------------------------------------------
-  # MongoDB (comÃºn a build/prod)
+  # MongoDB (común a build/prod)
   # ------------------------------------------------------------
   mongo:
     profiles: ["build","prod"]
@@ -34,7 +34,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # MongoDB (perfil: vanilla) â€” con autenticaciÃ³n
+  # MongoDB (perfil: vanilla) — con autenticación
   # ------------------------------------------------------------
   ctv_mongo:
     profiles: ["vanilla"]
@@ -95,13 +95,15 @@ services:
       - app-net
     volumes:
       - ./rasa/models:/app/models
+      - ./rasa/endpoints.yml:/app/endpoints.yml:ro
+      - ./rasa/data:/app/data   # 👈 Nuevo volumen para tus archivos NLU
+
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
       timeout: 5s
       start_period: 300s
       retries: 5
-
 
   # ------------------------------------------------------------
   # Rasa (perfil: vanilla)
@@ -342,9 +344,3 @@ services:
       - redis-data:/data
     networks:
       - app-net
-      event_broker:
-  type: redis
-  url: "redis"
-  port: 6379
-  db: 0
-  # password: ""   # Si usas clave, descomenta y ponla  

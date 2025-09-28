@@ -30,9 +30,17 @@ intents:
   - deny
   - fallback
   - enviar_soporte
+  - enviar_telefono
+  - enviar_cedula
+  - enviar_numero
+  - enviar_url
 
 entities:
   - email
+  - telefono
+  - cedula
+  - numero
+  - url
 
 slots:
   email:
@@ -236,6 +244,21 @@ responses:
   # --- Confirmación soporte directo ---
   utter_soporte_confirm:
     - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
+
+  utter_enviar_correo:
+    - text: "Perfecto, he registrado tu correo: {email}"
+  utter_enviar_telefono:
+    - text: "He guardado tu teléfono: {telefono}"
+  utter_enviar_cedula:
+    - text: "Tu cédula quedó registrada: {cedula}"
+  utter_enviar_numero:
+    - text: "Número recibido: {numero}"
+  utter_enviar_url:
+    - text: "He registrado el enlace: {url}"
+  utter_saludo:
+    - text: "¡Hola! Soy tu asistente Zajuna 🤖. ¿Cómo te ayudo hoy?"
+  utter_fallback:
+    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
 actions:
   - action_enviar_correo

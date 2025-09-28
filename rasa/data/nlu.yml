@@ -326,3 +326,35 @@ nlu:
     - necesito ayuda con el acceso
     - deseo enviar un ticket de soporte
     - reportar un incidente técnico
+
+# ————— TELÉFONO
+- intent: enviar_telefono
+  examples: |
+    - mi teléfono es [3124567890](telefono)
+    - puedes llamarme al [3001234567](telefono)
+    - este es mi número [3109876543](telefono)
+    - contáctame al [3156781234](telefono)
+
+# ————— CÉDULA
+- intent: enviar_cedula
+  examples: |
+    - mi cédula es [1024587963](cedula)
+    - el número de mi documento es [987654321](cedula)
+    - esta es mi identificación [1234567890](cedula)
+    - c.c. [87654321](cedula)
+
+# ————— NÚMERO
+- intent: enviar_numero
+  examples: |
+    - mi código es [12345](numero)
+    - anota este número [9876](numero)
+    - el pin es [4567](numero)
+    - el id es [2025](numero)
+
+# ————— URL
+- intent: enviar_url
+  examples: |
+    - entra en este enlace [https://zajuna.edu](url)
+    - visita [http://ejemplo.com/cursos](url)
+    - este es el link [https://plataforma.org/login](url)
+    - abre [https://soporte.zajuna.edu/help](url)

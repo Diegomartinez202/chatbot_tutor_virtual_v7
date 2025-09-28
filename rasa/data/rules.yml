@@ -150,3 +150,32 @@ rules:
     steps:
       - intent: fallback
       - action: utter_default
+  - rule: Responder cuando usuario envía correo
+  steps:
+    - intent: enviar_correo
+    - action: utter_enviar_correo
+
+- rule: Responder cuando usuario envía teléfono
+  steps:
+    - intent: enviar_telefono
+    - action: utter_enviar_telefono
+
+- rule: Responder cuando usuario envía cédula
+  steps:
+    - intent: enviar_cedula
+    - action: utter_enviar_cedula
+
+- rule: Responder cuando usuario envía número
+  steps:
+    - intent: enviar_numero
+    - action: utter_enviar_numero
+
+- rule: Responder cuando usuario envía url
+  steps:
+    - intent: enviar_url
+    - action: utter_enviar_url
+
+- rule: Fallback default
+  steps:
+    - intent: fallback
+    - action: utter_fallback
