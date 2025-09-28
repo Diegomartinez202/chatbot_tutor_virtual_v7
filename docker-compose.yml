@@ -83,7 +83,7 @@ services:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
       RASA_AUTOTRAIN: "false"     # ✅ tú decides cuándo entrenar
-      # ENDPOINTS_TEMPLATE: ""    # ✅ (quitar o dejar vacío para que NO renderice)
+      ENDPOINTS_TEMPLATE: "mongo"   
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
@@ -94,11 +94,15 @@ services:
     networks:
       - app-net
     volumes:
-      - ./rasa/models:/app/models                # modelos persistentes
-      - ./rasa/data:/app/data                    # edición en caliente de datos
-      - ./rasa/domain.yml:/app/domain.yml:ro     # dominio de tu repo
-      - ./rasa/config.yml:/app/config.yml:ro     # pipeline/policies de tu repo
-      - ./rasa/endpoints.yml:/app/endpoints.yml:ro  # ✅ tu endpoints.yml manda
+      - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/domain.yml:/app/domain.yml:ro
+      - ./rasa/config.yml:/app/config.yml:ro
+      # Quitar este (causaba el choque R/O):
+      # - ./rasa/endpoints.yml:/app/endpoints.yml:ro
+      # Usar tu endpoints como plantilla que el entrypoint “renderiza”:
+      - ./rasa/endpoints.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
@@ -345,3 +349,21 @@ services:
       - redis-data:/data
     networks:
       - app-net
+# ============================================================
+# Nginx Reverse Proxy (solo en dev)
+# ============================================================
+nginx-dev:
+  profiles: ["build"]
+  image: nginx:alpine
+  container_name: nginx-dev
+  restart: unless-stopped
+  volumes:
+    - ./ops/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
+  ports:
+    - "8080:80"
+  depends_on:
+    - backend-dev
+    - admin-dev
+    - rasa
+  networks:
+    - app-net

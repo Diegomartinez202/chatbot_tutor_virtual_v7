@@ -186,3 +186,39 @@ Documentación actualizada.
 Scripts rápidos para entrenar Rasa en un clic.
 
 Proyecto listo para levantar en local, Docker o Visual Studio.
+
+🌐 8. Nginx-dev (perfil build)
+
+El servicio nginx-dev actúa como proxy inverso para tu entorno de desarrollo. Se levanta solo con el perfil build.
+
+👉 Accesos rápidos:
+
+Nginx-dev: http://localhost
+
+Backend FastAPI: http://localhost:8000/docs
+
+Rasa: http://localhost:5005/status
+
+Admin React: http://localhost:8080
+
+Comandos
+# Levantar nginx-dev junto al resto de servicios (perfil build)
+docker compose --profile build up -d --build nginx-dev
+
+# Ver logs en vivo de nginx-dev
+docker compose logs -f nginx-dev
+
+# Reiniciar nginx-dev (sin tocar otros servicios)
+docker compose restart nginx-dev
+
+# Apagar solo nginx-dev
+docker compose stop nginx-dev
+
+
+⚠️ Tips:
+
+nginx-dev solo existe en el perfil build.
+
+Si lo levantas con docker compose --profile vanilla, no aparecerá.
+
+Úsalo para probar el routing completo con proxy en local.

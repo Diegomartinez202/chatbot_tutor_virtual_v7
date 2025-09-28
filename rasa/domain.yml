@@ -77,6 +77,7 @@ forms:
 responses:
   # --- Saludo inicial ---
   utter_saludo:
+    - text: "¡Hola! Soy tu asistente Zajuna 🤖. ¿Cómo te ayudo hoy?"
     - text: "Hola! ¿En qué puedo ayudarte hoy?"
       buttons:
         - title: "Explorar temas"
@@ -255,8 +256,7 @@ responses:
     - text: "Número recibido: {numero}"
   utter_enviar_url:
     - text: "He registrado el enlace: {url}"
-  utter_saludo:
-    - text: "¡Hola! Soy tu asistente Zajuna 🤖. ¿Cómo te ayudo hoy?"
+
   utter_fallback:
     - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
