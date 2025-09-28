@@ -82,8 +82,8 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "true"
-      ENDPOINTS_TEMPLATE: "mongo"
+      RASA_AUTOTRAIN: "false"     # ✅ tú decides cuándo entrenar
+      # ENDPOINTS_TEMPLATE: ""    # ✅ (quitar o dejar vacío para que NO renderice)
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
@@ -94,13 +94,11 @@ services:
     networks:
       - app-net
     volumes:
-      - ./rasa/models:/app/models
-      - ./rasa/data:/app/data                 
-      - ./rasa/domain.yml:/app/domain.yml:ro   
-      - ./rasa/config.yml:/app/config.yml:ro  
-      - ./rasa/endpoints.yml:/app/endpoints.yml:ro  
-
-
+      - ./rasa/models:/app/models                # modelos persistentes
+      - ./rasa/data:/app/data                    # edición en caliente de datos
+      - ./rasa/domain.yml:/app/domain.yml:ro     # dominio de tu repo
+      - ./rasa/config.yml:/app/config.yml:ro     # pipeline/policies de tu repo
+      - ./rasa/endpoints.yml:/app/endpoints.yml:ro  # ✅ tu endpoints.yml manda
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
