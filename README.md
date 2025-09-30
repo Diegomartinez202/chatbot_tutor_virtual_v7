@@ -346,3 +346,76 @@ La distribución y uso externo requiere autorización expresa del autor.
 
 ---
 
+# 🔄 Scripts de Reset para Entorno Docker
+
+Este repositorio contiene **tres variantes** de scripts PowerShell para administrar el entorno de desarrollo con **Docker Compose**.
+
+---
+
+## 📌 1. `reset_dev.ps1` (Menú interactivo)
+
+👉 Ideal para **desarrolladores** que quieren tener varias opciones en un solo script.
+
+### Funcionalidad
+- Menú con opciones:
+  1. Detener y eliminar contenedores (`docker compose down`)
+  2. Limpiar recursos huérfanos (`docker system prune`)
+  3. Reconstruir y levantar (`docker compose up --build -d`)
+  4. Ciclo completo (**down + prune + up**)
+  5. Ver estado de contenedores (`docker compose ps`)
+- Permite ver logs en tiempo real (opcional).
+
+### Ejecución
+```powershell
+pwsh ./reset_dev.ps1
+📌 2. reset_dev_light.ps1 (Ciclo completo + logs)
+👉 Ideal para uso rápido cuando quieres resetear todo y seguir los logs directamente.
+
+Funcionalidad
+Ejecuta en orden:
+
+docker compose down
+
+docker system prune -f --volumes
+
+docker compose up --build -d
+
+Muestra logs en tiempo real (docker compose logs -f).
+
+Ejecución
+powershell
+Copiar código
+pwsh ./reset_dev_light.ps1
+ℹ️ Se queda en los logs hasta que detengas con Ctrl+C.
+
+📌 3. reset_dev_auto.ps1 (Ciclo completo sin logs)
+👉 Ideal para CI/CD o tareas programadas, donde solo quieres reiniciar todo y que el script termine.
+
+Funcionalidad
+Ejecuta en orden:
+
+docker compose down
+
+docker system prune -f --volumes
+
+docker compose up --build -d
+
+No se queda en logs, termina automáticamente.
+
+Ejecución
+powershell
+Copiar código
+pwsh ./reset_dev_auto.ps1
+🛠️ Requisitos
+Tener instalado Docker Desktop o Docker Engine.
+
+Tener un archivo docker-compose.yml en el directorio actual.
+
+Ejecutar con PowerShell 5+ o PowerShell Core (pwsh).
+
+🚀 Recomendación de uso
+👨‍💻 Desarrollo local: reset_dev.ps1
+
+🔍 Debug rápido: reset_dev_light.ps1
+
+🤖 Automatización/CI: reset_dev_auto.ps1
