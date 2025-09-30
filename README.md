@@ -153,32 +153,87 @@ cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 3. Motor de IA – Rasa
-bash
-Copiar código
+
 cd rasa
 pip install rasa
 rasa train
 rasa run --enable-api --cors "*" --port 5005 --debug
+
+🔄 Restauración de modelos Rasa (Backup)
+
+Si necesitas volver a un modelo anterior, sigue estos pasos:
+
+1️⃣ Listar backups disponibles
+
+Los backups se encuentran en ./rasa/models_backup.
+
+Windows:
+
+dir .\rasa\models_backup
+
+
+Linux/Mac:
+
+ls -l ./rasa/models_backup
+
+
+Se mostrarán carpetas con formato backup_YYYYMMDD_HHMMSS.
+
+2️⃣ Restaurar un backup específico
+
+Copia los modelos de la carpeta de backup a la carpeta principal de modelos (./rasa/models).
+
+Windows:
+
+xcopy /E /I /Y ".\rasa\models_backup\backup_20250930_213045\*" ".\rasa\models\"
+
+
+Linux/Mac:
+
+cp -r ./rasa/models_backup/backup_20250930_213045/* ./rasa/models/
+
+
+Sustituye backup_20250930_213045 por el nombre del backup que quieres restaurar.
+
+3️⃣ Verificar modelos restaurados
+
+Windows:
+
+dir .\rasa\models
+
+
+Linux/Mac:
+
+ls -l ./rasa/models
+
+
+Confirma que los modelos se copiaron correctamente.
+
+4️⃣ Re-entrenamiento opcional
+
+Después de restaurar, si quieres actualizar con nuevos datos:
+
+docker compose run --rm rasa rasa train --verbose
+
+
+💡 Tip: Siempre haz un backup antes de restaurar para no perder los modelos actuales.
+
 4. Panel Admin – React
-bash
-Copiar código
+
 cd admin-panel-react
 npm install
 npm run dev
 💬 Widget Embebido
 Puedes integrarlo en cualquier sitio como Zajuna:
 
-html
-Copiar código
+
 <script src="https://TU_DOMINIO/static/widget/embed.js"></script>
 O directamente:
 
-html
-Copiar código
+
 <iframe src="https://TU_DOMINIO/static/widget/widget.html" width="400" height="600"></iframe>
 🧪 Pruebas Automáticas
-bash
-Copiar código
+
 cd backend
 pytest tests/
 🐳 Despliegue con Docker Compose
@@ -211,8 +266,7 @@ Rasa HTTP: http://localhost/rasa
 Rasa WebSocket: ws://localhost/ws
 
 🔹 3. Modo VANILLA (imágenes oficiales sin build local)
-bash
-Copiar código
+
 docker compose --profile vanilla up
 🔄 Scripts de Reset para Docker
 Incluye 3 variantes (/scripts/):
@@ -237,13 +291,6 @@ Workflows útiles:
 .github/workflows/deploy_railway.yml
 
 .github/workflows/train_rasa.yml
-
-
-
-
-
-
-
 
 
 
