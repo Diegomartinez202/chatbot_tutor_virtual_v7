@@ -1,4 +1,3 @@
-// src/services/authApi.js 
 import axiosClient from "./axiosClient";
 import { setToken, clearToken, setRefreshToken } from "./tokenStorage";
 
@@ -23,6 +22,9 @@ const PATHS = {
         login: ["/api/admin/login", "/admin/login"],
         me: ["/api/admin/me", "/admin/me"],
     },
+
+    // Forgot password
+    forgot: ["/auth/forgot-password", "/forgot-password"],
 };
 
 function pickFirst(arr) {
@@ -61,8 +63,6 @@ export async function login({ email, password }) {
 
 export async function loginWithToken(token) {
     setAuthToken(token);
-    // Si quisieras validar inmediatamente:
-    // await me();
     return { ok: true };
 }
 
@@ -71,13 +71,12 @@ export async function me() {
         try {
             const { data } = await axiosClient.get(u);
             return data;
-        } catch { }
+        } catch {}
     }
     throw new Error("No se pudo obtener el perfil.");
 }
 
 export async function refresh(refreshTokenMaybe) {
-    // 1) Cookie httpOnly (GET /auth/refresh)
     try {
         const { data } = await axiosClient.get(PATHS.refresh[0].url);
         const newTk = data?.access_token || data?.token || null;
@@ -85,9 +84,8 @@ export async function refresh(refreshTokenMaybe) {
             setAuthToken(newTk);
             return { token: newTk, raw: data };
         }
-    } catch { }
+    } catch {}
 
-    // 2) POST con refresh_token si lo tienes
     const candidates = PATHS.refresh.slice(1);
     for (const cand of candidates) {
         try {
@@ -101,7 +99,7 @@ export async function refresh(refreshTokenMaybe) {
                 if (newRefresh) setRefreshToken(newRefresh);
                 return { token: newTk, raw: data };
             }
-        } catch { }
+        } catch {}
     }
 
     clearAuthToken();
@@ -112,9 +110,18 @@ export async function logout() {
     try {
         const url = pickFirst(PATHS.logout);
         await axiosClient.post(url);
-    } catch { }
+    } catch {}
     clearAuthToken();
     return { ok: true };
+}
+
+// ──────────────────────────────────────────────
+/** Forgot password */
+// ──────────────────────────────────────────────
+export async function forgotPassword({ email }) {
+    const url = pickFirst(PATHS.forgot);
+    const { data } = await axiosClient.post(url, { email });
+    return data;
 }
 
 // ──────────────────────────────────────────────
