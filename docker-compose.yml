@@ -82,8 +82,8 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "false"     # ✅ tú decides cuándo entrenar
-      ENDPOINTS_TEMPLATE: "mongo"   
+      RASA_AUTOTRAIN: "false"           # entrenas manualmente
+      ENDPOINTS_TEMPLATE: "mongo"       # usará tu plantilla montada
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
@@ -99,9 +99,9 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      # Quitar este (causaba el choque R/O):
+      # ❌ NO montar /app/endpoints.yml directo (causa read-only)
       # - ./rasa/endpoints.yml:/app/endpoints.yml:ro
-      # Usar tu endpoints como plantilla que el entrypoint “renderiza”:
+      # ✅ Usar tu endpoints como plantilla que el entrypoint “renderiza”
       - ./rasa/endpoints.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
@@ -286,7 +286,7 @@ services:
       - app-net
 
   # ============================================================
-  # Nginx Reverse Proxy (solo en prod)
+  # Nginx Reverse Proxy (solo en prod) — ÚNICO
   # ============================================================
   nginx:
     profiles: ["prod"]
@@ -350,27 +350,9 @@ services:
     networks:
       - app-net
 
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: nginx
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      # 🔹 frontend build en prod
-      - ./admin_panel_react/dist:/usr/share/nginx/html:ro
-      # 🔹 configuración Nginx (usa el mismo archivo para dev/prod)
-      - ./ops/nginx/conf.d/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - backend
-      - rasa
-    profiles: ["prod", "build"]
-
   # ============================================================
-  # Nginx Reverse Proxy (solo en dev)
+  # Nginx Dev (reverse proxy local) — ÚNICO
   # ============================================================
-  # Nginx Dev
   nginx-dev:
     profiles: ["build"]
     image: nginx:alpine
@@ -384,24 +366,5 @@ services:
       - backend-dev
       - admin-dev
       - rasa
-    networks:
-      - app-net
-
-  # Nginx Prod
-  nginx:
-    profiles: ["prod"]
-    image: nginx:1.27-alpine
-    container_name: nginx
-    restart: unless-stopped
-    volumes:
-      - ./ops/nginx/conf.d/prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./ops/nginx/certs:/etc/nginx/certs:ro
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - backend
-      - rasa
-      - admin
     networks:
       - app-net
