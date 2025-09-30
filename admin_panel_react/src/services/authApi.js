@@ -1,4 +1,4 @@
-// src/services/authApi.js
+// src/services/authApi.js 
 import axiosClient from "./axiosClient";
 import { setToken, clearToken, setRefreshToken } from "./tokenStorage";
 
@@ -157,3 +157,6 @@ export async function adminMe() {
 // Aliases por compatibilidad con tu código actual
 export const apiLogin = login;
 export const apiMe = me;
+
+// 🔹 Alias agregado para que RegisterPage.jsx no rompa
+export const register = registerAdmin;

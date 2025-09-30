@@ -6,6 +6,7 @@ import IconTooltip from "@/components/ui/IconTooltip";
 import { UserPlus, Mail, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+// ✅ Import corregido: usamos el alias `register` definido en authApi.js
 import { register as apiRegister } from "@/services/authApi";
 
 export default function RegisterPage() {
@@ -31,7 +32,7 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            // Ajusta payload si tu backend requiere otros campos
+            // 🔹 Se llama al alias `apiRegister` (que apunta a registerAdmin)
             await apiRegister({
                 name: nombre,
                 email,
