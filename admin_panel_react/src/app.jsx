@@ -9,7 +9,7 @@ import RequireRole from "@/components/RequireRole";
 
 // Páginas públicas
 import HomePage from "@/pages/HomePage";
-import LoginPage from "@/pages/LoginPage";
+import LoginPage from "@/pages/loginPage";
 import Unauthorized from "@/pages/Unauthorized";
 import AuthCallback from "@/pages/AuthCallback";
 import AdminRegisterPage from "@/pages/AdminRegisterPage";
