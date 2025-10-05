@@ -460,6 +460,63 @@ Rasa API: http://localhost/rasa
 
 WebSocket Rasa: ws://localhost/ws
 
+---
+
+## 🐳 Despliegue con Docker y Perfiles
+
+El proyecto está configurado para ejecutarse mediante **Docker Compose**, con distintos **perfiles** que controlan qué servicios se levantan según el entorno.
+
+### 📦 Perfiles disponibles
+
+| Perfil | Descripción | Servicios incluidos |
+|:-------|:-------------|:--------------------|
+| **dev** | Entorno de desarrollo | backend, frontend, rasa, action-server, mongo, redis |
+| **prod** | Entorno de producción | backend, admin, rasa, action-server, mongo, redis |
+| **build** | Solo construcción de imágenes | backend, admin |
+
+### 🚀 Levantar servicios según el perfil
+
+#### ➤ Entorno de desarrollo
+```bash
+docker compose --profile dev up -d
+➤ Entorno de producción
+bash
+Copiar código
+docker compose --profile prod up -d
+➤ Construcción de imágenes sin ejecución
+bash
+Copiar código
+docker compose --profile build build
+🧩 Levantar servicios individuales
+bash
+Copiar código
+docker compose --profile dev up -d backend
+docker compose --profile dev up -d rasa
+docker compose --profile dev up -d action-server
+docker compose --profile dev up -d admin
+📜 Logs y monitoreo
+bash
+Copiar código
+# Ver todos los logs
+docker compose logs -f
+
+# Ver logs de un servicio específico
+docker compose logs -f backend
+🧹 Limpieza y mantenimiento
+bash
+Copiar código
+# Detener todos los servicios
+docker compose down
+
+# Eliminar volúmenes y contenedores
+docker compose down -v
+
+# Reconstruir imágenes desde cero
+docker compose build --no-cache
+💡 Tip: Antes de levantar el entorno, asegúrate de haber configurado correctamente las variables de entorno (.env, .env.dev, .env.prod).
+
+yaml
+Copiar código
 
 
 📜 Licencia
