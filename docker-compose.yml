@@ -350,6 +350,7 @@ services:
     networks:
       - app-net
 
+   
   # ============================================================
   # Nginx Dev (reverse proxy local) — ÚNICO
   # ============================================================
@@ -357,14 +358,15 @@ services:
     profiles: ["build"]
     image: nginx:alpine
     container_name: nginx-dev
-    restart: unless-stopped
     volumes:
-      - ./ops/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/nginx/dev.conf.d:/etc/nginx/conf.d:ro
     ports:
       - "8080:80"
     depends_on:
+      - rasa
       - backend-dev
       - admin-dev
-      - rasa
+    environment:
+      APP_ENV: development
     networks:
       - app-net
