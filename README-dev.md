@@ -222,3 +222,56 @@ nginx-dev solo existe en el perfil build.
 Si lo levantas con docker compose --profile vanilla, no aparecerá.
 
 Úsalo para probar el routing completo con proxy en local.
+
+---
+
+## ⚙️ Guía de perfiles Docker (Desarrollo / Build / Producción)
+
+Este proyecto incluye varios perfiles de ejecución configurados en `docker-compose.override.yml` y `docker-compose.yml`.  
+Cada perfil permite levantar únicamente los servicios necesarios para cada entorno, evitando sobrecargar el sistema.
+
+| Perfil | Propósito | Comando para iniciar | Comando para detener | Comando para limpiar |
+|:--|:--|:--|:--|:--|
+| 🧩 **vanilla** | Solo Rasa + Mongo + Redis (modo base, sin build ni prod) | `docker compose --profile vanilla up -d` | `docker compose --profile vanilla down` | `docker compose --profile vanilla down -v --remove-orphans` |
+| 🧱 **build** | Compila e instala dependencias para desarrollo | `docker compose --profile build up -d --build` | `docker compose --profile build down` | `docker compose --profile build down -v --remove-orphans` |
+| 🚀 **prod** | Entorno productivo listo para despliegue | `docker compose --profile prod up -d` | `docker compose --profile prod down` | `docker compose --profile prod down -v --remove-orphans` |
+
+### 🧰 Comandos útiles
+```bash
+# Ver servicios activos
+docker compose ps
+
+# Ver logs en tiempo real
+docker compose logs -f
+
+# Reiniciar solo Rasa
+docker compose restart rasa
+📘 Consulta también el archivo README.ops.md para instrucciones de mantenimiento avanzado (backup de MongoDB, limpieza de Redis, healthchecks, etc.).
+
+yaml
+Copiar código
+
+---
+
+#### 📚 **Bloque para `README.md` (general)**
+(agregar al final del archivo, justo antes del cierre o debajo de “Licencia / Créditos”)
+
+```markdown
+---
+
+## 🧭 Guía rápida de ejecución por perfiles
+
+Este proyecto puede levantarse con diferentes perfiles Docker, según el entorno deseado:
+
+| Perfil | Descripción | Archivo de referencia |
+|:--|:--|:--|
+| 🧩 **vanilla** | Solo servicios base (Rasa + Mongo + Redis) | [`README.dev.md`](./README.dev.md) |
+| 🧱 **build** | Entorno de desarrollo con dependencias y herramientas de build | [`README.dev.md`](./README.dev.md) |
+| 🚀 **prod** | Entorno productivo estable para despliegue | [`README.ops.md`](./README.ops.md) |
+
+Para más detalles y comandos específicos de cada perfil, revisa:
+
+- 📘 **Desarrollo:** [`README.dev.md`](./README.dev.md)  
+- ⚙️ **Operaciones:** [`README.ops.md`](./README.ops.md)
+
+---

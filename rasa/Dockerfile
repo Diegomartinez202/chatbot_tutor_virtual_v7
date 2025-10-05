@@ -2,35 +2,39 @@ FROM rasa/rasa:3.6.20-full
 
 USER root
 
-# Paquetes m�nimos + curl para healthcheck
+# 📦 Instala paquetes mínimos + curl para healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base curl \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copia tu proyecto Rasa completo
+# 🧩 Instala dependencias adicionales para tracker_store y event_broker
+RUN pip install --no-cache-dir pymongo redis
+
+# 📁 Copia el proyecto Rasa completo
 COPY . /app
 
-# Copia entrypoint y plantillas de endpoints
+# 🧾 Copia entrypoint y plantillas de endpoints
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml
 
-# Normaliza EOL (CRLF -> LF), elimina BOM y fija permisos/propietario (sin heredoc)
+# 🔧 Normaliza saltos de línea y permisos
 RUN sed -i 's/\r$//' /entrypoint.sh \
  && sed -i '1s/^\xEF\xBB\xBF//' /entrypoint.sh \
  && find /app -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; || true \
  && chown -R 1000:1000 /app /entrypoint.sh \
  && chmod +x /entrypoint.sh
 
-# Usuario sin privilegios (coherente con la imagen base)
+# 👤 Usuario sin privilegios (coherente con la imagen base)
 USER 1000
 
-# Entrypoint
+# 🚀 Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 5005
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=5 \
+# ❤️ Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
   CMD curl -fsS http://127.0.0.1:5005/status || exit 1
