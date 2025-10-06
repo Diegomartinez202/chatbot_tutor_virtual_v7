@@ -55,6 +55,10 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    class Config:
+        # ✅ Permitir variables adicionales sin romper el backend
+        extra = "ignore"
+
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")
     mongo_db_name: str = Field(..., alias="MONGO_DB_NAME")
@@ -122,18 +126,16 @@ class Settings(BaseSettings):
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="APP_ENV")
 
-    # 🚦 Rate limiting (compat + mejoras)
+    # 🚦 Rate limiting
     rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
     rate_limit_backend: Literal["memory", "redis"] = Field(default="memory", alias="RATE_LIMIT_BACKEND")
     rate_limit_window_sec: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SEC")
     rate_limit_max_requests: int = Field(default=60, alias="RATE_LIMIT_MAX_REQUESTS")
     redis_url: Optional[str] = Field(None, alias="REDIS_URL")
 
-    # ✅ NUEVO: permite definir directamente el storage URI (prioritario)
+    # ✅ NUEVO: permite definir directamente el storage URI
     rate_limit_storage_uri: Optional[str] = Field(default=None, alias="RATE_LIMIT_STORAGE_URI")
 
-    # ✅ NUEVO: estrategia de clave para SlowAPI (híbrida, exención admin, IP)
-    #    Valores: "user_or_ip" | "skip_admin" | "ip"
     rate_limit_key_strategy: Literal["user_or_ip", "skip_admin", "ip"] = Field(
         default="user_or_ip", alias="RATE_LIMIT_KEY_STRATEGY"
     )
@@ -175,8 +177,6 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
         # Rate limit:
-        # - Si backend=redis y NO has definido RATE_LIMIT_STORAGE_URI explícito,
-        #   REDIS_URL es obligatorio (para mantener compat).
         if (
             self.rate_limit_enabled
             and self.rate_limit_backend == "redis"
@@ -187,7 +187,7 @@ class Settings(BaseSettings):
                 "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
             )
 
-        # JWT: si alg es RS*, exigir JWT_PUBLIC_KEY; si HS*, exigir SECRET_KEY
+        # JWT
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
             if not (self.jwt_public_key and self.jwt_public_key.strip()):
@@ -209,18 +209,15 @@ class Settings(BaseSettings):
             self.aws_s3_bucket_name and self.aws_access_key_id and self.aws_secret_access_key
         )
 
-    # Compat: algunos módulos esperan 'rasa_rest_base'
     @property
     def rasa_rest_base(self) -> str:
         """Equivalente a RASA_URL en este proyecto."""
         return self.rasa_url
 
-    # Lista garantizada para middlewares CORS
     @property
     def allowed_origins_list(self) -> List[str]:
         return list(self.allowed_origins or [])
 
-    # CSP básico sugerido (si lo quieres usar desde código)
     def build_csp(self) -> str:
         fa = " ".join(self.frame_ancestors or ["'self'"])
         return (
@@ -236,15 +233,8 @@ class Settings(BaseSettings):
             "form-action 'self' *;"
         )
 
-    # ✅ NUEVO helper: URI efectivo para rate limit (SlowAPI)
     @property
     def rate_limit_storage_uri_effective(self) -> str:
-        """
-        Regresa el storage_uri a usar por SlowAPI:
-          1) Si RATE_LIMIT_STORAGE_URI está definido → úsalo tal cual.
-          2) Si backend=redis y REDIS_URL está definido → usa REDIS_URL.
-          3) En cualquier otro caso → memory:// (por defecto).
-        """
         if self.rate_limit_storage_uri and str(self.rate_limit_storage_uri).strip():
             return str(self.rate_limit_storage_uri).strip()
         if self.rate_limit_backend == "redis" and self.redis_url and str(self.redis_url).strip():
