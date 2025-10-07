@@ -3,7 +3,8 @@ import { Loader2, Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
 import assets from "@/config/assets";
-
+import assets from "@/config/assets";
+import { useAvatarPreload } from "@/hooks/useAvatar";
 /**
  * Loader del chatbot con avatar.
  */
@@ -22,7 +23,7 @@ export default function ChatbotLoading({
             status === "ready" ? "ok" :
                 status === "error" ? "error" :
                     status || undefined;
-
+useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
     return (
         <div className="w-full h-full flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
             <div className="relative">

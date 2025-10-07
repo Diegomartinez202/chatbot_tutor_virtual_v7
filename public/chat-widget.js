@@ -4,7 +4,7 @@
     const ONE = 1;
 
     const DEFAULTS = {
-        iconUrl: "/bot-avatar.png",
+        iconUrl: new URL("bot-avatar.png", document.baseURI).pathname,
         title: "Abrir chat",
         buttonPosition: "bottom-right",
         size: 64,

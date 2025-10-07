@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Loader2, Bot, CheckCircle, XCircle } from "lucide-react";
 import Badge from "@/components/Badge";
 import IconTooltip from "@/components/ui/IconTooltip";
-
+import assets from "@/config/assets";
 const STATUS_MAP = {
     connecting: { badge: "pendiente", label: "Conectando…" },
     ready: { badge: "ok", label: "Conectado" },
@@ -13,7 +13,7 @@ const STATUS_MAP = {
 export default function ChatbotStatusMini({
     status = "connecting",           // "connecting" | "ready" | "error"
     message,                          // opcional: sobreescribe el label por defecto
-    avatarSrc = "/bot-avatar.png",    // opcional
+    avatarSrc = assets.BOT_AVATAR,    // usar assets normalizados
     size = 36,                        // px
     className = "",
 }) {

@@ -12,7 +12,8 @@
     const sandbox = s.sandbox || "allow-scripts allow-forms allow-same-origin allow-popups";
     const z = Number.isFinite(Number(s.zIndex)) ? Number(s.zIndex) : 9999;
 
-    const url = `${origin}${pathEmbed}?src=${encodeURIComponent(chatSrc)}&w=${encodeURIComponent(width)}&h=${encodeURIComponent(height)}&title=${encodeURIComponent(title)}&avatar=${encodeURIComponent(s.avatar || "/bot-avatar.png")}`;
+    const defaultAvatar = new URL("bot-avatar.png", document.baseURI).pathname;
+    const url = `${origin}${pathEmbed}?src=${encodeURIComponent(chatSrc)}&w=${encodeURIComponent(width)}&h=${encodeURIComponent(height)}&title=${encodeURIComponent(title)}&avatar=${encodeURIComponent(s.avatar || defaultAvatar)}`;
 
     const style = document.createElement("style");
     style.textContent = `

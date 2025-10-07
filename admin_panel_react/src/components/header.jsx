@@ -22,7 +22,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import SettingsPanel from "@/components/SettingsPanel";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
-
+import assets from "@/config/assets";
 const Header = () => {
     const { user, logout: doLogout } = useAuth();
     const logout = doLogout || (() => { });
@@ -33,8 +33,8 @@ const Header = () => {
 
     const [openSettings, setOpenSettings] = React.useState(false);
 
-    // Avatar configurable + fallback local seguro
-    const AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
+    // Avatar configurable + fallback seguro desde assets normalizados
+    const AVATAR = import.meta.env.VITE_BOT_AVATAR || assets.BOT_AVATAR;
 
     // Abrir el widget de chat si está presente; si no, navegar a /chat
     const openChat = (e) => {

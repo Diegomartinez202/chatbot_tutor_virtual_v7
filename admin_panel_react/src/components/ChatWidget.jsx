@@ -6,7 +6,8 @@ import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import IconTooltip from "@/components/ui/IconTooltip";
 import ChatUI from "@/components/chat/ChatUI";
 import assets from "@/config/assets";
-
+import assets from "@/config/assets";
+import { useAvatarPreload } from "@/hooks/useAvatar";
 /**
  * Widget flotante para el chat.
  */
@@ -45,7 +46,7 @@ export default function ChatWidget({
         document.addEventListener("keydown", onEsc);
         return () => document.removeEventListener("keydown", onEsc);
     }, [open]);
-
+    useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
     return (
         <>
             <ChatbotLauncher

@@ -14,7 +14,8 @@ class ChatbotTutorSena extends HTMLElement {
         const sandbox = this.getAttribute("sandbox") || "allow-scripts allow-forms allow-same-origin allow-popups";
         const position = this.getAttribute("position") === "left" ? "left" : "right";
 
-        const url = `${origin}${pathEmbed}?src=${encodeURIComponent(chatSrc)}&w=${encodeURIComponent(width)}&h=${encodeURIComponent(height)}&title=${encodeURIComponent(title)}&avatar=${encodeURIComponent(this.getAttribute("avatar") || "/bot-avatar.png")}`;
+        const defaultAvatar = new URL("bot-avatar.png", document.baseURI).pathname;
+        const url = `${origin}${pathEmbed}?src=${encodeURIComponent(chatSrc)}&w=${encodeURIComponent(width)}&h=${encodeURIComponent(height)}&title=${encodeURIComponent(title)}&avatar=${encodeURIComponent(this.getAttribute("avatar") || defaultAvatar)}`;
 
         const style = document.createElement("style");
         style.textContent = `

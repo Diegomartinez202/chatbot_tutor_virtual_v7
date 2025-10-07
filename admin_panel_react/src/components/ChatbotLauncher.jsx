@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import assets from "@/config/assets";
-
+import assets from "@/config/assets";
+import { useAvatarPreload } from "@/hooks/useAvatar";
 /**
  * Botón flotante para abrir/cerrar el chat.
  */
@@ -15,7 +16,7 @@ export default function ChatbotLauncher({
     isOpen = false,
 }) {
     const [imgError, setImgError] = useState(false);
-
+useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
     return (
         <IconTooltip label={title} side="left">
             <button
