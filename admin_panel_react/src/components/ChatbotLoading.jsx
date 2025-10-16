@@ -3,7 +3,6 @@ import { Loader2, Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
 import assets from "@/config/assets";
-import assets from "@/config/assets";
 import { useAvatarPreload } from "@/hooks/useAvatar";
 /**
  * Loader del chatbot con avatar.

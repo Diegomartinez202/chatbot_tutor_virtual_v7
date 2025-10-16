@@ -9,7 +9,7 @@ import RequireRole from "@/components/RequireRole";
 
 // Páginas públicas
 import HomePage from "@/pages/HomePage";
-import LoginPage from "@/pages/loginPage";
+import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
 import AuthCallback from "@/pages/AuthCallback";
 import AdminRegisterPage from "@/pages/AdminRegisterPage";
@@ -28,6 +28,7 @@ import AssignRoles from "@/pages/AssignRoles";
 import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
+
 
 // Chat
 import ChatPage from "@/pages/ChatPage";
