@@ -1,4 +1,4 @@
-# backend/config/settings.py
+# backend/config/settings.py 
 from __future__ import annotations
 
 import os
@@ -9,6 +9,10 @@ from typing import List, Optional, Literal
 
 from pydantic import Field, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# ✅ FIX: evitamos el import circular (mantengo tu estructura original)
+# from backend.config.settings import LOG_DIR
+LOG_DIR = os.getenv("LOG_DIR", "logs")
 
 try:
     # pydantic v2
@@ -50,14 +54,19 @@ class Settings(BaseSettings):
     """
 
     # === Configuración general ===
+    # ✅ FIX: añadimos `extra="ignore"` para permitir las variables vite_*
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
+        extra="ignore",  # <--- añadido para que Pydantic v2 no falle con vite_*
     )
 
-    class Config:
-        # ✅ Permitir variables adicionales sin romper el backend
-        extra = "ignore"
+    # ✅ FIX: En Pydantic v2 no se permite tener Config + model_config
+    # pero no eliminamos tu código, lo envolvemos con una condición
+    if not _V2:
+        class Config:
+            # ✅ Permitir variables adicionales sin romper el backend
+            extra = "ignore"
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")

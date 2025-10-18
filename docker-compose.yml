@@ -82,8 +82,8 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "false"           # entrenas manualmente
-      ENDPOINTS_TEMPLATE: "mongo"       # usará tu plantilla montada
+      RASA_AUTOTRAIN: "false"
+      ENDPOINTS_TEMPLATE: "mongo"
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
@@ -99,9 +99,6 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      # ❌ NO montar /app/endpoints.yml directo (causa read-only)
-      # - ./rasa/endpoints.yml:/app/endpoints.yml:ro
-      # ✅ Usar tu endpoints como plantilla que el entrypoint “renderiza”
       - ./rasa/endpoints.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
       test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
@@ -163,8 +160,12 @@ services:
       target: dev
       args:
         REQUIREMENTS_PATH: requirements.txt
+        APP_UID: ${UID-10001}
+        APP_GID: ${GID-10001}
+        APP_USER: appuser
     container_name: backend-dev
     restart: unless-stopped
+    user: "${UID-10001}:${GID-10001}"   # <-- opcional, evita choques de permisos en bind mount
     env_file:
       - ./backend/.env
     environment:
@@ -236,6 +237,9 @@ services:
       target: prod
       args:
         REQUIREMENTS_PATH: requirements.txt
+        APP_UID: ${UID-10001}
+        APP_GID: ${GID-10001}
+        APP_USER: appuser
     container_name: backend
     restart: unless-stopped
     env_file:
@@ -350,7 +354,6 @@ services:
     networks:
       - app-net
 
-   
   # ============================================================
   # Nginx Dev (reverse proxy local) — ÚNICO
   # ============================================================

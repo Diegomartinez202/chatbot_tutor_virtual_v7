@@ -14,6 +14,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DEBIAN_FRONTEND=noninteractive \
     APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
+# UID/GID parametrizables para alinear con el host (útil en bind mounts)
+ARG APP_USER=appuser
+ARG APP_UID=10001
+ARG APP_GID=10001
+
 WORKDIR /app
 
 # apt robusto (sin cache mounts), unlock y reintentos
@@ -25,9 +30,22 @@ RUN set -eux; \
       curl \
       ca-certificates \
       poppler-utils \
+      adduser \
+      passwd \
     ; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
+
+# Crear el usuario/grupo no-root de forma consistente ya en la base
+# (esto evita "no matching entries in passwd file" en etapas posteriores)
+RUN set -eux; \
+    if ! getent group "${APP_GID}" >/dev/null; then \
+      addgroup --gid "${APP_GID}" "${APP_USER}" || addgroup --gid "${APP_GID}" "${APP_USER}"; \
+    fi; \
+    if ! id -u "${APP_USER}" >/dev/null 2>&1; then \
+      adduser --disabled-password --gecos "" --uid "${APP_UID}" --gid "${APP_GID}" "${APP_USER}"; \
+    fi; \
+    mkdir -p /app/logs /app/backend/static && chown -R "${APP_UID}:${APP_GID}" /app
 
 ############################
 # DEPS (requirements)
@@ -78,12 +96,13 @@ COPY --from=deps /install /usr/local
 # Copia solo el backend (si el build context es ./backend, esto será el contenido)
 COPY . /app
 
-# Permisos
-RUN mkdir -p /app/logs /app/backend/static && \
-    adduser --disabled-password --gecos "" --uid 10001 appuser && \
-    chown -R appuser:appuser /app
+# Asegurar permisos correctos (el usuario ya existe desde base)
+ARG APP_USER=appuser
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN chown -R "${APP_UID}:${APP_GID}" /app
 
-USER appuser
+USER ${APP_USER}
 
 EXPOSE 8000
 
@@ -105,7 +124,7 @@ FROM prod AS dev
 
 USER root
 RUN python -m pip install --no-cache-dir watchfiles uvicorn[standard]
-USER appuser
+USER ${APP_USER}
 
 ENV APP_ENV=dev \
     DEBUG=1
